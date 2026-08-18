@@ -5,7 +5,7 @@ const cors = require("cors");
 
 const app = express();
 
-require("./config/db");
+const db = require("./config/db");
 
 app.use(
   cors({
@@ -33,6 +33,29 @@ app.use("/api/products", productRoutes);
 app.use("/api/customers", customerRoutes);
 app.use("/api/invoices", invoiceRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+
+app.get("/api/debug/admin", (req, res) => {
+  db.query(
+    "SELECT id, name, email FROM admins WHERE email = ? LIMIT 1",
+    ["admin@gmail.com"],
+    (err, result) => {
+      if (err) {
+        console.error("Debug DB Error:", err);
+
+        return res.status(500).json({
+          success: false,
+          message: "Database error",
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        count: result.length,
+        admin: result[0] || null,
+      });
+    },
+  );
+});
 
 app.get("/", (req, res) => {
   res.status(200).json({
@@ -62,6 +85,5 @@ const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`🚀 Smart Billing API Running on port ${PORT}`);
-
   console.log(`🌐 http://localhost:${PORT}`);
 });
