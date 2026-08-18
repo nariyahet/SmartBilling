@@ -111,7 +111,7 @@ function Dashboard() {
             👥 Customers
           </Link>
 
-          <Link to="/invoices" className="nav-link">
+          <Link to="/invoices/create" className="nav-link">
             🧾 Invoices
           </Link>
 
