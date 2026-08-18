@@ -22,10 +22,6 @@ function SalesReport() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // ==========================================
-  // CURRENCY FORMAT
-  // ==========================================
-
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat("en-IN", {
       style: "currency",
@@ -33,10 +29,6 @@ function SalesReport() {
       maximumFractionDigits: 2,
     }).format(Number(amount) || 0);
   };
-
-  // ==========================================
-  // DATE FORMAT
-  // ==========================================
 
   const formatDate = (date) => {
     if (!date) return "-";
@@ -48,10 +40,6 @@ function SalesReport() {
       year: "numeric",
     });
   };
-
-  // ==========================================
-  // FETCH SALES REPORT
-  // ==========================================
 
   const fetchSalesReport = async () => {
     try {
@@ -66,72 +54,56 @@ function SalesReport() {
         setDailySales(response.data.dailySales || []);
         setMonthlySales(response.data.monthlySales || []);
       } else {
-        setError(
-          response.data?.message || "Unable to load sales report"
-        );
+        setError(response.data?.message || "Unable to load sales report");
       }
     } catch (error) {
       console.error("Sales Report Error:", error);
 
-      setError(
-        error.response?.data?.message ||
-          "Unable to load sales report"
-      );
+      setError(error.response?.data?.message || "Unable to load sales report");
     } finally {
       setLoading(false);
     }
   };
 
-  // ==========================================
-  // LOAD REPORT
-  // ==========================================
+  useEffect(() => {
+    let isMounted = true;
 
-useEffect(() => {
-  let isMounted = true;
+    const loadReport = async () => {
+      try {
+        setLoading(true);
+        setError("");
 
-  const loadReport = async () => {
-    try {
-      setLoading(true);
-      setError("");
+        const response = await API.get("/dashboard/sales-report");
 
-      const response = await API.get("/dashboard/sales-report");
+        if (!isMounted) return;
 
-      if (!isMounted) return;
+        if (response.data?.success) {
+          setDailySales(response.data.dailySales || []);
+          setMonthlySales(response.data.monthlySales || []);
+        } else {
+          setError(response.data?.message || "Unable to load sales report");
+        }
+      } catch (error) {
+        if (!isMounted) return;
 
-      if (response.data?.success) {
-        setDailySales(response.data.dailySales || []);
-        setMonthlySales(response.data.monthlySales || []);
-      } else {
+        console.error("Sales report error:", error);
+
         setError(
-          response.data?.message || "Unable to load sales report"
+          error.response?.data?.message || "Unable to load sales report",
         );
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
       }
-    } catch (error) {
-      if (!isMounted) return;
+    };
 
-      console.error("Sales report error:", error);
+    loadReport();
 
-      setError(
-        error.response?.data?.message ||
-          "Unable to load sales report"
-      );
-    } finally {
-      if (isMounted) {
-        setLoading(false);
-      }
-    }
-  };
-
-  loadReport();
-
-  return () => {
-    isMounted = false;
-  };
-}, []);
-
-  // ==========================================
-  // LOADING
-  // ==========================================
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   if (loading) {
     return (
@@ -145,40 +117,21 @@ useEffect(() => {
     );
   }
 
-  // ==========================================
-  // CHART DATA
-  // ==========================================
-
-  const chartData = [...monthlySales]
-    .reverse()
-    .map((item) => ({
-      month: String(item.month || ""),
-      total: Number(item.total) || 0,
-    }));
-
-  // ==========================================
-  // UI
-  // ==========================================
+  const chartData = [...monthlySales].reverse().map((item) => ({
+    month: String(item.month || ""),
+    total: Number(item.total) || 0,
+  }));
 
   return (
     <div className="sales-report-container">
-
-      {/* ======================================
-          HEADER
-      ====================================== */}
-
       <div className="sales-report-header">
-
         <div>
           <h1>📈 Sales Report</h1>
 
-          <p>
-            View your daily and monthly sales
-          </p>
+          <p>View your daily and monthly sales</p>
         </div>
 
         <div className="sales-header-actions">
-
           <button
             type="button"
             className="sales-refresh-button"
@@ -194,74 +147,41 @@ useEffect(() => {
           >
             ← Dashboard
           </button>
-
         </div>
-
       </div>
-
-      {/* ======================================
-          ERROR
-      ====================================== */}
 
       {error && (
         <div className="sales-report-error">
-
           <span>{error}</span>
 
-          <button
-            type="button"
-            onClick={fetchSalesReport}
-          >
+          <button type="button" onClick={fetchSalesReport}>
             Retry
           </button>
-
         </div>
       )}
 
-      {/* ======================================
-          DAILY SALES
-      ====================================== */}
-
       <div className="sales-report-card">
-
         <div className="sales-card-header">
-
           <div>
             <h2>📅 Daily Sales</h2>
 
-            <p>
-              Daily invoice sales overview
-            </p>
+            <p>Daily invoice sales overview</p>
           </div>
 
-          <span className="sales-count">
-            {dailySales.length}
-          </span>
-
+          <span className="sales-count">{dailySales.length}</span>
         </div>
 
         {dailySales.length === 0 ? (
-
           <div className="sales-empty">
-
-            <div className="sales-empty-icon">
-              📊
-            </div>
+            <div className="sales-empty-icon">📊</div>
 
             <h3>No Sales Data</h3>
 
-            <p>
-              No daily sales data available.
-            </p>
-
+            <p>No daily sales data available.</p>
           </div>
-
         ) : (
-
           <div className="sales-table-wrapper">
-
             <table className="sales-table">
-
               <thead>
                 <tr>
                   <th>#</th>
@@ -271,76 +191,37 @@ useEffect(() => {
               </thead>
 
               <tbody>
-
                 {dailySales.map((item, index) => (
+                  <tr key={item.date || index}>
+                    <td>{index + 1}</td>
 
-                  <tr
-                    key={item.date || index}
-                  >
-
-                    <td>
-                      {index + 1}
-                    </td>
+                    <td>{formatDate(item.date)}</td>
 
                     <td>
-                      {formatDate(item.date)}
+                      <strong>{formatCurrency(item.total)}</strong>
                     </td>
-
-                    <td>
-                      <strong>
-                        {formatCurrency(item.total)}
-                      </strong>
-                    </td>
-
                   </tr>
-
                 ))}
-
               </tbody>
-
             </table>
-
           </div>
-
         )}
-
       </div>
 
-      {/* ======================================
-          MONTHLY SALES
-      ====================================== */}
-
       <div className="sales-report-card">
-
         <div className="sales-card-header">
-
           <div>
             <h2>📆 Monthly Sales</h2>
 
-            <p>
-              Monthly sales performance
-            </p>
+            <p>Monthly sales performance</p>
           </div>
 
-          <span className="sales-count">
-            {monthlySales.length}
-          </span>
-
+          <span className="sales-count">{monthlySales.length}</span>
         </div>
 
-        {/* ==================================
-            MONTHLY CHART
-        ================================== */}
-
         {chartData.length > 0 && (
-
           <div className="sales-chart">
-
-            <ResponsiveContainer
-              width="100%"
-              height="100%"
-            >
-
+            <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={chartData}
                 margin={{
@@ -350,10 +231,7 @@ useEffect(() => {
                   bottom: 10,
                 }}
               >
-
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                />
+                <CartesianGrid strokeDasharray="3 3" />
 
                 <XAxis
                   dataKey="month"
@@ -367,19 +245,13 @@ useEffect(() => {
                     fontSize: 12,
                   }}
                   tickFormatter={(value) =>
-                    `₹${Number(value).toLocaleString(
-                      "en-IN"
-                    )}`
+                    `₹${Number(value).toLocaleString("en-IN")}`
                   }
                 />
 
                 <Tooltip
-                  formatter={(value) =>
-                    formatCurrency(value)
-                  }
-                  labelFormatter={(label) =>
-                    `Month: ${label}`
-                  }
+                  formatter={(value) => formatCurrency(value)}
+                  labelFormatter={(label) => `Month: ${label}`}
                 />
 
                 <Bar
@@ -389,93 +261,47 @@ useEffect(() => {
                   radius={[6, 6, 0, 0]}
                   maxBarSize={60}
                 />
-
               </BarChart>
-
             </ResponsiveContainer>
-
           </div>
-
         )}
 
-        {/* ==================================
-            MONTHLY TABLE
-        ================================== */}
-
         {monthlySales.length === 0 ? (
-
           <div className="sales-empty">
-
-            <div className="sales-empty-icon">
-              📊
-            </div>
+            <div className="sales-empty-icon">📊</div>
 
             <h3>No Monthly Sales</h3>
 
-            <p>
-              No monthly sales data available.
-            </p>
-
+            <p>No monthly sales data available.</p>
           </div>
-
         ) : (
-
           <div className="sales-table-wrapper">
-
             <table className="sales-table">
-
               <thead>
-
                 <tr>
                   <th>#</th>
                   <th>Month</th>
                   <th>Total Sales</th>
                 </tr>
-
               </thead>
 
               <tbody>
+                {monthlySales.map((item, index) => (
+                  <tr key={item.month || index}>
+                    <td>{index + 1}</td>
 
-                {monthlySales.map(
-                  (item, index) => (
+                    <td>{item.month}</td>
 
-                    <tr
-                      key={
-                        item.month || index
-                      }
-                    >
-
-                      <td>
-                        {index + 1}
-                      </td>
-
-                      <td>
-                        {item.month}
-                      </td>
-
-                      <td>
-                        <strong>
-                          {formatCurrency(
-                            item.total
-                          )}
-                        </strong>
-                      </td>
-
-                    </tr>
-
-                  )
-                )}
-
+                    <td>
+                      <strong>{formatCurrency(item.total)}</strong>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
-
             </table>
-
           </div>
-
         )}
-
       </div>
-
     </div>
   );
 }

@@ -9,7 +9,7 @@ const createAdmin = async () => {
   const plainPassword = "admin123";
 
   try {
-    // Check existing admin
+
     db.query(
       "SELECT id, email FROM admins WHERE email = ? LIMIT 1",
       [email],

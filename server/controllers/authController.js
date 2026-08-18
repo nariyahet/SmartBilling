@@ -9,7 +9,7 @@ exports.login = (req, res) => {
   const email = req.body.email?.trim().toLowerCase();
   const password = req.body.password;
 
-  // Validation
+
   if (!email || !password) {
     return error(
       res,

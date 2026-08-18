@@ -17,10 +17,6 @@ function Products() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // =========================
-  // LOAD PRODUCTS
-  // =========================
-
   const loadProducts = async () => {
     try {
       setLoading(true);
@@ -39,34 +35,27 @@ function Products() {
     }
   };
 
-useEffect(() => {
-  const fetchProducts = async () => {
-    try {
-      setLoading(true);
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
 
-      const response = await API.get("/products");
+        const response = await API.get("/products");
 
-      if (response.data.success) {
-        setProducts(response.data.products || []);
+        if (response.data.success) {
+          setProducts(response.data.products || []);
+        }
+      } catch (error) {
+        console.error("Products loading error:", error);
+
+        alert(error.response?.data?.message || "Unable to load products");
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Products loading error:", error);
+    };
 
-      alert(
-        error.response?.data?.message ||
-          "Unable to load products"
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  fetchProducts();
-}, []);
-
-  // =========================
-  // RESET FORM
-  // =========================
+    fetchProducts();
+  }, []);
 
   const resetForm = () => {
     setName("");
@@ -74,10 +63,6 @@ useEffect(() => {
     setStock("");
     setEditingId(null);
   };
-
-  // =========================
-  // ADD / UPDATE PRODUCT
-  // =========================
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -127,10 +112,6 @@ useEffect(() => {
     }
   };
 
-  // =========================
-  // EDIT PRODUCT
-  // =========================
-
   const handleEdit = (product) => {
     setEditingId(product.id);
     setName(product.name);
@@ -142,10 +123,6 @@ useEffect(() => {
       behavior: "smooth",
     });
   };
-
-  // =========================
-  // DELETE PRODUCT
-  // =========================
 
   const handleDelete = async (id) => {
     const confirmDelete = window.confirm(
@@ -169,10 +146,6 @@ useEffect(() => {
     }
   };
 
-  // =========================
-  // SEARCH + STOCK FILTER
-  // =========================
-
   const filteredProducts = products.filter((product) => {
     const productName = String(product.name || "").toLowerCase();
 
@@ -191,10 +164,6 @@ useEffect(() => {
     return matchesSearch && matchesStock;
   });
 
-  // =========================
-  // CURRENCY
-  // =========================
-
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat("en-IN", {
       style: "currency",
@@ -202,10 +171,6 @@ useEffect(() => {
       maximumFractionDigits: 2,
     }).format(Number(amount) || 0);
   };
-
-  // =========================
-  // STOCK STATUS
-  // =========================
 
   const getStockStatus = (stockValue) => {
     const currentStock = Number(stockValue);
@@ -230,20 +195,12 @@ useEffect(() => {
     };
   };
 
-  // =========================
-  // LOADING
-  // =========================
-
   if (loading) {
     return <div className="products-loading">Loading products...</div>;
   }
 
   return (
     <div className="products-page">
-      {/* =========================
-          HEADER
-      ========================== */}
-
       <div className="products-header">
         <div>
           <h1>📦 Products</h1>
@@ -260,10 +217,6 @@ useEffect(() => {
           ← Dashboard
         </button>
       </div>
-
-      {/* =========================
-          PRODUCT FORM
-      ========================== */}
 
       <div className="products-card">
         <h2>{editingId ? "✏️ Edit Product" : "➕ Add Product"}</h2>
@@ -331,10 +284,6 @@ useEffect(() => {
         </form>
       </div>
 
-      {/* =========================
-          SEARCH + FILTER
-      ========================== */}
-
       <div className="products-card">
         <div className="products-list-header">
           <div>
@@ -372,10 +321,6 @@ useEffect(() => {
             <option value="out-of-stock">Out of Stock</option>
           </select>
         </div>
-
-        {/* =========================
-            PRODUCTS TABLE
-        ========================== */}
 
         {filteredProducts.length === 0 ? (
           <div className="products-empty">

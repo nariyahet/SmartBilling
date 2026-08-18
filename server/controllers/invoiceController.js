@@ -1,6 +1,5 @@
 const db = require("../config/db");
 
-// CREATE INVOICE
 const createInvoice = async (req, res, next) => {
   try {
     const {
@@ -10,7 +9,6 @@ const createInvoice = async (req, res, next) => {
       tax_percent = 18,
     } = req.body;
 
-    // Validate customer
     if (!customer_id) {
       return res.status(400).json({
         success: false,
@@ -18,7 +16,6 @@ const createInvoice = async (req, res, next) => {
       });
     }
 
-    // Validate items
     if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({
         success: false,
@@ -26,7 +23,6 @@ const createInvoice = async (req, res, next) => {
       });
     }
 
-    // Check customer
     const [customers] = await db.promise().query(
       `SELECT id, name, mobile, email, address
              FROM customers
@@ -44,7 +40,6 @@ const createInvoice = async (req, res, next) => {
     let subtotal = 0;
     const invoiceItems = [];
 
-    // Check products and calculate subtotal
     for (const item of items) {
       const productId = Number(item.product_id);
       const quantity = Number(item.quantity);
@@ -92,7 +87,6 @@ const createInvoice = async (req, res, next) => {
       });
     }
 
-    // Discount
     const discountPercent = Number(discount_percent) || 0;
 
     const taxPercent = Number(tax_percent) || 0;
@@ -101,16 +95,12 @@ const createInvoice = async (req, res, next) => {
 
     const afterDiscount = subtotal - discountAmount;
 
-    // Tax
     const taxAmount = afterDiscount * (taxPercent / 100);
 
-    // Grand Total
     const grandTotal = afterDiscount + taxAmount;
 
-    // Generate invoice number
     const invoiceNo = "INV-" + Date.now().toString().slice(-8);
 
-    // Create invoice
     const invoiceResult = await db.promise().query(
       `INSERT INTO invoices
                 (
@@ -138,7 +128,6 @@ const createInvoice = async (req, res, next) => {
 
     const invoiceId = invoiceResult[0].insertId;
 
-    // Insert invoice items
     for (const item of invoiceItems) {
       await db.promise().query(
         `INSERT INTO invoice_items
@@ -161,7 +150,6 @@ const createInvoice = async (req, res, next) => {
         ],
       );
 
-      // Reduce stock
       await db.promise().query(
         `UPDATE products
                  SET stock = stock - ?
@@ -191,7 +179,6 @@ const createInvoice = async (req, res, next) => {
   }
 };
 
-// GET NEW INVOICE NUMBER
 const getNewInvoice = async (req, res, next) => {
   try {
     const [rows] = await db.promise().query(
@@ -226,7 +213,6 @@ const getNewInvoice = async (req, res, next) => {
   }
 };
 
-// GET ALL INVOICES
 const getInvoices = async (req, res, next) => {
   try {
     const [invoices] = await db.promise().query(
@@ -251,7 +237,6 @@ const getInvoices = async (req, res, next) => {
   }
 };
 
-// GET SINGLE INVOICE
 const getInvoiceById = async (req, res, next) => {
   try {
     const { id } = req.params;

@@ -1,9 +1,4 @@
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-  Navigate,
-} from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -13,10 +8,6 @@ import Invoices from "./pages/Invoices";
 import InvoicePreview from "./pages/InvoicePreview";
 import InvoicesHistory from "./pages/InvoicesHistory";
 import SalesReport from "./pages/SalesReport";
-
-// ===============================
-// PROTECTED ROUTE
-// ===============================
 
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem("token");
@@ -28,23 +19,11 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
-// ===============================
-// APP
-// ===============================
-
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-
-        {/* ================= LOGIN ================= */}
-
-        <Route
-          path="/"
-          element={<Login />}
-        />
-
-        {/* ================= DASHBOARD ================= */}
+        <Route path="/" element={<Login />} />
 
         <Route
           path="/dashboard"
@@ -55,8 +34,6 @@ function App() {
           }
         />
 
-        {/* ================= PRODUCTS ================= */}
-
         <Route
           path="/products"
           element={
@@ -65,8 +42,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
-        {/* ================= CUSTOMERS ================= */}
 
         <Route
           path="/customers"
@@ -77,8 +52,6 @@ function App() {
           }
         />
 
-        {/* ================= CREATE INVOICE ================= */}
-
         <Route
           path="/invoices/create"
           element={
@@ -87,8 +60,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
-        {/* ================= INVOICE HISTORY ================= */}
 
         <Route
           path="/invoices/history"
@@ -99,8 +70,6 @@ function App() {
           }
         />
 
-        {/* ================= INVOICE PREVIEW ================= */}
-
         <Route
           path="/invoice/:id"
           element={
@@ -109,8 +78,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
-        {/* ================= SALES REPORT ================= */}
 
         <Route
           path="/sales-report"
@@ -121,18 +88,7 @@ function App() {
           }
         />
 
-        {/* ================= UNKNOWN ROUTE ================= */}
-
-        <Route
-          path="*"
-          element={
-            <Navigate
-              to="/dashboard"
-              replace
-            />
-          }
-        />
-
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </BrowserRouter>
   );

@@ -1,8 +1,5 @@
 const db = require("../config/db");
 
-// ==========================================
-// GET ALL PRODUCTS
-// ==========================================
 exports.getProducts = (req, res) => {
   const sql = "SELECT * FROM products ORDER BY id DESC";
 
@@ -23,7 +20,6 @@ exports.getProducts = (req, res) => {
   });
 };
 
-// ==========================================
 // GET LOW STOCK PRODUCTS
 // ==========================================
 exports.getLowStockProducts = (req, res) => {
@@ -51,9 +47,6 @@ exports.getLowStockProducts = (req, res) => {
   });
 };
 
-// ==========================================
-// GET SINGLE PRODUCT
-// ==========================================
 exports.getProductById = (req, res) => {
   const { id } = req.params;
 
@@ -83,13 +76,9 @@ exports.getProductById = (req, res) => {
   });
 };
 
-// ==========================================
-// CREATE PRODUCT
-// ==========================================
 exports.createProduct = (req, res) => {
   const { name, price, stock } = req.body;
 
-  // Name validation
   if (!name || !name.trim()) {
     return res.status(400).json({
       success: false,
@@ -97,7 +86,6 @@ exports.createProduct = (req, res) => {
     });
   }
 
-  // Price validation
   if (
     price === undefined ||
     price === null ||
@@ -110,7 +98,6 @@ exports.createProduct = (req, res) => {
     });
   }
 
-  // Stock validation
   if (
     stock === undefined ||
     stock === null ||
@@ -146,36 +133,28 @@ exports.createProduct = (req, res) => {
     VALUES (?, ?, ?)
   `;
 
-  db.query(
-    sql,
-    [name.trim(), productPrice, productStock],
-    (err, result) => {
-      if (err) {
-        console.error("Create Product Error:", err);
+  db.query(sql, [name.trim(), productPrice, productStock], (err, result) => {
+    if (err) {
+      console.error("Create Product Error:", err);
 
-        return res.status(500).json({
-          success: false,
-          message: "Failed to create product",
-        });
-      }
-
-      res.status(201).json({
-        success: true,
-        message: "Product created successfully",
-        productId: result.insertId,
+      return res.status(500).json({
+        success: false,
+        message: "Failed to create product",
       });
     }
-  );
+
+    res.status(201).json({
+      success: true,
+      message: "Product created successfully",
+      productId: result.insertId,
+    });
+  });
 };
 
-// ==========================================
-// UPDATE PRODUCT
-// ==========================================
 exports.updateProduct = (req, res) => {
   const { id } = req.params;
   const { name, price, stock } = req.body;
 
-  // Name validation
   if (!name || !name.trim()) {
     return res.status(400).json({
       success: false,
@@ -183,7 +162,6 @@ exports.updateProduct = (req, res) => {
     });
   }
 
-  // Price validation
   if (
     price === undefined ||
     price === null ||
@@ -196,7 +174,6 @@ exports.updateProduct = (req, res) => {
     });
   }
 
-  // Stock validation
   if (
     stock === undefined ||
     stock === null ||
@@ -237,12 +214,7 @@ exports.updateProduct = (req, res) => {
 
   db.query(
     sql,
-    [
-      name.trim(),
-      productPrice,
-      productStock,
-      id,
-    ],
+    [name.trim(), productPrice, productStock, id],
     (err, result) => {
       if (err) {
         console.error("Update Product Error:", err);
@@ -264,17 +236,13 @@ exports.updateProduct = (req, res) => {
         success: true,
         message: "Product updated successfully",
       });
-    }
+    },
   );
 };
 
-// ==========================================
-// DELETE PRODUCT
-// ==========================================
 exports.deleteProduct = (req, res) => {
   const { id } = req.params;
 
-  // First check whether product exists
   const checkProductSql = `
     SELECT id, name
     FROM products
@@ -298,9 +266,6 @@ exports.deleteProduct = (req, res) => {
       });
     }
 
-    // ------------------------------------------
-    // CHECK IF PRODUCT IS USED IN INVOICES
-    // ------------------------------------------
     const checkInvoiceSql = `
       SELECT id
       FROM invoice_items
@@ -310,25 +275,14 @@ exports.deleteProduct = (req, res) => {
 
     db.query(checkInvoiceSql, [id], (invoiceErr, invoiceResults) => {
       if (invoiceErr) {
-        console.error(
-          "Check Product Invoice Link Error:",
-          invoiceErr
-        );
+        console.error("Check Product Invoice Link Error:", invoiceErr);
 
-        /*
-          If invoice_items table/column does not exist,
-          show proper server error instead of silently
-          deleting the product.
-        */
         return res.status(500).json({
           success: false,
           message: "Failed to check product invoice links",
         });
       }
 
-      // ------------------------------------------
-      // PRODUCT IS USED IN AN INVOICE
-      // ------------------------------------------
       if (invoiceResults.length > 0) {
         return res.status(409).json({
           success: false,
@@ -337,9 +291,6 @@ exports.deleteProduct = (req, res) => {
         });
       }
 
-      // ------------------------------------------
-      // DELETE PRODUCT
-      // ------------------------------------------
       const deleteSql = `
         DELETE FROM products
         WHERE id = ?
@@ -347,10 +298,7 @@ exports.deleteProduct = (req, res) => {
 
       db.query(deleteSql, [id], (deleteErr, result) => {
         if (deleteErr) {
-          console.error(
-            "Delete Product Error:",
-            deleteErr
-          );
+          console.error("Delete Product Error:", deleteErr);
 
           return res.status(500).json({
             success: false,

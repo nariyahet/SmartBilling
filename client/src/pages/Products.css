@@ -7,11 +7,6 @@
   color: #111827;
 }
 
-
-/* =========================================================
-   HEADER
-========================================================= */
-
 .products-header {
   max-width: 1200px;
   margin: 0 auto 30px;
@@ -34,9 +29,6 @@
   color: #6b7280;
   font-size: 15px;
 }
-
-
-/* Dashboard Button */
 
 .products-back-button {
   border: none;
@@ -61,11 +53,6 @@
   background: #2563eb;
   transform: translateY(-2px);
 }
-
-
-/* =========================================================
-   MAIN CARDS
-========================================================= */
 
 .products-card {
   max-width: 1200px;
@@ -95,11 +82,6 @@
   font-weight: 700;
 }
 
-
-/* =========================================================
-   PRODUCT FORM
-========================================================= */
-
 .product-form {
   display: grid;
 
@@ -109,9 +91,6 @@
 
   align-items: end;
 }
-
-
-/* Form Group */
 
 .product-form-group {
   display: flex;
@@ -128,9 +107,6 @@
 
   font-weight: 600;
 }
-
-
-/* Inputs */
 
 .product-form-group input {
   width: 100%;
@@ -164,11 +140,6 @@
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
-
-/* =========================================================
-   FORM BUTTONS
-========================================================= */
-
 .product-form-buttons {
   display: flex;
 
@@ -176,9 +147,6 @@
 
   align-items: center;
 }
-
-
-/* Add / Update */
 
 .save-product-button {
   border: none;
@@ -215,9 +183,6 @@
   transform: none;
 }
 
-
-/* Cancel */
-
 .cancel-product-button {
   border: none;
   outline: none;
@@ -242,11 +207,6 @@
 .cancel-product-button:hover {
   background: #d1d5db;
 }
-
-
-/* =========================================================
-   PRODUCT LIST HEADER
-========================================================= */
 
 .products-list-header {
   display: flex;
@@ -276,9 +236,6 @@
   font-size: 13px;
 }
 
-
-/* Refresh */
-
 .refresh-products-button {
   border: none;
   outline: none;
@@ -305,11 +262,6 @@
 
   transform: translateY(-2px);
 }
-
-
-/* =========================================================
-   SEARCH + FILTER
-========================================================= */
 
 .product-filters {
   display: flex;
@@ -359,11 +311,6 @@
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
-
-/* =========================================================
-   PRODUCTS TABLE
-========================================================= */
-
 .products-table-wrapper {
   width: 100%;
 
@@ -384,9 +331,6 @@
   background: #ffffff;
 }
 
-
-/* Table Header */
-
 .products-table thead th {
   padding: 14px 16px;
 
@@ -404,9 +348,6 @@
 
   white-space: nowrap;
 }
-
-
-/* Table Body */
 
 .products-table tbody td {
   padding: 15px 16px;
@@ -432,19 +373,11 @@
   background: #f9fafb;
 }
 
-
-/* Product Name */
-
 .products-table td strong {
   color: #111827;
 
   font-size: 14px;
 }
-
-
-/* =========================================================
-   STOCK BADGES
-========================================================= */
 
 .stock-badge {
   display: inline-flex;
@@ -464,17 +397,11 @@
   white-space: nowrap;
 }
 
-
-/* In Stock */
-
-.stock-good {
+*/ .stock-good {
   background: #dcfce7;
 
   color: #166534;
 }
-
-
-/* Low Stock */
 
 .stock-low {
   background: #ffedd5;
@@ -482,19 +409,11 @@
   color: #c2410c;
 }
 
-
-/* Out of Stock */
-
 .stock-out {
   background: #fee2e2;
 
   color: #b91c1c;
 }
-
-
-/* =========================================================
-   ACTION BUTTONS
-========================================================= */
 
 .product-action-buttons {
   display: flex;
@@ -503,9 +422,6 @@
 
   flex-wrap: wrap;
 }
-
-
-/* Edit */
 
 .edit-product-button {
   border: none;
@@ -534,9 +450,6 @@
   transform: translateY(-1px);
 }
 
-
-/* Delete */
-
 .delete-product-button {
   border: none;
   outline: none;
@@ -563,11 +476,6 @@
 
   transform: translateY(-1px);
 }
-
-
-/* =========================================================
-   EMPTY PRODUCTS
-========================================================= */
 
 .products-empty {
   padding: 55px 20px;
@@ -617,11 +525,6 @@
   font-size: 14px;
 }
 
-
-/* =========================================================
-   LOADING
-========================================================= */
-
 .products-loading {
   min-height: 70vh;
 
@@ -652,11 +555,6 @@
   color: #6b7280;
 }
 
-
-/* =========================================================
-   RESPONSIVE - 1100px
-========================================================= */
-
 @media (max-width: 1100px) {
   .product-form {
     grid-template-columns: repeat(2, 1fr);
@@ -666,11 +564,6 @@
     grid-column: span 2;
   }
 }
-
-
-/* =========================================================
-   RESPONSIVE - 800px
-========================================================= */
 
 @media (max-width: 800px) {
   .products-page {
@@ -706,11 +599,6 @@
     padding: 20px;
   }
 }
-
-
-/* =========================================================
-   RESPONSIVE - 600px
-========================================================= */
 
 @media (max-width: 600px) {
   .products-page {
@@ -761,11 +649,6 @@
     width: 100%;
   }
 }
-
-
-/* =========================================================
-   RESPONSIVE - 400px
-========================================================= */
 
 @media (max-width: 400px) {
   .products-page {

@@ -71,8 +71,6 @@ function InvoicesHistory() {
 
   return (
     <div className="invoices-history-page">
-      {/* Header */}
-
       <div className="invoices-history-header">
         <div>
           <h1>🧾 Invoice History</h1>
@@ -92,8 +90,6 @@ function InvoicesHistory() {
           <button onClick={loadInvoices}>🔄 Refresh</button>
         </div>
       </div>
-
-      {/* Invoice Table */}
 
       <div className="invoices-history-card">
         {invoices.length === 0 ? (

@@ -12,10 +12,6 @@ function InvoicesHistory() {
 
   const navigate = useNavigate();
 
-  // =========================
-  // LOAD INVOICES
-  // =========================
-
   const loadInvoices = async () => {
     try {
       setLoading(true);
@@ -33,10 +29,6 @@ function InvoicesHistory() {
       setLoading(false);
     }
   };
-
-  // =========================
-  // LOAD WHEN PAGE OPENS
-  // =========================
 
   useEffect(() => {
     const fetchInvoices = async () => {
@@ -58,25 +50,13 @@ function InvoicesHistory() {
     fetchInvoices();
   }, []);
 
-  // =========================
-  // CREATE INVOICE
-  // =========================
-
   const handleCreateInvoice = () => {
     navigate("/invoices/create");
   };
 
-  // =========================
-  // DASHBOARD
-  // =========================
-
   const handleDashboard = () => {
     navigate("/dashboard");
   };
-
-  // =========================
-  // CURRENCY
-  // =========================
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat("en-IN", {
@@ -85,10 +65,6 @@ function InvoicesHistory() {
       maximumFractionDigits: 2,
     }).format(Number(amount) || 0);
   };
-
-  // =========================
-  // DATE
-  // =========================
 
   const formatDate = (date) => {
     if (!date) return "-";
@@ -100,17 +76,9 @@ function InvoicesHistory() {
     });
   };
 
-  // =========================
-  // VIEW INVOICE
-  // =========================
-
   const viewInvoice = (id) => {
     navigate(`/invoice/${id}`);
   };
-
-  // =========================
-  // FILTER
-  // =========================
 
   const filteredInvoices = invoices.filter((invoice) => {
     const search = searchTerm.toLowerCase().trim();
@@ -149,10 +117,6 @@ function InvoicesHistory() {
     return matchesSearch && matchesDate;
   });
 
-  // =========================
-  // LOADING
-  // =========================
-
   if (loading) {
     return (
       <div className="invoices-history-loading">
@@ -164,10 +128,6 @@ function InvoicesHistory() {
       </div>
     );
   }
-
-  // =========================
-  // UI
-  // =========================
 
   return (
     <div className="invoices-history-page">
@@ -207,11 +167,7 @@ function InvoicesHistory() {
         </div>
       </div>
 
-      {/* CARD */}
-
       <div className="invoices-history-card">
-        {/* SEARCH */}
-
         <div className="invoice-history-filters">
           <div className="invoice-search-box">
             <label>Search Invoice</label>
@@ -248,16 +204,12 @@ function InvoicesHistory() {
           )}
         </div>
 
-        {/* COUNT */}
-
         {invoices.length > 0 && (
           <div className="invoice-result-count">
             Showing <strong>{filteredInvoices.length}</strong> of{" "}
             <strong>{invoices.length}</strong> invoices
           </div>
         )}
-
-        {/* NO INVOICES */}
 
         {invoices.length === 0 ? (
           <div className="invoices-history-empty">

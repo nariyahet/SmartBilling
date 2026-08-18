@@ -1,8 +1,5 @@
 const db = require("../config/db");
 
-// ==========================================
-// GET ALL CUSTOMERS
-// ==========================================
 exports.getCustomers = (req, res) => {
   const sql = `
     SELECT
@@ -33,9 +30,6 @@ exports.getCustomers = (req, res) => {
   });
 };
 
-// ==========================================
-// GET SINGLE CUSTOMER
-// ==========================================
 exports.getCustomerById = (req, res) => {
   const { id } = req.params;
 
@@ -75,16 +69,8 @@ exports.getCustomerById = (req, res) => {
   });
 };
 
-// ==========================================
-// CREATE CUSTOMER
-// ==========================================
 exports.createCustomer = (req, res) => {
-  const {
-    name,
-    mobile,
-    email,
-    address,
-  } = req.body;
+  const { name, mobile, email, address } = req.body;
 
   if (!name || !name.trim()) {
     return res.status(400).json({
@@ -135,22 +121,14 @@ exports.createCustomer = (req, res) => {
           address: address?.trim() || null,
         },
       });
-    }
+    },
   );
 };
 
-// ==========================================
-// UPDATE CUSTOMER
-// ==========================================
 exports.updateCustomer = (req, res) => {
   const { id } = req.params;
 
-  const {
-    name,
-    mobile,
-    email,
-    address,
-  } = req.body;
+  const { name, mobile, email, address } = req.body;
 
   if (!name || !name.trim()) {
     return res.status(400).json({
@@ -206,17 +184,13 @@ exports.updateCustomer = (req, res) => {
         success: true,
         message: "Customer updated successfully",
       });
-    }
+    },
   );
 };
 
-// ==========================================
-// DELETE CUSTOMER
-// ==========================================
 exports.deleteCustomer = (req, res) => {
   const { id } = req.params;
 
-  // First check whether customer exists
   const checkCustomerSql = `
     SELECT id, name
     FROM customers
@@ -240,7 +214,6 @@ exports.deleteCustomer = (req, res) => {
       });
     }
 
-    // Check whether customer is used in invoices
     const checkInvoiceSql = `
       SELECT COUNT(*) AS invoiceCount
       FROM invoices
@@ -257,10 +230,8 @@ exports.deleteCustomer = (req, res) => {
         });
       }
 
-      const invoiceCount =
-        Number(invoiceResults[0]?.invoiceCount) || 0;
+      const invoiceCount = Number(invoiceResults[0]?.invoiceCount) || 0;
 
-      // Customer is already used in invoices
       if (invoiceCount > 0) {
         return res.status(409).json({
           success: false,
@@ -270,7 +241,6 @@ exports.deleteCustomer = (req, res) => {
         });
       }
 
-      // Delete customer
       const deleteSql = `
         DELETE FROM customers
         WHERE id = ?

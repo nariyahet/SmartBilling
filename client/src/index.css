@@ -4,7 +4,12 @@
 
 :root {
   font-family:
-    Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
 
   color: #172033;
   background: #f5f7fb;
@@ -35,19 +40,11 @@ a {
   text-decoration: none;
 }
 
-/* =========================
-   DASHBOARD LAYOUT
-========================= */
-
 .dashboard-layout {
   min-height: 100vh;
   display: flex;
   background: #f5f7fb;
 }
-
-/* =========================
-   SIDEBAR
-========================= */
 
 .sidebar {
   width: 260px;
@@ -96,8 +93,6 @@ a {
   color: #9ca3af;
   font-size: 11px;
 }
-
-/* Navigation */
 
 .sidebar-nav {
   padding: 24px 14px;
@@ -159,19 +154,11 @@ a {
   color: #fca5a5;
 }
 
-/* =========================
-   MAIN
-========================= */
-
 .dashboard-main {
   margin-left: 260px;
   width: calc(100% - 260px);
   min-height: 100vh;
 }
-
-/* =========================
-   TOPBAR
-========================= */
 
 .dashboard-topbar {
   height: 86px;
@@ -235,10 +222,6 @@ a {
 .mobile-menu {
   display: none;
 }
-
-/* =========================
-   CONTENT
-========================= */
 
 .dashboard-content {
   padding: 30px 35px 50px;
@@ -306,10 +289,6 @@ a {
   z-index: 2;
 }
 
-/* =========================
-   STATS
-========================= */
-
 .stats-grid {
   margin-top: 25px;
   display: grid;
@@ -365,10 +344,6 @@ a {
   font-size: 11px;
 }
 
-/* =========================
-   SECTIONS
-========================= */
-
 .section-block {
   margin-top: 30px;
 }
@@ -391,10 +366,6 @@ a {
   color: #9ca3af;
   font-size: 12px;
 }
-
-/* =========================
-   QUICK ACTIONS
-========================= */
 
 .quick-actions {
   display: grid;
@@ -445,10 +416,6 @@ a {
   font-size: 11px;
 }
 
-/* =========================
-   EMPTY STATE
-========================= */
-
 .empty-state {
   padding: 55px 20px;
   text-align: center;
@@ -480,10 +447,6 @@ a {
   color: #9ca3af;
   font-size: 12px;
 }
-
-/* =========================
-   LOGIN
-========================= */
 
 .login-page {
   min-height: 100vh;
@@ -570,10 +533,6 @@ a {
   opacity: 0.65;
   cursor: not-allowed;
 }
-
-/* =========================
-   RESPONSIVE
-========================= */
 
 @media (max-width: 1100px) {
   .stats-grid {

@@ -18,9 +18,6 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // ==========================================
-  // CURRENCY FORMATTER
-  // ==========================================
   const formatCurrency = (amount) => {
     return `₹${Number(amount || 0).toLocaleString("en-IN", {
       minimumFractionDigits: 2,
@@ -28,15 +25,11 @@ function Dashboard() {
     })}`;
   };
 
-  // ==========================================
-  // LOAD DASHBOARD DATA
-  // ==========================================
   const loadDashboardData = async () => {
     try {
       setLoading(true);
       setError("");
 
-      // Dashboard Statistics
       const statsResponse = await API.get("/dashboard");
 
       if (
@@ -55,7 +48,6 @@ function Dashboard() {
         });
       }
 
-      // Low Stock Products
       const lowStockResponse = await API.get("/dashboard/low-stock");
 
       if (
@@ -76,17 +68,11 @@ function Dashboard() {
     }
   };
 
-  // ==========================================
-  // LOAD DASHBOARD WHEN PAGE OPENS
-  // ==========================================
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadDashboardData();
   }, []);
 
-  // ==========================================
-  // LOGOUT
-  // ==========================================
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("admin");
@@ -94,9 +80,6 @@ function Dashboard() {
     navigate("/");
   };
 
-  // ==========================================
-  // LOADING SCREEN
-  // ==========================================
   if (loading) {
     return (
       <div className="dashboard-loading">
@@ -108,87 +91,49 @@ function Dashboard() {
     );
   }
 
-  // ==========================================
-  // DASHBOARD UI
-  // ==========================================
   return (
     <div className="dashboard-container">
-
-      {/* ======================================
-          NAVBAR
-      ====================================== */}
       <nav className="dashboard-nav">
-
         <div className="nav-brand">
           <h2>Smart Billing</h2>
         </div>
 
         <div className="nav-links">
-
-          <Link
-            to="/dashboard"
-            className="nav-link active"
-          >
+          <Link to="/dashboard" className="nav-link active">
             🏠 Dashboard
           </Link>
 
-          <Link
-            to="/products"
-            className="nav-link"
-          >
+          <Link to="/products" className="nav-link">
             📦 Products
           </Link>
 
-          <Link
-            to="/customers"
-            className="nav-link"
-          >
+          <Link to="/customers" className="nav-link">
             👥 Customers
           </Link>
 
-          <Link
-            to="/invoices"
-            className="nav-link"
-          >
+          <Link to="/invoices" className="nav-link">
             🧾 Invoices
           </Link>
 
-          <Link
-            to="/invoices/history"
-            className="nav-link"
-          >
+          <Link to="/invoices/history" className="nav-link">
             📋 Invoice History
           </Link>
 
-          <Link
-            to="/sales-report"
-            className="nav-link"
-          >
+          <Link to="/sales-report" className="nav-link">
             📊 Sales Report
           </Link>
 
-          <button
-            type="button"
-            className="logout-btn"
-            onClick={handleLogout}
-          >
+          <button type="button" className="logout-btn" onClick={handleLogout}>
             🚪 Logout
           </button>
-
         </div>
       </nav>
 
-      {/* ======================================
-          HEADER
-      ====================================== */}
       <div className="dashboard-header">
-
         <div>
           <h1>Dashboard</h1>
 
-          <p>
-            Welcome back! Here's your business overview.
-          </p>
+          <p>Welcome back! Here's your business overview.</p>
         </div>
 
         <button
@@ -198,183 +143,91 @@ function Dashboard() {
         >
           🔄 Refresh
         </button>
-
       </div>
 
-      {/* ======================================
-          ERROR
-      ====================================== */}
-      {error && (
-        <div className="dashboard-error">
-          {error}
-        </div>
-      )}
+      {error && <div className="dashboard-error">{error}</div>}
 
-      {/* ======================================
-          STATS
-      ====================================== */}
       <div className="dashboard-stats">
-
-        {/* Customers */}
         <div className="stat-card">
-
-          <div className="stat-icon">
-            👥
-          </div>
+          <div className="stat-icon">👥</div>
 
           <div className="stat-content">
-
             <h3>Total Customers</h3>
 
-            <strong>
-              {stats.totalCustomers}
-            </strong>
-
+            <strong>{stats.totalCustomers}</strong>
           </div>
-
         </div>
 
-        {/* Products */}
         <div className="stat-card">
-
-          <div className="stat-icon">
-            📦
-          </div>
+          <div className="stat-icon">📦</div>
 
           <div className="stat-content">
-
             <h3>Total Products</h3>
 
-            <strong>
-              {stats.totalProducts}
-            </strong>
-
+            <strong>{stats.totalProducts}</strong>
           </div>
-
         </div>
 
-        {/* Invoices */}
         <div className="stat-card">
-
-          <div className="stat-icon">
-            🧾
-          </div>
+          <div className="stat-icon">🧾</div>
 
           <div className="stat-content">
-
             <h3>Total Invoices</h3>
 
-            <strong>
-              {stats.totalInvoices}
-            </strong>
-
+            <strong>{stats.totalInvoices}</strong>
           </div>
-
         </div>
 
-        {/* Total Sales */}
         <div className="stat-card">
-
-          <div className="stat-icon">
-            💰
-          </div>
+          <div className="stat-icon">💰</div>
 
           <div className="stat-content">
-
             <h3>Total Sales</h3>
 
-            <strong>
-              {formatCurrency(stats.totalSales)}
-            </strong>
-
+            <strong>{formatCurrency(stats.totalSales)}</strong>
           </div>
-
         </div>
 
-        {/* Today's Sales */}
         <div className="stat-card">
-
-          <div className="stat-icon">
-            📈
-          </div>
+          <div className="stat-icon">📈</div>
 
           <div className="stat-content">
-
             <h3>Today's Sales</h3>
 
-            <strong>
-              {formatCurrency(stats.todaySales)}
-            </strong>
-
+            <strong>{formatCurrency(stats.todaySales)}</strong>
           </div>
-
         </div>
-
       </div>
 
-      {/* ======================================
-          MAIN CONTENT
-      ====================================== */}
       <div className="dashboard-content">
-
-        {/* ====================================
-            LOW STOCK
-        ==================================== */}
         <div className="dashboard-card">
-
           <div className="card-header">
-
             <div>
               <h2>Low Stock Products</h2>
 
-              <p>
-                Products with stock of 5 or less
-              </p>
+              <p>Products with stock of 5 or less</p>
             </div>
 
             <span className="card-count">
-              {Array.isArray(lowStockProducts)
-                ? lowStockProducts.length
-                : 0}
+              {Array.isArray(lowStockProducts) ? lowStockProducts.length : 0}
             </span>
-
           </div>
 
           <div className="low-stock-list">
-
-            {Array.isArray(lowStockProducts) &&
-            lowStockProducts.length > 0 ? (
-
+            {Array.isArray(lowStockProducts) && lowStockProducts.length > 0 ? (
               lowStockProducts.map((product) => (
-
-                <div
-                  className="low-stock-item"
-                  key={product.id}
-                >
-
+                <div className="low-stock-item" key={product.id}>
                   <div className="product-info">
-
-                    <div className="product-icon">
-                      📦
-                    </div>
+                    <div className="product-icon">📦</div>
 
                     <div>
+                      <h3>{product.name || "Unnamed Product"}</h3>
 
-                      <h3>
-                        {product.name || "Unnamed Product"}
-                      </h3>
-
-                      <p>
-                        Price:{" "}
-                        {formatCurrency(product.price)}
-                      </p>
-
+                      <p>Price: {formatCurrency(product.price)}</p>
                     </div>
-
                   </div>
 
                   <div className="stock-info">
-
                     <span
                       className={
                         Number(product.stock) <= 2
@@ -384,105 +237,65 @@ function Dashboard() {
                     >
                       {Number(product.stock) || 0} left
                     </span>
-
                   </div>
-
                 </div>
-
               ))
-
             ) : (
-
               <div className="empty-state">
+                <div className="empty-icon">✅</div>
 
-                <div className="empty-icon">
-                  ✅
-                </div>
+                <h3>No Low Stock Products</h3>
 
-                <h3>
-                  No Low Stock Products
-                </h3>
-
-                <p>
-                  All products have sufficient stock.
-                </p>
-
+                <p>All products have sufficient stock.</p>
               </div>
-
             )}
-
           </div>
-
         </div>
 
-        {/* ====================================
-            BUSINESS SUMMARY
-        ==================================== */}
         <div className="dashboard-card">
-
           <div className="card-header">
-
             <div>
               <h2>Business Summary</h2>
 
-              <p>
-                Current system overview
-              </p>
+              <p>Current system overview</p>
             </div>
-
           </div>
 
           <div className="summary-list">
-
             <div className="summary-row">
               <span>👥 Customers</span>
 
-              <strong>
-                {stats.totalCustomers}
-              </strong>
+              <strong>{stats.totalCustomers}</strong>
             </div>
 
             <div className="summary-row">
               <span>📦 Products</span>
 
-              <strong>
-                {stats.totalProducts}
-              </strong>
+              <strong>{stats.totalProducts}</strong>
             </div>
 
             <div className="summary-row">
               <span>🧾 Invoices</span>
 
-              <strong>
-                {stats.totalInvoices}
-              </strong>
+              <strong>{stats.totalInvoices}</strong>
             </div>
 
             <div className="summary-row">
               <span>💰 Total Sales</span>
 
-              <strong>
-                {formatCurrency(stats.totalSales)}
-              </strong>
+              <strong>{formatCurrency(stats.totalSales)}</strong>
             </div>
 
             <div className="summary-row">
               <span>📅 Today's Sales</span>
 
-              <strong>
-                {formatCurrency(stats.todaySales)}
-              </strong>
+              <strong>{formatCurrency(stats.todaySales)}</strong>
             </div>
-
           </div>
-
         </div>
-
       </div>
-
     </div>
   );
 }
 
 export default Dashboard;
-

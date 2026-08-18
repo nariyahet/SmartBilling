@@ -5,14 +5,8 @@ const cors = require("cors");
 
 const app = express();
 
-// ==========================================
-// DATABASE
-// ==========================================
 require("./config/db");
 
-// ==========================================
-// MIDDLEWARE
-// ==========================================
 app.use(
   cors({
     origin: [
@@ -20,26 +14,13 @@ app.use(
       "http://localhost:5174",
       "http://localhost:5175",
     ],
-    methods: [
-      "GET",
-      "POST",
-      "PUT",
-      "PATCH",
-      "DELETE",
-      "OPTIONS",
-    ],
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-    ],
-  })
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
 );
 
 app.use(express.json());
 
-// ==========================================
-// ROUTES
-// ==========================================
 const authRoutes = require("./routes/authRoutes");
 const productRoutes = require("./routes/productRoutes");
 const customerRoutes = require("./routes/customerRoutes");
@@ -52,9 +33,6 @@ app.use("/api/customers", customerRoutes);
 app.use("/api/invoices", invoiceRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 
-// ==========================================
-// HEALTH CHECK
-// ==========================================
 app.get("/", (req, res) => {
   res.status(200).json({
     success: true,
@@ -62,9 +40,6 @@ app.get("/", (req, res) => {
   });
 });
 
-// ==========================================
-// 404 HANDLER
-// ==========================================
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -73,9 +48,6 @@ app.use((req, res) => {
   });
 });
 
-// ==========================================
-// GLOBAL ERROR HANDLER
-// ==========================================
 app.use((err, req, res, next) => {
   console.error("Server Error:", err);
 
@@ -85,17 +57,10 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ==========================================
-// SERVER
-// ==========================================
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-  console.log(
-    `🚀 Smart Billing API Running on port ${PORT}`
-  );
+  console.log(`🚀 Smart Billing API Running on port ${PORT}`);
 
-  console.log(
-    `🌐 http://localhost:${PORT}`
-  );
+  console.log(`🌐 http://localhost:${PORT}`);
 });

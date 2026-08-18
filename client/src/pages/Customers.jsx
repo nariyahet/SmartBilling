@@ -6,10 +6,6 @@ import "./Customers.css";
 function Customers() {
   const navigate = useNavigate();
 
-  // ==========================================
-  // STATES
-  // ==========================================
-
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -20,10 +16,6 @@ function Customers() {
 
   const [editingId, setEditingId] = useState(null);
   const [search, setSearch] = useState("");
-
-  // ==========================================
-  // FETCH CUSTOMERS
-  // ==========================================
 
   const fetchCustomers = async () => {
     try {
@@ -39,20 +31,13 @@ function Customers() {
     } catch (error) {
       console.error("Fetch Customers Error:", error);
 
-      alert(
-        error.response?.data?.message ||
-          "Unable to load customers"
-      );
+      alert(error.response?.data?.message || "Unable to load customers");
 
       setCustomers([]);
     } finally {
       setLoading(false);
     }
   };
-
-  // ==========================================
-  // LOAD CUSTOMERS
-  // ==========================================
 
   useEffect(() => {
     const loadCustomers = async () => {
@@ -69,10 +54,7 @@ function Customers() {
       } catch (error) {
         console.error("Fetch Customers Error:", error);
 
-        alert(
-          error.response?.data?.message ||
-            "Unable to load customers"
-        );
+        alert(error.response?.data?.message || "Unable to load customers");
 
         setCustomers([]);
       } finally {
@@ -83,10 +65,6 @@ function Customers() {
     loadCustomers();
   }, []);
 
-  // ==========================================
-  // RESET FORM
-  // ==========================================
-
   const resetForm = () => {
     setName("");
     setMobile("");
@@ -94,10 +72,6 @@ function Customers() {
     setAddress("");
     setEditingId(null);
   };
-
-  // ==========================================
-  // ADD / UPDATE CUSTOMER
-  // ==========================================
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -125,24 +99,14 @@ function Customers() {
         address: address.trim(),
       };
 
-      // UPDATE CUSTOMER
       if (editingId) {
-        const response = await API.put(
-          `/customers/${editingId}`,
-          customerData
-        );
+        const response = await API.put(`/customers/${editingId}`, customerData);
 
         if (response.data?.success) {
           alert("Customer updated successfully ✅");
         }
-      }
-
-      // CREATE CUSTOMER
-      else {
-        const response = await API.post(
-          "/customers",
-          customerData
-        );
+      } else {
+        const response = await API.post("/customers", customerData);
 
         if (response.data?.success) {
           alert("Customer added successfully ✅");
@@ -155,16 +119,9 @@ function Customers() {
     } catch (error) {
       console.error("Save Customer Error:", error);
 
-      alert(
-        error.response?.data?.message ||
-          "Unable to save customer"
-      );
+      alert(error.response?.data?.message || "Unable to save customer");
     }
   };
-
-  // ==========================================
-  // EDIT CUSTOMER
-  // ==========================================
 
   const handleEdit = (customer) => {
     setEditingId(customer.id);
@@ -180,13 +137,9 @@ function Customers() {
     });
   };
 
-  // ==========================================
-  // DELETE CUSTOMER
-  // ==========================================
-
   const handleDelete = async (id) => {
     const confirmed = window.confirm(
-      "Are you sure you want to delete this customer?"
+      "Are you sure you want to delete this customer?",
     );
 
     if (!confirmed) return;
@@ -198,10 +151,9 @@ function Customers() {
 
       await fetchCustomers();
     } catch (error) {
-      // Customer has linked invoices
       if (error.response?.status === 409) {
         alert(
-          "This customer cannot be deleted because invoices are linked to this customer."
+          "This customer cannot be deleted because invoices are linked to this customer.",
         );
 
         return;
@@ -209,60 +161,31 @@ function Customers() {
 
       console.error("Delete Customer Error:", error);
 
-      alert(
-        error.response?.data?.message ||
-          "Unable to delete customer"
-      );
+      alert(error.response?.data?.message || "Unable to delete customer");
     }
   };
 
-  // ==========================================
-  // SEARCH FILTER
-  // ==========================================
+  const filteredCustomers = customers.filter((customer) => {
+    const text = search.toLowerCase().trim();
 
-  const filteredCustomers = customers.filter(
-    (customer) => {
-      const text = search.toLowerCase().trim();
-
-      return (
-        customer.name
-          ?.toLowerCase()
-          .includes(text) ||
-        customer.mobile
-          ?.toLowerCase()
-          .includes(text) ||
-        customer.email
-          ?.toLowerCase()
-          .includes(text) ||
-        customer.address
-          ?.toLowerCase()
-          .includes(text)
-      );
-    }
-  );
-
-  // ==========================================
-  // UI
-  // ==========================================
+    return (
+      customer.name?.toLowerCase().includes(text) ||
+      customer.mobile?.toLowerCase().includes(text) ||
+      customer.email?.toLowerCase().includes(text) ||
+      customer.address?.toLowerCase().includes(text)
+    );
+  });
 
   return (
     <div className="customers-page">
-
-      {/* ======================================
-          HEADER
-      ====================================== */}
-
       <div className="customers-header">
-
         <div>
           <h1>
             <i className="fas fa-users"></i>
             Customer Management
           </h1>
 
-          <p>
-            Manage your customers and contact details
-          </p>
+          <p>Manage your customers and contact details</p>
         </div>
 
         <button
@@ -272,114 +195,61 @@ function Customers() {
         >
           ← Dashboard
         </button>
-
       </div>
 
-      {/* ======================================
-          CUSTOMER FORM
-      ====================================== */}
-
       <div className="customer-form-card">
-
-        <h2>
-          {editingId
-            ? "✏️ Edit Customer"
-            : "➕ Add Customer"}
-        </h2>
+        <h2>{editingId ? "✏️ Edit Customer" : "➕ Add Customer"}</h2>
 
         <form onSubmit={handleSubmit}>
-
           <div className="customer-form-grid">
-
-            {/* NAME */}
-
             <div className="form-group">
-
-              <label>
-                Customer Name *
-              </label>
+              <label>Customer Name *</label>
 
               <input
                 type="text"
                 placeholder="Enter customer name"
                 value={name}
-                onChange={(e) =>
-                  setName(e.target.value)
-                }
+                onChange={(e) => setName(e.target.value)}
               />
-
             </div>
 
-            {/* MOBILE */}
-
             <div className="form-group">
-
-              <label>
-                Mobile Number *
-              </label>
+              <label>Mobile Number *</label>
 
               <input
                 type="tel"
                 placeholder="Enter mobile number"
                 value={mobile}
-                onChange={(e) =>
-                  setMobile(e.target.value)
-                }
+                onChange={(e) => setMobile(e.target.value)}
               />
-
             </div>
 
-            {/* EMAIL */}
-
             <div className="form-group">
-
-              <label>
-                Email
-              </label>
+              <label>Email</label>
 
               <input
                 type="email"
                 placeholder="Enter email"
                 value={email}
-                onChange={(e) =>
-                  setEmail(e.target.value)
-                }
+                onChange={(e) => setEmail(e.target.value)}
               />
-
             </div>
 
-            {/* ADDRESS */}
-
             <div className="form-group full-width">
-
-              <label>
-                Address
-              </label>
+              <label>Address</label>
 
               <textarea
                 placeholder="Enter customer address"
                 value={address}
-                onChange={(e) =>
-                  setAddress(e.target.value)
-                }
+                onChange={(e) => setAddress(e.target.value)}
                 rows="3"
               />
-
             </div>
-
           </div>
 
-          {/* FORM BUTTONS */}
-
           <div className="customer-form-actions">
-
-            <button
-              type="submit"
-              className="primary-button"
-            >
-              {editingId
-                ? "Update Customer"
-                : "Add Customer"}
+            <button type="submit" className="primary-button">
+              {editingId ? "Update Customer" : "Add Customer"}
             </button>
 
             {editingId && (
@@ -391,33 +261,16 @@ function Customers() {
                 Cancel
               </button>
             )}
-
           </div>
-
         </form>
-
       </div>
 
-      {/* ======================================
-          CUSTOMER LIST
-      ====================================== */}
-
       <div className="customers-card">
-
-        {/* CARD HEADER */}
-
         <div className="customers-card-header">
-
           <div>
+            <h2>Customer List</h2>
 
-            <h2>
-              Customer List
-            </h2>
-
-            <span>
-              {filteredCustomers.length} Customers
-            </span>
-
+            <span>{filteredCustomers.length} Customers</span>
           </div>
 
           <button
@@ -427,66 +280,35 @@ function Customers() {
           >
             🔄 Refresh
           </button>
-
         </div>
 
-        {/* SEARCH */}
-
         <div className="search-box">
-
           <input
             type="text"
             placeholder="🔍 Search by name, mobile, email or address..."
             value={search}
-            onChange={(e) =>
-              setSearch(e.target.value)
-            }
+            onChange={(e) => setSearch(e.target.value)}
           />
-
         </div>
 
-        {/* LOADING */}
-
         {loading ? (
-
-          <div className="empty-state">
-            Loading customers...
-          </div>
-
+          <div className="empty-state">Loading customers...</div>
         ) : filteredCustomers.length === 0 ? (
-
-          /* EMPTY STATE */
-
           <div className="empty-state">
+            <div className="empty-icon">👥</div>
 
-            <div className="empty-icon">
-              👥
-            </div>
-
-            <h3>
-              {search
-                ? "No Customers Found"
-                : "No Customers Yet"}
-            </h3>
+            <h3>{search ? "No Customers Found" : "No Customers Yet"}</h3>
 
             <p>
               {search
                 ? "Try another search."
                 : "Add your first customer above."}
             </p>
-
           </div>
-
         ) : (
-
-          /* TABLE */
-
           <div className="customer-table-container">
-
             <table>
-
               <thead>
-
                 <tr>
                   <th>ID</th>
                   <th>Customer</th>
@@ -495,91 +317,49 @@ function Customers() {
                   <th>Address</th>
                   <th>Actions</th>
                 </tr>
-
               </thead>
 
               <tbody>
+                {filteredCustomers.map((customer) => (
+                  <tr key={customer.id}>
+                    <td>#{customer.id}</td>
 
-                {filteredCustomers.map(
-                  (customer) => (
+                    <td>
+                      <strong>{customer.name}</strong>
+                    </td>
 
-                    <tr
-                      key={customer.id}
-                    >
+                    <td>{customer.mobile}</td>
 
-                      <td>
-                        #{customer.id}
-                      </td>
+                    <td>{customer.email || "—"}</td>
 
-                      <td>
-                        <strong>
-                          {customer.name}
-                        </strong>
-                      </td>
+                    <td className="address-cell">{customer.address || "—"}</td>
 
-                      <td>
-                        {customer.mobile}
-                      </td>
+                    <td>
+                      <div className="action-buttons">
+                        <button
+                          type="button"
+                          className="edit-button"
+                          onClick={() => handleEdit(customer)}
+                        >
+                          ✏️ Edit
+                        </button>
 
-                      <td>
-                        {customer.email || "—"}
-                      </td>
-
-                      <td className="address-cell">
-                        {customer.address || "—"}
-                      </td>
-
-                      <td>
-
-                        <div className="action-buttons">
-
-                          {/* EDIT */}
-
-                          <button
-                            type="button"
-                            className="edit-button"
-                            onClick={() =>
-                              handleEdit(
-                                customer
-                              )
-                            }
-                          >
-                            ✏️ Edit
-                          </button>
-
-                          {/* DELETE */}
-
-                          <button
-                            type="button"
-                            className="delete-button"
-                            onClick={() =>
-                              handleDelete(
-                                customer.id
-                              )
-                            }
-                          >
-                            🗑️ Delete
-                          </button>
-
-                        </div>
-
-                      </td>
-
-                    </tr>
-
-                  )
-                )}
-
+                        <button
+                          type="button"
+                          className="delete-button"
+                          onClick={() => handleDelete(customer.id)}
+                        >
+                          🗑️ Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
-
             </table>
-
           </div>
-
         )}
-
       </div>
-
     </div>
   );
 }
