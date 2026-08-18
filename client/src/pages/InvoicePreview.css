@@ -1,0 +1,319 @@
+.invoice-preview-page {
+  min-height: 100vh;
+  padding: 30px;
+  background: #eef1f5;
+  box-sizing: border-box;
+}
+
+.invoice-actions {
+  max-width: 850px;
+  margin: 0 auto 20px;
+
+  display: flex;
+  justify-content: space-between;
+}
+
+.invoice-actions button {
+  padding: 11px 18px;
+
+  border: 0;
+  border-radius: 8px;
+
+  background: #111827;
+  color: white;
+
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.invoice-actions button:hover {
+  opacity: 0.9;
+}
+
+.invoice-a4 {
+  width: 210mm;
+  min-height: 297mm;
+
+  margin: 0 auto;
+
+  padding: 18mm;
+
+  background: white;
+
+  box-sizing: border-box;
+
+  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.15);
+
+  color: #111827;
+}
+
+.invoice-company-header {
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: flex-start;
+
+  padding-bottom: 20px;
+
+  border-bottom: 2px solid #111827;
+}
+
+.invoice-company-header h1 {
+  margin: 0 0 8px;
+
+  font-size: 28px;
+}
+
+.invoice-company-header p {
+  margin: 4px 0;
+
+  color: #4b5563;
+
+  font-size: 13px;
+}
+
+.invoice-title {
+  text-align: right;
+}
+
+.invoice-title h2 {
+  margin: 0 0 15px;
+
+  font-size: 30px;
+
+  letter-spacing: 2px;
+}
+
+.invoice-title p {
+  margin: 6px 0;
+
+  color: #374151;
+}
+
+.invoice-customer-section {
+  margin: 25px 0;
+
+  padding: 18px;
+
+  background: #f9fafb;
+
+  border-radius: 8px;
+}
+
+.invoice-customer-section h3 {
+  margin-top: 0;
+
+  margin-bottom: 12px;
+}
+
+.invoice-customer-section p {
+  margin: 5px 0;
+
+  font-size: 14px;
+
+  color: #374151;
+}
+
+.invoice-products table {
+  width: 100%;
+
+  border-collapse: collapse;
+}
+
+.invoice-products th {
+  padding: 12px;
+
+  background: #111827;
+
+  color: white;
+
+  text-align: left;
+
+  font-size: 13px;
+}
+
+.invoice-products td {
+  padding: 12px;
+
+  border-bottom: 1px solid #e5e7eb;
+
+  font-size: 13px;
+}
+
+.invoice-products th:nth-child(1),
+.invoice-products td:nth-child(1) {
+  width: 40px;
+}
+
+.invoice-products th:nth-child(3),
+.invoice-products td:nth-child(3) {
+  text-align: center;
+}
+
+.invoice-products th:nth-child(4),
+.invoice-products td:nth-child(4),
+.invoice-products th:nth-child(5),
+.invoice-products td:nth-child(5) {
+  text-align: right;
+}
+
+.invoice-bottom {
+  display: grid;
+
+  grid-template-columns: 1fr 320px;
+
+  gap: 40px;
+
+  margin-top: 35px;
+}
+
+.invoice-thanks h3 {
+  margin-top: 0;
+
+  font-size: 18px;
+}
+
+.invoice-thanks p {
+  color: #6b7280;
+
+  font-size: 12px;
+
+  line-height: 1.6;
+}
+
+.invoice-summary {
+  border-top: 2px solid #111827;
+}
+
+.invoice-summary > div {
+  display: flex;
+
+  justify-content: space-between;
+
+  padding: 10px 0;
+
+  border-bottom: 1px solid #e5e7eb;
+
+  font-size: 13px;
+}
+
+.invoice-grand-total {
+  margin-top: 5px;
+
+  padding: 15px 0 !important;
+
+  border-bottom: 0 !important;
+
+  font-size: 18px !important;
+}
+
+.invoice-grand-total strong {
+  font-size: 20px;
+}
+
+.invoice-footer {
+  margin-top: 70px;
+
+  padding-top: 15px;
+
+  border-top: 1px solid #d1d5db;
+
+  display: flex;
+
+  justify-content: space-between;
+
+  color: #6b7280;
+
+  font-size: 11px;
+}
+
+.invoice-preview-loading {
+  min-height: 100vh;
+
+  display: flex;
+
+  justify-content: center;
+
+  align-items: center;
+
+  background: #f5f7fb;
+
+  font-size: 18px;
+
+  color: #4b5563;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+  body {
+    margin: 0;
+    background: white;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .invoice-preview-page {
+    padding: 0;
+    background: white;
+  }
+
+  .invoice-a4 {
+    width: 210mm;
+    min-height: 297mm;
+
+    margin: 0;
+
+    padding: 18mm;
+
+    box-shadow: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .invoice-preview-page {
+    padding: 15px;
+  }
+
+  .invoice-a4 {
+    width: 100%;
+    min-height: auto;
+  }
+
+  .invoice-company-header {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .invoice-title {
+    text-align: left;
+  }
+
+  .invoice-bottom {
+    grid-template-columns: 1fr;
+  }
+
+  .invoice-footer {
+    flex-direction: column;
+    gap: 5px;
+  }
+}
+
+.invoice-action-right {
+  display: flex;
+  gap: 10px;
+}
+
+.download-pdf-btn {
+  background: #2563eb !important;
+}
+
+.download-pdf-btn:hover {
+  background: #1d4ed8 !important;
+}

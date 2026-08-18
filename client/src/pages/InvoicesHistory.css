@@ -1,0 +1,547 @@
+/* =========================================================
+   INVOICE HISTORY PAGE
+========================================================= */
+
+.invoices-history-page {
+  min-height: 100vh;
+  padding: 30px;
+  box-sizing: border-box;
+  background: #f5f7fb;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #111827;
+}
+
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.invoices-history-header {
+  max-width: 1200px;
+  margin: 0 auto 25px;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  gap: 20px;
+}
+
+.invoices-history-header h1 {
+  margin: 0 0 8px;
+
+  font-size: 30px;
+  font-weight: 700;
+
+  color: #1f2937;
+}
+
+.invoices-history-header p {
+  margin: 0;
+
+  color: #6b7280;
+
+  font-size: 15px;
+}
+
+
+/* =========================================================
+   HEADER BUTTONS
+========================================================= */
+
+.invoices-history-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.invoices-history-actions button {
+  border: none;
+  outline: none;
+
+  padding: 11px 17px;
+
+  border-radius: 8px;
+
+  color: #ffffff;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: all 0.2s ease;
+}
+
+
+/* Dashboard - DARK */
+
+.invoices-history-actions button:nth-child(1) {
+  background: #111827;
+}
+
+.invoices-history-actions button:nth-child(1):hover {
+  background: #374151;
+  transform: translateY(-1px);
+}
+
+
+/* Create Invoice - BLUE */
+
+.invoices-history-actions button:nth-child(2) {
+  background: #2563eb;
+}
+
+.invoices-history-actions button:nth-child(2):hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+
+/* Refresh - BLUE */
+
+.invoices-history-actions button:nth-child(3) {
+  background: #2563eb;
+}
+
+.invoices-history-actions button:nth-child(3):hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+
+/* =========================================================
+   MAIN CARD
+========================================================= */
+
+.invoices-history-card {
+  max-width: 1200px;
+
+  margin: 0 auto 25px;
+
+  padding: 25px;
+
+  background: #ffffff;
+
+  border: 1px solid #e5e7eb;
+
+  border-radius: 14px;
+
+  box-shadow:
+    0 5px 20px rgba(0, 0, 0, 0.06);
+
+  box-sizing: border-box;
+}
+
+
+/* =========================================================
+   SEARCH + FILTER
+========================================================= */
+
+.invoice-history-filters {
+  display: flex;
+
+  align-items: flex-end;
+
+  gap: 15px;
+
+  margin-bottom: 20px;
+
+  flex-wrap: wrap;
+}
+
+.invoice-search-box,
+.invoice-date-box {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 7px;
+}
+
+.invoice-search-box label,
+.invoice-date-box label {
+  color: #374151;
+
+  font-size: 14px;
+
+  font-weight: 600;
+}
+
+.invoice-search-box input,
+.invoice-date-box input {
+  padding: 11px 14px;
+
+  border: 1px solid #d1d5db;
+
+  border-radius: 8px;
+
+  background: #ffffff;
+
+  color: #111827;
+
+  font-size: 14px;
+
+  outline: none;
+
+  box-sizing: border-box;
+
+  transition: all 0.2s ease;
+}
+
+.invoice-search-box input {
+  width: 320px;
+}
+
+.invoice-date-box input {
+  width: 180px;
+}
+
+.invoice-search-box input:focus,
+.invoice-date-box input:focus {
+  border-color: #2563eb;
+
+  box-shadow:
+    0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+
+/* =========================================================
+   CLEAR BUTTON - RED
+========================================================= */
+
+.clear-invoice-filter {
+  padding: 11px 18px;
+
+  border: none;
+  outline: none;
+
+  border-radius: 8px;
+
+  background: #ef4444;
+
+  color: #ffffff;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: all 0.2s ease;
+}
+
+.clear-invoice-filter:hover {
+  background: #dc2626;
+
+  transform: translateY(-1px);
+}
+
+
+/* =========================================================
+   RESULT COUNT
+========================================================= */
+
+.invoice-result-count {
+  margin-bottom: 15px;
+
+  color: #6b7280;
+
+  font-size: 14px;
+}
+
+.invoice-result-count strong {
+  color: #111827;
+}
+
+
+/* =========================================================
+   TABLE
+========================================================= */
+
+.invoices-history-table-wrapper {
+  width: 100%;
+
+  overflow-x: auto;
+
+  border: 1px solid #e5e7eb;
+
+  border-radius: 10px;
+}
+
+.invoices-history-table {
+  width: 100%;
+
+  min-width: 950px;
+
+  border-collapse: collapse;
+
+  background: #ffffff;
+}
+
+.invoices-history-table th {
+  padding: 14px 15px;
+
+  background: #f9fafb;
+
+  color: #374151;
+
+  font-size: 13px;
+
+  font-weight: 700;
+
+  text-align: left;
+
+  white-space: nowrap;
+
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.invoices-history-table td {
+  padding: 14px 15px;
+
+  color: #4b5563;
+
+  font-size: 14px;
+
+  border-bottom: 1px solid #e5e7eb;
+
+  vertical-align: middle;
+}
+
+.invoices-history-table tbody tr {
+  transition: background 0.2s ease;
+}
+
+.invoices-history-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.invoices-history-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.invoices-history-table td strong {
+  color: #111827;
+}
+
+
+/* =========================================================
+   VIEW BUTTON - GREEN
+========================================================= */
+
+.view-invoice-button {
+  border: none;
+  outline: none;
+
+  padding: 8px 13px;
+
+  border-radius: 7px;
+
+  background: #16a34a;
+
+  color: #ffffff;
+
+  font-size: 13px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: all 0.2s ease;
+}
+
+.view-invoice-button:hover {
+  background: #15803d;
+
+  transform: translateY(-1px);
+}
+
+
+/* =========================================================
+   EMPTY STATE
+========================================================= */
+
+.invoices-history-empty {
+  padding: 70px 20px;
+
+  text-align: center;
+}
+
+.empty-icon {
+  width: 70px;
+  height: 70px;
+
+  margin: 0 auto 18px;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: #eef2ff;
+
+  font-size: 35px;
+}
+
+.invoices-history-empty h2 {
+  margin: 0 0 8px;
+
+  color: #1f2937;
+
+  font-size: 21px;
+}
+
+.invoices-history-empty p {
+  margin: 0 0 25px;
+
+  color: #6b7280;
+
+  font-size: 14px;
+}
+
+.invoices-history-empty button {
+  border: none;
+  outline: none;
+
+  padding: 11px 18px;
+
+  border-radius: 8px;
+
+  background: #2563eb;
+
+  color: #ffffff;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: all 0.2s ease;
+}
+
+.invoices-history-empty button:hover {
+  background: #1d4ed8;
+
+  transform: translateY(-1px);
+}
+
+
+/* =========================================================
+   LOADING
+========================================================= */
+
+.invoices-history-loading {
+  min-height: 100vh;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  background: #f5f7fb;
+
+  color: #374151;
+
+  font-size: 20px;
+
+  font-weight: 600;
+}
+
+
+/* =========================================================
+   RESPONSIVE - 900px
+========================================================= */
+
+@media (max-width: 900px) {
+
+  .invoices-history-header {
+    align-items: flex-start;
+
+    flex-direction: column;
+  }
+
+  .invoices-history-actions {
+    width: 100%;
+  }
+}
+
+
+/* =========================================================
+   RESPONSIVE - 768px
+========================================================= */
+
+@media (max-width: 768px) {
+
+  .invoices-history-page {
+    padding: 20px;
+  }
+
+  .invoices-history-header h1 {
+    font-size: 26px;
+  }
+
+  .invoices-history-card {
+    padding: 20px;
+  }
+
+  .invoice-history-filters {
+    align-items: stretch;
+
+    flex-direction: column;
+  }
+
+  .invoice-search-box,
+  .invoice-date-box {
+    width: 100%;
+  }
+
+  .invoice-search-box input,
+  .invoice-date-box input {
+    width: 100%;
+  }
+
+  .clear-invoice-filter {
+    width: 100%;
+  }
+}
+
+
+/* =========================================================
+   RESPONSIVE - 600px
+========================================================= */
+
+@media (max-width: 600px) {
+
+  .invoices-history-page {
+    padding: 15px;
+  }
+
+  .invoices-history-header h1 {
+    font-size: 23px;
+  }
+
+  .invoices-history-header p {
+    font-size: 14px;
+  }
+
+  .invoices-history-actions {
+    flex-direction: column;
+
+    width: 100%;
+  }
+
+  .invoices-history-actions button {
+    width: 100%;
+  }
+
+  .invoices-history-card {
+    padding: 15px;
+
+    border-radius: 12px;
+  }
+
+  .invoices-history-table {
+    min-width: 900px;
+  }
+}
