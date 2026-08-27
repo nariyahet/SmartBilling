@@ -57,6 +57,17 @@ app.get("/api/debug/admin", (req, res) => {
   );
 });
 
+app.get("/api/debug/db", (req, res) => {
+  res.status(200).json({
+    success: true,
+    connection: {
+      database_name: process.env.DB_NAME,
+      host: process.env.DB_HOST,
+      port: Number(process.env.DB_PORT),
+    },
+  });
+});
+
 app.get("/", (req, res) => {
   res.status(200).json({
     success: true,
