@@ -1,45 +1,41 @@
 import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import html2pdf from "html2pdf.js";
 import API from "../api/axios";
-import "./InvoicesHistory.css";
-import { useNavigate } from "react-router-dom";
+import "./InvoicePreview.css";
 
-function InvoicesHistory() {
-  const [invoices, setInvoices] = useState([]);
+function InvoicePreview() {
+  const { id } = useParams();
+
+  const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const loadInvoices = async () => {
-    try {
-      setLoading(true);
-
-      const response = await API.get("/invoices");
-
-      setInvoices(response.data.invoices || []);
-    } catch (error) {
-      console.error("Invoices loading error:", error);
-
-      alert(error.response?.data?.message || "Unable to load invoices");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    const loadInvoices = async () => {
+    let cancelled = false;
+
+    const loadInvoice = async () => {
       try {
-        const response = await API.get("/invoices");
+        const response = await API.get(`/invoices/${id}`);
 
-        setInvoices(response.data.invoices || []);
+        if (!cancelled) {
+          setInvoice(response.data.invoice);
+          setLoading(false);
+        }
       } catch (error) {
-        console.error("Invoices loading error:", error);
+        console.error("Invoice loading error:", error);
 
-        alert(error.response?.data?.message || "Unable to load invoices");
-      } finally {
+        alert(error.response?.data?.message || "Unable to load invoice");
+
         setLoading(false);
       }
     };
 
-    loadInvoices();
-  }, []);
+    loadInvoice();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat("en-IN", {
@@ -50,7 +46,7 @@ function InvoicesHistory() {
   };
 
   const formatDate = (date) => {
-    if (!date) return "-";
+    if (!date) return "";
 
     return new Date(date).toLocaleDateString("en-IN", {
       day: "2-digit",
@@ -59,116 +55,185 @@ function InvoicesHistory() {
     });
   };
 
-  const navigate = useNavigate();
+  const downloadPDF = () => {
+    const element = document.querySelector(".invoice-a4");
 
-  const viewInvoice = (id) => {
-    navigate(`/invoice/${id}`);
+    if (!element) {
+      alert("Invoice not found");
+      return;
+    }
+
+    const options = {
+      margin: 0,
+      filename: `${invoice.invoice_no}.pdf`,
+
+      image: {
+        type: "jpeg",
+        quality: 0.98,
+      },
+
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+      },
+
+      jsPDF: {
+        unit: "mm",
+        format: "a4",
+        orientation: "portrait",
+      },
+
+      pagebreak: {
+        mode: ["avoid-all", "css", "legacy"],
+      },
+    };
+
+    html2pdf().set(options).from(element).save();
   };
 
   if (loading) {
-    return <div className="invoices-history-loading">Loading invoices...</div>;
+    return <div className="invoice-preview-loading">Loading invoice...</div>;
+  }
+
+  if (!invoice) {
+    return <div className="invoice-preview-loading">Invoice not found.</div>;
   }
 
   return (
-    <div className="invoices-history-page">
-      <div className="invoices-history-header">
-        <div>
-          <h1>🧾 Invoice History</h1>
+    <div className="invoice-preview-page">
+      <div className="invoice-actions no-print">
+        <button onClick={() => (window.location.href = "/invoices")}>
+          ← Back
+        </button>
 
-          <p>View and manage all generated invoices</p>
-        </div>
+        <div className="invoice-action-right">
+          <button onClick={() => window.print()}>🖨️ Print Invoice</button>
 
-        <div className="invoices-history-actions">
-          <button onClick={() => (window.location.href = "/dashboard")}>
-            ← Dashboard
+          <button onClick={downloadPDF} className="download-pdf-btn">
+            📥 Download PDF
           </button>
-
-          <button onClick={() => (window.location.href = "/invoices/create")}>
-            + Create Invoice
-          </button>
-
-          <button onClick={loadInvoices}>🔄 Refresh</button>
         </div>
       </div>
 
-      <div className="invoices-history-card">
-        {invoices.length === 0 ? (
-          <div className="invoices-history-empty">
-            <div className="empty-icon">🧾</div>
+      <div className="invoice-a4">
+        <div className="invoice-company-header">
+          <div>
+            <h1>Shiv Enterprises</h1>
 
-            <h2>No Invoices Found</h2>
+            <p>All Brands Electronic Appliances Sales & Service</p>
 
-            <p>You haven't created any invoices yet.</p>
+            <p>Surat, Gujarat</p>
 
-            <button onClick={() => (window.location.href = "/invoices/create")}>
-              + Create Your First Invoice
-            </button>
+            <p>📞 +91 9876543210</p>
+
+            <p>GST : 24ABCDE1234F1Z5</p>
           </div>
-        ) : (
-          <div className="invoices-history-table-wrapper">
-            <table className="invoices-history-table">
-              <thead>
-                <tr>
-                  <th>#</th>
 
-                  <th>Invoice No.</th>
+          <div className="invoice-title">
+            <h2>INVOICE</h2>
 
-                  <th>Customer</th>
+            <p>
+              <strong>Invoice No:</strong> {invoice.invoice_no}
+            </p>
 
-                  <th>Mobile</th>
+            <p>
+              <strong>Date:</strong>{" "}
+              {formatDate(invoice.created_at || new Date())}
+            </p>
+          </div>
+        </div>
 
-                  <th>Date</th>
+        <div className="invoice-customer-section">
+          <div>
+            <h3>Bill To</h3>
 
-                  <th>Subtotal</th>
+            <p>
+              <strong>{invoice.customer_name}</strong>
+            </p>
 
-                  <th>GST</th>
+            <p>📞 {invoice.customer_mobile}</p>
 
-                  <th>Grand Total</th>
+            {invoice.customer_email && <p>✉️ {invoice.customer_email}</p>}
 
-                  <th>Action</th>
+            {invoice.customer_address && <p>📍 {invoice.customer_address}</p>}
+          </div>
+        </div>
+
+        <div className="invoice-products">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Product</th>
+                <th>Qty</th>
+                <th>Price</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {(invoice.items || []).map((item, index) => (
+                <tr key={item.id || index}>
+                  <td>{index + 1}</td>
+
+                  <td>{item.product_name}</td>
+
+                  <td>{item.quantity}</td>
+
+                  <td>{formatCurrency(item.price)}</td>
+
+                  <td>{formatCurrency(item.total)}</td>
                 </tr>
-              </thead>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
-              <tbody>
-                {invoices.map((invoice, index) => (
-                  <tr key={invoice.id}>
-                    <td>{index + 1}</td>
+        <div className="invoice-bottom">
+          <div className="invoice-thanks">
+            <h3>Thank You!</h3>
 
-                    <td>
-                      <strong>{invoice.invoice_no}</strong>
-                    </td>
+            <p>Thank you for choosing Shiv Enterprises.</p>
 
-                    <td>{invoice.customer_name || "-"}</td>
-
-                    <td>{invoice.customer_mobile || "-"}</td>
-
-                    <td>{formatDate(invoice.created_at)}</td>
-
-                    <td>{formatCurrency(invoice.subtotal)}</td>
-
-                    <td>{formatCurrency(invoice.tax_amount)}</td>
-
-                    <td>
-                      <strong>{formatCurrency(invoice.grand_total)}</strong>
-                    </td>
-
-                    <td>
-                      <button
-                        className="view-invoice-button"
-                        onClick={() => viewInvoice(invoice.id)}
-                      >
-                        👁️ View
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <p>Goods once sold cannot be returned without valid terms.</p>
           </div>
-        )}
+
+          <div className="invoice-summary">
+            <div>
+              <span>Subtotal</span>
+
+              <strong>{formatCurrency(invoice.subtotal)}</strong>
+            </div>
+
+            <div>
+              <span>Discount ({invoice.discount_percent || 0}%)</span>
+
+              <strong>- {formatCurrency(invoice.discount_amount)}</strong>
+            </div>
+
+            <div>
+              <span>GST ({invoice.tax_percent || 0}%)</span>
+
+              <strong>+ {formatCurrency(invoice.tax_amount)}</strong>
+            </div>
+
+            <div className="invoice-grand-total">
+              <span>Grand Total</span>
+
+              <strong>{formatCurrency(invoice.grand_total)}</strong>
+            </div>
+          </div>
+        </div>
+
+        <div className="invoice-footer">
+          <p>This is a computer generated invoice.</p>
+
+          <p>Shiv Enterprises</p>
+        </div>
       </div>
     </div>
   );
 }
 
-export default InvoicesHistory;
+export default InvoicePreview;
