@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import html2pdf from "html2pdf.js";
+import { jsPDF } from "jspdf";
 import API from "../api/axios";
 import "./InvoicePreview.css";
 
@@ -55,41 +55,285 @@ function InvoicePreview() {
     });
   };
 
-  const downloadPDF = () => {
-    const element = document.querySelector(".invoice-a4");
+  const loadFont = async () => {
+    const response = await fetch("/fonts/NotoSans-Regular.ttf");
+    const buffer = await response.arrayBuffer();
 
-    if (!element) {
+    let binary = "";
+    const bytes = new Uint8Array(buffer);
+    const chunkSize = 0x8000;
+
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+    }
+
+    return btoa(binary);
+  };
+
+  const downloadPDF = async () => {
+    if (!invoice) {
       alert("Invoice not found");
       return;
     }
 
-    const options = {
-      margin: 0,
-      filename: `${invoice.invoice_no}.pdf`,
-
-      image: {
-        type: "jpeg",
-        quality: 0.98,
-      },
-
-      html2canvas: {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: "#ffffff",
-      },
-
-      jsPDF: {
+    try {
+      const pdf = new jsPDF({
+        orientation: "portrait",
         unit: "mm",
         format: "a4",
-        orientation: "portrait",
-      },
+        compress: true,
+      });
 
-      pagebreak: {
-        mode: ["avoid-all", "css", "legacy"],
-      },
-    };
+      const fontBase64 = await loadFont();
 
-    html2pdf().set(options).from(element).save();
+      pdf.addFileToVFS("NotoSans-Regular.ttf", fontBase64);
+      pdf.addFont("NotoSans-Regular.ttf", "NotoSans", "normal");
+      pdf.setFont("NotoSans", "normal");
+
+      const pageWidth = 210;
+      const pageHeight = 297;
+      const margin = 18;
+      const contentWidth = pageWidth - margin * 2;
+
+      let y = 20;
+
+      pdf.setFontSize(22);
+      pdf.setFont("NotoSans", "normal");
+      pdf.text("Shiv Enterprises", margin, y);
+
+      y += 7;
+
+      pdf.setFontSize(10);
+      pdf.text("All Brands Electronic Appliances Sales & Service", margin, y);
+
+      y += 5;
+      pdf.text("Surat, Gujarat", margin, y);
+
+      y += 5;
+      pdf.text("+91 9876543210", margin, y);
+
+      y += 5;
+      pdf.text("GST : 24ABCDE1234F1Z5", margin, y);
+
+      pdf.setFontSize(22);
+      pdf.text("INVOICE", 145, 20);
+
+      pdf.setFontSize(10);
+      pdf.text(`Invoice No: ${invoice.invoice_no}`, 145, 28);
+      pdf.text(
+        `Date: ${formatDate(invoice.created_at || new Date())}`,
+        145,
+        34,
+      );
+
+      y = 52;
+
+      pdf.setDrawColor(17, 24, 39);
+      pdf.setLineWidth(0.5);
+      pdf.line(margin, y, pageWidth - margin, y);
+
+      y += 12;
+
+      pdf.setFontSize(13);
+      pdf.text("Bill To", margin, y);
+
+      y += 7;
+
+      pdf.setFontSize(11);
+      pdf.text(invoice.customer_name || "", margin, y);
+
+      y += 6;
+
+      pdf.setFontSize(10);
+      pdf.text(invoice.customer_mobile || "", margin, y);
+
+      if (invoice.customer_email) {
+        y += 6;
+        pdf.text(invoice.customer_email, margin, y);
+      }
+
+      if (invoice.customer_address) {
+        y += 6;
+
+        const addressLines = pdf.splitTextToSize(
+          invoice.customer_address,
+          contentWidth,
+        );
+
+        pdf.text(addressLines, margin, y);
+
+        y += addressLines.length * 5;
+      }
+
+      y += 10;
+
+      const tableX = margin;
+      const tableWidth = contentWidth;
+
+      const colWidths = [12, 76, 20, 35, 31];
+
+      const headers = ["#", "Product", "Qty", "Price", "Total"];
+
+      pdf.setFillColor(17, 24, 39);
+      pdf.setTextColor(255, 255, 255);
+      pdf.rect(tableX, y - 6, tableWidth, 9, "F");
+
+      pdf.setFontSize(9);
+
+      let x = tableX;
+
+      headers.forEach((header, index) => {
+        if (index === 0) {
+          pdf.text(header, x + 3, y);
+        } else if (index === 1) {
+          pdf.text(header, x + 3, y);
+        } else {
+          pdf.text(header, x + colWidths[index] - 3, y, {
+            align: "right",
+          });
+        }
+
+        x += colWidths[index];
+      });
+
+      pdf.setTextColor(17, 24, 39);
+
+      y += 9;
+
+      (invoice.items || []).forEach((item, index) => {
+        const productName = item.product_name || "";
+        const productLines = pdf.splitTextToSize(productName, 70);
+        const rowHeight = Math.max(8, productLines.length * 5);
+
+        x = tableX;
+
+        pdf.setFontSize(9);
+
+        pdf.text(String(index + 1), x + 3, y);
+        x += colWidths[0];
+
+        pdf.text(productLines, x + 3, y);
+        x += colWidths[1];
+
+        pdf.text(String(item.quantity || 0), x + colWidths[2] - 3, y, {
+          align: "right",
+        });
+
+        x += colWidths[2];
+
+        pdf.text(formatCurrency(item.price), x + colWidths[3] - 3, y, {
+          align: "right",
+        });
+
+        x += colWidths[3];
+
+        pdf.text(formatCurrency(item.total), x + colWidths[4] - 3, y, {
+          align: "right",
+        });
+
+        pdf.setDrawColor(229, 231, 235);
+        pdf.setLineWidth(0.2);
+        pdf.line(
+          tableX,
+          y + rowHeight - 4,
+          tableX + tableWidth,
+          y + rowHeight - 4,
+        );
+
+        y += rowHeight;
+      });
+
+      y += 15;
+
+      const summaryX = 120;
+      const summaryWidth = 72;
+
+      pdf.setDrawColor(17, 24, 39);
+      pdf.setLineWidth(0.5);
+      pdf.line(summaryX, y, summaryX + summaryWidth, y);
+
+      y += 8;
+
+      pdf.setFontSize(10);
+
+      pdf.text("Subtotal", summaryX, y);
+      pdf.text(formatCurrency(invoice.subtotal), summaryX + summaryWidth, y, {
+        align: "right",
+      });
+
+      y += 8;
+
+      pdf.text(`Discount (${invoice.discount_percent || 0}%)`, summaryX, y);
+
+      pdf.text(
+        `- ${formatCurrency(invoice.discount_amount)}`,
+        summaryX + summaryWidth,
+        y,
+        { align: "right" },
+      );
+
+      y += 8;
+
+      pdf.text(`GST (${invoice.tax_percent || 0}%)`, summaryX, y);
+
+      pdf.text(
+        `+ ${formatCurrency(invoice.tax_amount)}`,
+        summaryX + summaryWidth,
+        y,
+        { align: "right" },
+      );
+
+      y += 10;
+
+      pdf.setDrawColor(229, 231, 235);
+      pdf.setLineWidth(0.2);
+      pdf.line(summaryX, y - 5, summaryX + summaryWidth, y - 5);
+
+      pdf.setFontSize(14);
+
+      pdf.text("Grand Total", summaryX, y + 3);
+
+      pdf.text(
+        formatCurrency(invoice.grand_total),
+        summaryX + summaryWidth,
+        y + 3,
+        { align: "right" },
+      );
+
+      pdf.setFontSize(11);
+
+      pdf.text("Thank You!", margin, y - 10);
+
+      pdf.setFontSize(9);
+
+      pdf.text("Thank you for choosing Shiv Enterprises.", margin, y - 3);
+
+      pdf.text(
+        "Goods once sold cannot be returned without valid terms.",
+        margin,
+        y + 3,
+      );
+
+      pdf.setDrawColor(209, 213, 219);
+      pdf.line(margin, pageHeight - 28, pageWidth - margin, pageHeight - 28);
+
+      pdf.setFontSize(8);
+
+      pdf.text(
+        "This is a computer generated invoice.",
+        margin,
+        pageHeight - 20,
+      );
+
+      pdf.text("Shiv Enterprises", pageWidth - margin, pageHeight - 20, {
+        align: "right",
+      });
+
+      pdf.save(`${invoice.invoice_no}.pdf`);
+    } catch (error) {
+      console.error("PDF generation error:", error);
+      alert("Unable to generate PDF");
+    }
   };
 
   if (loading) {
@@ -207,19 +451,13 @@ function InvoicePreview() {
             </div>
 
             <div>
-              <span>
-                Discount ({invoice.discount_percent || 0}
-                %)
-              </span>
+              <span>Discount ({invoice.discount_percent || 0}%)</span>
 
               <strong>- {formatCurrency(invoice.discount_amount)}</strong>
             </div>
 
             <div>
-              <span>
-                GST ({invoice.tax_percent || 0}
-                %)
-              </span>
+              <span>GST ({invoice.tax_percent || 0}%)</span>
 
               <strong>+ {formatCurrency(invoice.tax_amount)}</strong>
             </div>
