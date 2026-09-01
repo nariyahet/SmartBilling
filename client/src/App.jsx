@@ -8,6 +8,7 @@ import Invoices from "./pages/Invoices";
 import InvoicePreview from "./pages/InvoicePreview";
 import InvoicesHistory from "./pages/InvoicesHistory";
 import SalesReport from "./pages/SalesReport";
+import BusinessSettings from "./pages/BusinessSettings";
 
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem("token");
@@ -84,6 +85,15 @@ function App() {
           element={
             <ProtectedRoute>
               <SalesReport />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <BusinessSettings />
             </ProtectedRoute>
           }
         />

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import API from "../api/axios";
+import LoadingScreen from "../components/LoadingScreen";
 import "./Products.css";
 
 function Products() {
@@ -196,7 +197,7 @@ function Products() {
   };
 
   if (loading) {
-    return <div className="products-loading">Loading products...</div>;
+    return <LoadingScreen title="Loading Products..." subtitle="Please wait..." />;
   }
 
   return (

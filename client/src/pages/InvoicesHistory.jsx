@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/axios";
+import LoadingScreen from "../components/LoadingScreen";
 import "./InvoicesHistory.css";
 
 function InvoicesHistory() {
   const [invoices, setInvoices] = useState([]);
+  const [currencyCode, setCurrencyCode] = useState("INR");
+  const [currencySymbol, setCurrencySymbol] = useState("₹");
   const [loading, setLoading] = useState(true);
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -16,9 +19,22 @@ function InvoicesHistory() {
     try {
       setLoading(true);
 
-      const response = await API.get("/invoices");
+      const [invRes, settingsRes] = await Promise.allSettled([
+        API.get("/invoices"),
+        API.get("/business-settings"),
+      ]);
 
-      setInvoices(response.data?.invoices || []);
+      if (invRes.status === "fulfilled") {
+        setInvoices(invRes.value.data?.invoices || []);
+      }
+
+      if (
+        settingsRes.status === "fulfilled" &&
+        settingsRes.value.data?.settings
+      ) {
+        setCurrencyCode(settingsRes.value.data.settings.currency || "INR");
+        setCurrencySymbol(settingsRes.value.data.settings.currency_symbol || "₹");
+      }
     } catch (error) {
       console.error("Invoices loading error:", error);
 
@@ -31,23 +47,8 @@ function InvoicesHistory() {
   };
 
   useEffect(() => {
-    const fetchInvoices = async () => {
-      try {
-        setLoading(true);
-
-        const response = await API.get("/invoices");
-
-        setInvoices(response.data.invoices || []);
-      } catch (error) {
-        console.error("Invoices loading error:", error);
-
-        alert(error.response?.data?.message || "Unable to load invoices");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchInvoices();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadInvoices();
   }, []);
 
   const handleCreateInvoice = () => {
@@ -59,11 +60,15 @@ function InvoicesHistory() {
   };
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      maximumFractionDigits: 2,
-    }).format(Number(amount) || 0);
+    try {
+      return new Intl.NumberFormat("en-IN", {
+        style: "currency",
+        currency: currencyCode || "INR",
+        maximumFractionDigits: 2,
+      }).format(Number(amount) || 0);
+    } catch {
+      return `${currencySymbol || "₹"}${Number(amount || 0).toFixed(2)}`;
+    }
   };
 
   const formatDate = (date) => {
@@ -118,15 +123,7 @@ function InvoicesHistory() {
   });
 
   if (loading) {
-    return (
-      <div className="invoices-history-loading">
-        <div className="loading-spinner"></div>
-
-        <h2>Loading Invoices...</h2>
-
-        <p>Please wait...</p>
-      </div>
-    );
+    return <LoadingScreen title="Loading Invoice History..." subtitle="Please wait..." />;
   }
 
   return (

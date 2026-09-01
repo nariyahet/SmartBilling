@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/axios";
+import LoadingScreen from "../components/LoadingScreen";
 import "./Customers.css";
 
 function Customers() {
@@ -175,6 +176,10 @@ function Customers() {
       customer.address?.toLowerCase().includes(text)
     );
   });
+
+  if (loading) {
+    return <LoadingScreen title="Loading Customers..." subtitle="Please wait..." />;
+  }
 
   return (
     <div className="customers-page">

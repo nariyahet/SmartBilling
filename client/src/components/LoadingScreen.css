@@ -1,0 +1,40 @@
+.app-loading-screen {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: #f5f7fb;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.app-loading-spinner {
+  width: 44px;
+  height: 44px;
+  border: 4px solid #e5e7eb;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: app-spin 0.8s linear infinite;
+  margin-bottom: 18px;
+}
+
+.app-loading-screen h2 {
+  margin: 0 0 8px 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.app-loading-screen p {
+  margin: 0;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+@keyframes app-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

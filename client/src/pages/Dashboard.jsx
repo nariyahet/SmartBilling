@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import API from "../api/axios";
+import LoadingScreen from "../components/LoadingScreen";
 import "./Dashboard.css";
 
 function Dashboard() {
@@ -15,11 +16,12 @@ function Dashboard() {
   });
 
   const [lowStockProducts, setLowStockProducts] = useState([]);
+  const [currencySymbol, setCurrencySymbol] = useState("₹");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const formatCurrency = (amount) => {
-    return `₹${Number(amount || 0).toLocaleString("en-IN", {
+    return `${currencySymbol}${Number(amount || 0).toLocaleString("en-IN", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })}`;
@@ -30,14 +32,19 @@ function Dashboard() {
       setLoading(true);
       setError("");
 
-      const statsResponse = await API.get("/dashboard");
+      const [statsResponse, lowStockResponse, settingsResponse] =
+        await Promise.allSettled([
+          API.get("/dashboard"),
+          API.get("/dashboard/low-stock"),
+          API.get("/business-settings"),
+        ]);
 
       if (
-        statsResponse.data &&
-        statsResponse.data.success &&
-        statsResponse.data.stats
+        statsResponse.status === "fulfilled" &&
+        statsResponse.value.data?.success &&
+        statsResponse.value.data?.stats
       ) {
-        const dashboardStats = statsResponse.data.stats;
+        const dashboardStats = statsResponse.value.data.stats;
 
         setStats({
           totalCustomers: Number(dashboardStats.totalCustomers) || 0,
@@ -48,15 +55,21 @@ function Dashboard() {
         });
       }
 
-      const lowStockResponse = await API.get("/dashboard/low-stock");
-
       if (
-        lowStockResponse.data &&
-        Array.isArray(lowStockResponse.data.products)
+        lowStockResponse.status === "fulfilled" &&
+        lowStockResponse.value.data &&
+        Array.isArray(lowStockResponse.value.data.products)
       ) {
-        setLowStockProducts(lowStockResponse.data.products);
+        setLowStockProducts(lowStockResponse.value.data.products);
       } else {
         setLowStockProducts([]);
+      }
+
+      if (
+        settingsResponse.status === "fulfilled" &&
+        settingsResponse.value.data?.settings?.currency_symbol
+      ) {
+        setCurrencySymbol(settingsResponse.value.data.settings.currency_symbol);
       }
     } catch (err) {
       console.error("Dashboard loading error:", err);
@@ -81,14 +94,7 @@ function Dashboard() {
   };
 
   if (loading) {
-    return (
-      <div className="dashboard-loading">
-        <div className="loading-spinner"></div>
-
-        <h2>Loading Dashboard...</h2>
-        <p>Please wait...</p>
-      </div>
-    );
+    return <LoadingScreen title="Loading Dashboard..." subtitle="Please wait..." />;
   }
 
   return (
@@ -121,6 +127,10 @@ function Dashboard() {
 
           <Link to="/sales-report" className="nav-link">
             📊 Sales Report
+          </Link>
+
+          <Link to="/settings" className="nav-link">
+            ⚙️ Business Settings
           </Link>
 
           <button type="button" className="logout-btn" onClick={handleLogout}>

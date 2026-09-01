@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/axios";
+import LoadingScreen from "../components/LoadingScreen";
 import "./SalesReport.css";
 
 import {
@@ -106,15 +107,7 @@ function SalesReport() {
   }, []);
 
   if (loading) {
-    return (
-      <div className="sales-report-loading">
-        <div className="loading-spinner"></div>
-
-        <h2>Loading Sales Report...</h2>
-
-        <p>Please wait...</p>
-      </div>
-    );
+    return <LoadingScreen title="Loading Sales Report..." subtitle="Please wait..." />;
   }
 
   const chartData = [...monthlySales].reverse().map((item) => ({

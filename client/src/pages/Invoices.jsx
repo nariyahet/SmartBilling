@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/axios";
+import LoadingScreen from "../components/LoadingScreen";
 import "./Invoices.css";
 
 function Invoices() {
@@ -17,6 +18,9 @@ function Invoices() {
 
   const [discountPercent, setDiscountPercent] = useState(0);
   const [taxPercent, setTaxPercent] = useState(18);
+  const [currencyCode, setCurrencyCode] = useState("INR");
+  const [currencySymbol, setCurrencySymbol] = useState("₹");
+  const [invoiceNo, setInvoiceNo] = useState("");
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -28,23 +32,57 @@ function Invoices() {
       try {
         setLoading(true);
 
-        const [customerResponse, productResponse] = await Promise.all([
+        const [
+          customerResponse,
+          productResponse,
+          settingsResponse,
+          newInvoiceResponse,
+        ] = await Promise.allSettled([
           API.get("/customers"),
           API.get("/products"),
+          API.get("/business-settings"),
+          API.get("/invoices/new"),
         ]);
 
         if (cancelled) return;
 
-        setCustomers(customerResponse.data?.customers || []);
+        if (customerResponse.status === "fulfilled") {
+          setCustomers(customerResponse.value.data?.customers || []);
+        }
 
-        setProducts(productResponse.data?.products || []);
+        if (productResponse.status === "fulfilled") {
+          setProducts(productResponse.value.data?.products || []);
+        }
+
+        if (
+          settingsResponse.status === "fulfilled" &&
+          settingsResponse.value.data?.settings
+        ) {
+          const s = settingsResponse.value.data.settings;
+          if (s.default_tax_percent !== undefined) {
+            setTaxPercent(Number(s.default_tax_percent));
+          }
+          if (s.currency) {
+            setCurrencyCode(s.currency);
+          }
+          if (s.currency_symbol) {
+            setCurrencySymbol(s.currency_symbol);
+          }
+        }
+
+        if (
+          newInvoiceResponse.status === "fulfilled" &&
+          newInvoiceResponse.value.data?.invoiceNo
+        ) {
+          setInvoiceNo(newInvoiceResponse.value.data.invoiceNo);
+        }
       } catch (error) {
         if (cancelled) return;
 
         console.error("Invoice data error:", error);
 
         alert(
-          error.response?.data?.message || "Unable to load customers/products",
+          error.response?.data?.message || "Unable to load billing data",
         );
       } finally {
         if (!cancelled) {
@@ -174,11 +212,15 @@ function Invoices() {
   const grandTotal = afterDiscount + taxAmount;
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      maximumFractionDigits: 2,
-    }).format(Number(amount) || 0);
+    try {
+      return new Intl.NumberFormat("en-IN", {
+        style: "currency",
+        currency: currencyCode || "INR",
+        maximumFractionDigits: 2,
+      }).format(Number(amount) || 0);
+    } catch {
+      return `${currencySymbol || "₹"}${Number(amount || 0).toFixed(2)}`;
+    }
   };
 
   const handleCreateInvoice = async () => {
@@ -206,6 +248,7 @@ function Invoices() {
       setSaving(true);
 
       const response = await API.post("/invoices", {
+        invoice_no: invoiceNo || undefined,
         customer_id: Number(customerId),
 
         items: items.map((item) => ({
@@ -235,7 +278,7 @@ function Invoices() {
   };
 
   if (loading) {
-    return <div className="invoice-loading">Loading billing data...</div>;
+    return <LoadingScreen title="Loading Invoices..." subtitle="Please wait..." />;
   }
 
   return (
@@ -246,7 +289,14 @@ function Invoices() {
         <div>
           <h1>🧾 Create Invoice</h1>
 
-          <p>Create professional bills for your customers</p>
+          <p>
+            Create professional bills for your customers
+            {invoiceNo && (
+              <span style={{ marginLeft: "10px", fontWeight: "600", color: "#2563eb" }}>
+                (Invoice No: {invoiceNo})
+              </span>
+            )}
+          </p>
         </div>
 
         <button

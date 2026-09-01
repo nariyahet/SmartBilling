@@ -99,7 +99,10 @@ const createInvoice = async (req, res, next) => {
 
     const grandTotal = afterDiscount + taxAmount;
 
-    const invoiceNo = "INV-" + Date.now().toString().slice(-8);
+    let invoiceNo = req.body.invoice_no ? String(req.body.invoice_no).trim() : "";
+    if (!invoiceNo) {
+      invoiceNo = await generateNextSequentialInvoiceNo();
+    }
 
     const invoiceResult = await db.promise().query(
       `INSERT INTO invoices
@@ -179,28 +182,38 @@ const createInvoice = async (req, res, next) => {
   }
 };
 
-const getNewInvoice = async (req, res, next) => {
-  try {
-    const [rows] = await db.promise().query(
-      `SELECT invoice_no
-             FROM invoices
-             ORDER BY id DESC
-             LIMIT 1`,
-    );
+const generateNextSequentialInvoiceNo = async () => {
+  const [rows] = await db.promise().query(
+    `SELECT invoice_no
+     FROM invoices
+     ORDER BY id DESC`
+  );
 
-    let nextNumber = 1001;
+  let maxSequentialNumber = 1000;
+  let foundSequential = false;
 
-    if (rows.length > 0 && rows[0].invoice_no) {
-      const lastInvoice = String(rows[0].invoice_no);
-
-      const match = lastInvoice.match(/(\d+)$/);
-
+  for (const row of rows) {
+    if (row.invoice_no) {
+      // Treat only standard sequential invoice numbers matching INV-<1 to 6 digits>
+      // Ignore legacy timestamp-style 8-digit invoice numbers (e.g. INV-62755951)
+      const match = String(row.invoice_no).trim().match(/^INV-(\d{1,6})$/i);
       if (match) {
-        nextNumber = Number(match[1]) + 1;
+        const num = Number(match[1]);
+        if (!isNaN(num) && num > maxSequentialNumber) {
+          maxSequentialNumber = num;
+          foundSequential = true;
+        }
       }
     }
+  }
 
-    const invoiceNo = `INV-${nextNumber}`;
+  const nextNumber = foundSequential ? maxSequentialNumber + 1 : 1001;
+  return `INV-${nextNumber}`;
+};
+
+const getNewInvoice = async (req, res, next) => {
+  try {
+    const invoiceNo = await generateNextSequentialInvoiceNo();
 
     res.status(200).json({
       success: true,
