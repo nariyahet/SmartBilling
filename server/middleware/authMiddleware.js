@@ -30,7 +30,11 @@ const authMiddleware = (req, res, next) => {
       process.env.JWT_SECRET
     );
 
-    req.user = decoded;
+    req.user = {
+      id: decoded.id,
+      email: decoded.email,
+      company_id: decoded.company_id,
+    };
 
     next();
   } catch (err) {

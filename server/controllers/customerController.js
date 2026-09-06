@@ -1,6 +1,8 @@
 const db = require("../config/db");
 
 exports.getCustomers = (req, res) => {
+  const companyId = req.user.company_id;
+
   const sql = `
     SELECT
       id,
@@ -10,10 +12,11 @@ exports.getCustomers = (req, res) => {
       address,
       created_at
     FROM customers
+    WHERE company_id = ?
     ORDER BY id DESC
   `;
 
-  db.query(sql, (err, results) => {
+  db.query(sql, [companyId], (err, results) => {
     if (err) {
       console.error("Get Customers Error:", err);
 
@@ -32,6 +35,7 @@ exports.getCustomers = (req, res) => {
 
 exports.getCustomerById = (req, res) => {
   const { id } = req.params;
+  const companyId = req.user.company_id;
 
   const sql = `
     SELECT
@@ -42,10 +46,10 @@ exports.getCustomerById = (req, res) => {
       address,
       created_at
     FROM customers
-    WHERE id = ?
+    WHERE id = ? AND company_id = ?
   `;
 
-  db.query(sql, [id], (err, results) => {
+  db.query(sql, [id, companyId], (err, results) => {
     if (err) {
       console.error("Get Customer Error:", err);
 
@@ -71,6 +75,7 @@ exports.getCustomerById = (req, res) => {
 
 exports.createCustomer = (req, res) => {
   const { name, mobile, email, address } = req.body;
+  const companyId = req.user.company_id;
 
   if (!name || !name.trim()) {
     return res.status(400).json({
@@ -88,8 +93,8 @@ exports.createCustomer = (req, res) => {
 
   const sql = `
     INSERT INTO customers
-    (name, mobile, email, address)
-    VALUES (?, ?, ?, ?)
+    (name, mobile, email, address, company_id)
+    VALUES (?, ?, ?, ?, ?)
   `;
 
   db.query(
@@ -99,6 +104,7 @@ exports.createCustomer = (req, res) => {
       mobile.trim(),
       email?.trim() || null,
       address?.trim() || null,
+      companyId,
     ],
     (err, result) => {
       if (err) {
@@ -127,8 +133,8 @@ exports.createCustomer = (req, res) => {
 
 exports.updateCustomer = (req, res) => {
   const { id } = req.params;
-
   const { name, mobile, email, address } = req.body;
+  const companyId = req.user.company_id;
 
   if (!name || !name.trim()) {
     return res.status(400).json({
@@ -151,7 +157,7 @@ exports.updateCustomer = (req, res) => {
       mobile = ?,
       email = ?,
       address = ?
-    WHERE id = ?
+    WHERE id = ? AND company_id = ?
   `;
 
   db.query(
@@ -162,6 +168,7 @@ exports.updateCustomer = (req, res) => {
       email?.trim() || null,
       address?.trim() || null,
       id,
+      companyId,
     ],
     (err, result) => {
       if (err) {
@@ -190,14 +197,15 @@ exports.updateCustomer = (req, res) => {
 
 exports.deleteCustomer = (req, res) => {
   const { id } = req.params;
+  const companyId = req.user.company_id;
 
   const checkCustomerSql = `
     SELECT id, name
     FROM customers
-    WHERE id = ?
+    WHERE id = ? AND company_id = ?
   `;
 
-  db.query(checkCustomerSql, [id], (checkErr, customerResults) => {
+  db.query(checkCustomerSql, [id, companyId], (checkErr, customerResults) => {
     if (checkErr) {
       console.error("Check Customer Error:", checkErr);
 
@@ -217,10 +225,10 @@ exports.deleteCustomer = (req, res) => {
     const checkInvoiceSql = `
       SELECT COUNT(*) AS invoiceCount
       FROM invoices
-      WHERE customer_id = ?
+      WHERE customer_id = ? AND company_id = ?
     `;
 
-    db.query(checkInvoiceSql, [id], (invoiceErr, invoiceResults) => {
+    db.query(checkInvoiceSql, [id, companyId], (invoiceErr, invoiceResults) => {
       if (invoiceErr) {
         console.error("Check Customer Invoices Error:", invoiceErr);
 
@@ -243,10 +251,10 @@ exports.deleteCustomer = (req, res) => {
 
       const deleteSql = `
         DELETE FROM customers
-        WHERE id = ?
+        WHERE id = ? AND company_id = ?
       `;
 
-      db.query(deleteSql, [id], (deleteErr, result) => {
+      db.query(deleteSql, [id, companyId], (deleteErr, result) => {
         if (deleteErr) {
           console.error("Delete Customer Error:", deleteErr);
 

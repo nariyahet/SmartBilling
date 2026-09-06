@@ -32,27 +32,35 @@ const createAdmin = async () => {
 
         const hashedPassword = await bcrypt.hash(plainPassword, 10);
 
-        const sql = `
-          INSERT INTO admins
-          (name, email, password)
-          VALUES (?, ?, ?)
-        `;
+        db.query(
+          "SELECT id FROM companies WHERE slug = ? LIMIT 1",
+          ["smartbilling-main"],
+          (compError, compResult) => {
+            const companyId = compResult?.[0]?.id || null;
 
-        db.query(sql, [name, email, hashedPassword], (insertError) => {
-          if (insertError) {
-            console.error("Admin Create Failed ❌", insertError.message);
+            const sql = `
+              INSERT INTO admins
+              (name, email, password, company_id)
+              VALUES (?, ?, ?, ?)
+            `;
 
-            db.end();
-            return;
-          }
+            db.query(sql, [name, email, hashedPassword, companyId], (insertError) => {
+              if (insertError) {
+                console.error("Admin Create Failed ❌", insertError.message);
 
-          console.log("Admin Created Successfully ✅");
+                db.end();
+                return;
+              }
 
-          console.log("Email:", email);
-          console.log("Password:", plainPassword);
+              console.log("Admin Created Successfully ✅");
 
-          db.end();
-        });
+              console.log("Email:", email);
+              console.log("Password:", plainPassword);
+
+              db.end();
+            });
+          },
+        );
       },
     );
   } catch (error) {

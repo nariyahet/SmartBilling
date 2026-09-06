@@ -1,7 +1,39 @@
 const db = require("../config/db");
 
+const generateNextSequentialInvoiceNo = async (companyId) => {
+  const [rows] = await db.promise().query(
+    `SELECT invoice_no
+     FROM invoices
+     WHERE company_id = ?
+     ORDER BY id DESC`,
+    [companyId]
+  );
+
+  let maxSequentialNumber = 1000;
+  let foundSequential = false;
+
+  for (const row of rows) {
+    if (row.invoice_no) {
+      // Treat only standard sequential invoice numbers matching INV-<1 to 6 digits>
+      // Ignore legacy timestamp-style 8-digit invoice numbers (e.g. INV-62755951)
+      const match = String(row.invoice_no).trim().match(/^INV-(\d{1,6})$/i);
+      if (match) {
+        const num = Number(match[1]);
+        if (!isNaN(num) && num > maxSequentialNumber) {
+          maxSequentialNumber = num;
+          foundSequential = true;
+        }
+      }
+    }
+  }
+
+  const nextNumber = foundSequential ? maxSequentialNumber + 1 : 1001;
+  return `INV-${nextNumber}`;
+};
+
 const createInvoice = async (req, res, next) => {
   try {
+    const companyId = req.user.company_id;
     const {
       customer_id,
       items,
@@ -25,9 +57,9 @@ const createInvoice = async (req, res, next) => {
 
     const [customers] = await db.promise().query(
       `SELECT id, name, mobile, email, address
-             FROM customers
-             WHERE id = ?`,
-      [customer_id],
+       FROM customers
+       WHERE id = ? AND company_id = ?`,
+      [customer_id, companyId],
     );
 
     if (customers.length === 0) {
@@ -53,9 +85,9 @@ const createInvoice = async (req, res, next) => {
 
       const [products] = await db.promise().query(
         `SELECT id, name, price, stock
-                 FROM products
-                 WHERE id = ?`,
-        [productId],
+         FROM products
+         WHERE id = ? AND company_id = ?`,
+        [productId, companyId],
       );
 
       if (products.length === 0) {
@@ -88,36 +120,34 @@ const createInvoice = async (req, res, next) => {
     }
 
     const discountPercent = Number(discount_percent) || 0;
-
     const taxPercent = Number(tax_percent) || 0;
 
     const discountAmount = subtotal * (discountPercent / 100);
-
     const afterDiscount = subtotal - discountAmount;
-
     const taxAmount = afterDiscount * (taxPercent / 100);
-
     const grandTotal = afterDiscount + taxAmount;
 
     let invoiceNo = req.body.invoice_no ? String(req.body.invoice_no).trim() : "";
     if (!invoiceNo) {
-      invoiceNo = await generateNextSequentialInvoiceNo();
+      invoiceNo = await generateNextSequentialInvoiceNo(companyId);
     }
 
     const invoiceResult = await db.promise().query(
       `INSERT INTO invoices
-                (
-                    invoice_no,
-                    customer_id,
-                    subtotal,
-                    discount_percent,
-                    discount_amount,
-                    tax_percent,
-                    tax_amount,
-                    grand_total
-                )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        (
+          company_id,
+          invoice_no,
+          customer_id,
+          subtotal,
+          discount_percent,
+          discount_amount,
+          tax_percent,
+          tax_amount,
+          grand_total
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
+        companyId,
         invoiceNo,
         customer_id,
         subtotal,
@@ -134,16 +164,18 @@ const createInvoice = async (req, res, next) => {
     for (const item of invoiceItems) {
       await db.promise().query(
         `INSERT INTO invoice_items
-                (
-                    invoice_id,
-                    product_id,
-                    product_name,
-                    quantity,
-                    price,
-                    total
-                )
-                VALUES (?, ?, ?, ?, ?, ?)`,
+          (
+            company_id,
+            invoice_id,
+            product_id,
+            product_name,
+            quantity,
+            price,
+            total
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [
+          companyId,
           invoiceId,
           item.product_id,
           item.product_name,
@@ -155,9 +187,9 @@ const createInvoice = async (req, res, next) => {
 
       await db.promise().query(
         `UPDATE products
-                 SET stock = stock - ?
-                 WHERE id = ?`,
-        [item.quantity, item.product_id],
+         SET stock = stock - ?
+         WHERE id = ? AND company_id = ?`,
+        [item.quantity, item.product_id, companyId],
       );
     }
 
@@ -182,38 +214,10 @@ const createInvoice = async (req, res, next) => {
   }
 };
 
-const generateNextSequentialInvoiceNo = async () => {
-  const [rows] = await db.promise().query(
-    `SELECT invoice_no
-     FROM invoices
-     ORDER BY id DESC`
-  );
-
-  let maxSequentialNumber = 1000;
-  let foundSequential = false;
-
-  for (const row of rows) {
-    if (row.invoice_no) {
-      // Treat only standard sequential invoice numbers matching INV-<1 to 6 digits>
-      // Ignore legacy timestamp-style 8-digit invoice numbers (e.g. INV-62755951)
-      const match = String(row.invoice_no).trim().match(/^INV-(\d{1,6})$/i);
-      if (match) {
-        const num = Number(match[1]);
-        if (!isNaN(num) && num > maxSequentialNumber) {
-          maxSequentialNumber = num;
-          foundSequential = true;
-        }
-      }
-    }
-  }
-
-  const nextNumber = foundSequential ? maxSequentialNumber + 1 : 1001;
-  return `INV-${nextNumber}`;
-};
-
 const getNewInvoice = async (req, res, next) => {
   try {
-    const invoiceNo = await generateNextSequentialInvoiceNo();
+    const companyId = req.user.company_id;
+    const invoiceNo = await generateNextSequentialInvoiceNo(companyId);
 
     res.status(200).json({
       success: true,
@@ -228,17 +232,19 @@ const getNewInvoice = async (req, res, next) => {
 
 const getInvoices = async (req, res, next) => {
   try {
+    const companyId = req.user.company_id;
+
     const [invoices] = await db.promise().query(
-      `
-                SELECT
-                    i.*,
-                    c.name AS customer_name,
-                    c.mobile AS customer_mobile
-                FROM invoices i
-                LEFT JOIN customers c
-                    ON i.customer_id = c.id
-                ORDER BY i.id DESC
-                `,
+      `SELECT
+         i.*,
+         c.name AS customer_name,
+         c.mobile AS customer_mobile
+       FROM invoices i
+       LEFT JOIN customers c
+         ON i.customer_id = c.id
+       WHERE i.company_id = ?
+       ORDER BY i.id DESC`,
+      [companyId],
     );
 
     res.status(200).json({
@@ -253,21 +259,20 @@ const getInvoices = async (req, res, next) => {
 const getInvoiceById = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const companyId = req.user.company_id;
 
     const [invoices] = await db.promise().query(
-      `
-                SELECT
-                    i.*,
-                    c.name AS customer_name,
-                    c.mobile AS customer_mobile,
-                    c.email AS customer_email,
-                    c.address AS customer_address
-                FROM invoices i
-                LEFT JOIN customers c
-                    ON i.customer_id = c.id
-                WHERE i.id = ?
-                `,
-      [id],
+      `SELECT
+         i.*,
+         c.name AS customer_name,
+         c.mobile AS customer_mobile,
+         c.email AS customer_email,
+         c.address AS customer_address
+       FROM invoices i
+       LEFT JOIN customers c
+         ON i.customer_id = c.id
+       WHERE i.id = ? AND i.company_id = ?`,
+      [id, companyId],
     );
 
     if (invoices.length === 0) {
@@ -278,13 +283,11 @@ const getInvoiceById = async (req, res, next) => {
     }
 
     const [items] = await db.promise().query(
-      `
-                SELECT *
-                FROM invoice_items
-                WHERE invoice_id = ?
-                ORDER BY id ASC
-                `,
-      [id],
+      `SELECT *
+       FROM invoice_items
+       WHERE invoice_id = ? AND company_id = ?
+       ORDER BY id ASC`,
+      [id, companyId],
     );
 
     res.status(200).json({

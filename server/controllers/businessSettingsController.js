@@ -2,7 +2,9 @@ const BusinessSettings = require("../models/businessSettingsModel");
 const { success, error } = require("../utils/response");
 
 exports.getSettings = (req, res, next) => {
-  BusinessSettings.getSettings((err, settings) => {
+  const companyId = req.user.company_id;
+
+  BusinessSettings.getSettings(companyId, (err, settings) => {
     if (err) {
       console.error("Get Business Settings Error:", err);
       return error(res, "Failed to retrieve business settings", 500);
@@ -16,6 +18,7 @@ exports.getSettings = (req, res, next) => {
 };
 
 exports.updateSettings = (req, res, next) => {
+  const companyId = req.user.company_id;
   const {
     business_name,
     tagline,
@@ -49,6 +52,7 @@ exports.updateSettings = (req, res, next) => {
   }
 
   BusinessSettings.updateSettings(
+    companyId,
     {
       business_name,
       tagline,

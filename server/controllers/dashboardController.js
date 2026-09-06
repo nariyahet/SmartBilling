@@ -2,30 +2,33 @@ const db = require("../config/db");
 
 exports.getDashboardStats = async (req, res) => {
   try {
+    const companyId = req.user.company_id;
+
     const [customers] = await db
       .promise()
-      .query("SELECT COUNT(*) AS totalCustomers FROM customers");
+      .query("SELECT COUNT(*) AS totalCustomers FROM customers WHERE company_id = ?", [companyId]);
 
     const [products] = await db
       .promise()
-      .query("SELECT COUNT(*) AS totalProducts FROM products");
+      .query("SELECT COUNT(*) AS totalProducts FROM products WHERE company_id = ?", [companyId]);
 
     const [invoices] = await db
       .promise()
-      .query("SELECT COUNT(*) AS totalInvoices FROM invoices");
+      .query("SELECT COUNT(*) AS totalInvoices FROM invoices WHERE company_id = ?", [companyId]);
 
     const [sales] = await db.promise().query(`
       SELECT
         COALESCE(SUM(grand_total), 0) AS totalSales
       FROM invoices
-    `);
+      WHERE company_id = ?
+    `, [companyId]);
 
     const [todaySales] = await db.promise().query(`
       SELECT
         COALESCE(SUM(grand_total), 0) AS todaySales
       FROM invoices
-      WHERE DATE(created_at) = CURDATE()
-    `);
+      WHERE company_id = ? AND DATE(created_at) = CURDATE()
+    `, [companyId]);
 
     res.status(200).json({
       success: true,
@@ -63,16 +66,18 @@ exports.getDashboardStats = async (req, res) => {
 
 exports.getLowStockProducts = async (req, res) => {
   try {
+    const companyId = req.user.company_id;
+
     const [products] = await db.promise().query(`
-        SELECT
-          id,
-          name,
-          price,
-          stock
-        FROM products
-        WHERE stock <= 5
-        ORDER BY stock ASC, id DESC
-      `);
+      SELECT
+        id,
+        name,
+        price,
+        stock
+      FROM products
+      WHERE company_id = ? AND stock <= 5
+      ORDER BY stock ASC, id DESC
+    `, [companyId]);
 
     res.status(200).json({
       success: true,
@@ -94,40 +99,43 @@ exports.getLowStockProducts = async (req, res) => {
 
 exports.getSalesReport = async (req, res) => {
   try {
+    const companyId = req.user.company_id;
+
     const [dailySales] = await db.promise().query(`
-        SELECT
-          DATE(created_at) AS date,
-          COALESCE(
-            SUM(grand_total),
-            0
-          ) AS total
-        FROM invoices
-        GROUP BY DATE(created_at)
-        ORDER BY DATE(created_at) DESC
-      `);
+      SELECT
+        DATE(created_at) AS date,
+        COALESCE(
+          SUM(grand_total),
+          0
+        ) AS total
+      FROM invoices
+      WHERE company_id = ?
+      GROUP BY DATE(created_at)
+      ORDER BY DATE(created_at) DESC
+    `, [companyId]);
 
     const [monthlySales] = await db.promise().query(`
-        SELECT
-          DATE_FORMAT(
-            created_at,
-            '%Y-%m'
-          ) AS month,
+      SELECT
+        DATE_FORMAT(
+          created_at,
+          '%Y-%m'
+        ) AS month,
 
-          COALESCE(
-            SUM(grand_total),
-            0
-          ) AS total
+        COALESCE(
+          SUM(grand_total),
+          0
+        ) AS total
 
-        FROM invoices
+      FROM invoices
+      WHERE company_id = ?
+      GROUP BY
+        DATE_FORMAT(
+          created_at,
+          '%Y-%m'
+        )
 
-        GROUP BY
-          DATE_FORMAT(
-            created_at,
-            '%Y-%m'
-          )
-
-        ORDER BY month DESC
-      `);
+      ORDER BY month DESC
+    `, [companyId]);
 
     res.status(200).json({
       success: true,

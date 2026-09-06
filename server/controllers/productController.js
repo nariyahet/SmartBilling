@@ -1,9 +1,10 @@
 const db = require("../config/db");
 
 exports.getProducts = (req, res) => {
-  const sql = "SELECT * FROM products ORDER BY id DESC";
+  const companyId = req.user.company_id;
+  const sql = "SELECT * FROM products WHERE company_id = ? ORDER BY id DESC";
 
-  db.query(sql, (err, results) => {
+  db.query(sql, [companyId], (err, results) => {
     if (err) {
       console.error("Get Products Error:", err);
 
@@ -23,14 +24,15 @@ exports.getProducts = (req, res) => {
 // GET LOW STOCK PRODUCTS
 // ==========================================
 exports.getLowStockProducts = (req, res) => {
+  const companyId = req.user.company_id;
   const sql = `
     SELECT *
     FROM products
-    WHERE stock <= 5
+    WHERE company_id = ? AND stock <= 5
     ORDER BY stock ASC
   `;
 
-  db.query(sql, (err, results) => {
+  db.query(sql, [companyId], (err, results) => {
     if (err) {
       console.error("Low Stock Products Error:", err);
 
@@ -49,10 +51,11 @@ exports.getLowStockProducts = (req, res) => {
 
 exports.getProductById = (req, res) => {
   const { id } = req.params;
+  const companyId = req.user.company_id;
 
-  const sql = "SELECT * FROM products WHERE id = ?";
+  const sql = "SELECT * FROM products WHERE id = ? AND company_id = ?";
 
-  db.query(sql, [id], (err, results) => {
+  db.query(sql, [id, companyId], (err, results) => {
     if (err) {
       console.error("Get Product Error:", err);
 
@@ -78,6 +81,7 @@ exports.getProductById = (req, res) => {
 
 exports.createProduct = (req, res) => {
   const { name, price, stock } = req.body;
+  const companyId = req.user.company_id;
 
   if (!name || !name.trim()) {
     return res.status(400).json({
@@ -129,31 +133,36 @@ exports.createProduct = (req, res) => {
 
   const sql = `
     INSERT INTO products
-    (name, price, stock)
-    VALUES (?, ?, ?)
+    (name, price, stock, company_id)
+    VALUES (?, ?, ?, ?)
   `;
 
-  db.query(sql, [name.trim(), productPrice, productStock], (err, result) => {
-    if (err) {
-      console.error("Create Product Error:", err);
+  db.query(
+    sql,
+    [name.trim(), productPrice, productStock, companyId],
+    (err, result) => {
+      if (err) {
+        console.error("Create Product Error:", err);
 
-      return res.status(500).json({
-        success: false,
-        message: "Failed to create product",
+        return res.status(500).json({
+          success: false,
+          message: "Failed to create product",
+        });
+      }
+
+      res.status(201).json({
+        success: true,
+        message: "Product created successfully",
+        productId: result.insertId,
       });
     }
-
-    res.status(201).json({
-      success: true,
-      message: "Product created successfully",
-      productId: result.insertId,
-    });
-  });
+  );
 };
 
 exports.updateProduct = (req, res) => {
   const { id } = req.params;
   const { name, price, stock } = req.body;
+  const companyId = req.user.company_id;
 
   if (!name || !name.trim()) {
     return res.status(400).json({
@@ -209,12 +218,12 @@ exports.updateProduct = (req, res) => {
       name = ?,
       price = ?,
       stock = ?
-    WHERE id = ?
+    WHERE id = ? AND company_id = ?
   `;
 
   db.query(
     sql,
-    [name.trim(), productPrice, productStock, id],
+    [name.trim(), productPrice, productStock, id, companyId],
     (err, result) => {
       if (err) {
         console.error("Update Product Error:", err);
@@ -236,20 +245,21 @@ exports.updateProduct = (req, res) => {
         success: true,
         message: "Product updated successfully",
       });
-    },
+    }
   );
 };
 
 exports.deleteProduct = (req, res) => {
   const { id } = req.params;
+  const companyId = req.user.company_id;
 
   const checkProductSql = `
     SELECT id, name
     FROM products
-    WHERE id = ?
+    WHERE id = ? AND company_id = ?
   `;
 
-  db.query(checkProductSql, [id], (err, productResults) => {
+  db.query(checkProductSql, [id, companyId], (err, productResults) => {
     if (err) {
       console.error("Check Product Before Delete Error:", err);
 
@@ -269,11 +279,11 @@ exports.deleteProduct = (req, res) => {
     const checkInvoiceSql = `
       SELECT id
       FROM invoice_items
-      WHERE product_id = ?
+      WHERE product_id = ? AND company_id = ?
       LIMIT 1
     `;
 
-    db.query(checkInvoiceSql, [id], (invoiceErr, invoiceResults) => {
+    db.query(checkInvoiceSql, [id, companyId], (invoiceErr, invoiceResults) => {
       if (invoiceErr) {
         console.error("Check Product Invoice Link Error:", invoiceErr);
 
@@ -293,10 +303,10 @@ exports.deleteProduct = (req, res) => {
 
       const deleteSql = `
         DELETE FROM products
-        WHERE id = ?
+        WHERE id = ? AND company_id = ?
       `;
 
-      db.query(deleteSql, [id], (deleteErr, result) => {
+      db.query(deleteSql, [id, companyId], (deleteErr, result) => {
         if (deleteErr) {
           console.error("Delete Product Error:", deleteErr);
 

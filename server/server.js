@@ -39,7 +39,7 @@ app.use("/api/business-settings", businessSettingsRoutes);
 
 app.get("/api/debug/admin", (req, res) => {
   db.query(
-    "SELECT id, name, email FROM admins WHERE email = ? LIMIT 1",
+    "SELECT id, name, email, company_id FROM admins WHERE email = ? LIMIT 1",
     ["admin@gmail.com"],
     (err, result) => {
       if (err) {

@@ -67,6 +67,7 @@ exports.login = (req, res) => {
         {
           id: admin.id,
           email: admin.email,
+          company_id: admin.company_id,
         },
         process.env.JWT_SECRET,
         {
@@ -83,6 +84,7 @@ exports.login = (req, res) => {
             id: admin.id,
             name: admin.name,
             email: admin.email,
+            company_id: admin.company_id,
           },
         }
       );
@@ -95,5 +97,11 @@ exports.login = (req, res) => {
         500
       );
     }
+  });
+};
+
+exports.getMe = (req, res) => {
+  return success(res, "Authenticated user details", {
+    user: req.user,
   });
 };
