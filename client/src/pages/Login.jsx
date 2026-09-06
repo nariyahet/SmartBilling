@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import API from "../api/axios";
 
 function Login() {
@@ -22,7 +23,8 @@ function Login() {
         password,
       });
 
-      const token = response.data?.data?.token;
+      const data = response.data?.data;
+      const token = data?.token;
 
       if (!token) {
         alert("Login failed: Token not received");
@@ -30,8 +32,31 @@ function Login() {
       }
 
       localStorage.setItem("token", token);
+      if (data?.admin) {
+        localStorage.setItem("admin", JSON.stringify(data.admin));
+      }
+      if (data?.company) {
+        localStorage.setItem("company", JSON.stringify(data.company));
+      }
 
-      alert("Login Successful ✅");
+      // Check if trial already expired (normal trial accounts only)
+      if (
+        data?.company?.is_demo !== 1 &&
+        data?.company?.id !== 1 &&
+        data?.company?.subscription_status === "trial" &&
+        data?.company?.trial_end_at &&
+        new Date(data.company.trial_end_at) < new Date()
+      ) {
+        localStorage.setItem(
+          "trial_expired_info",
+          JSON.stringify({
+            company_name: data.company.name,
+            trial_end_at: data.company.trial_end_at,
+          })
+        );
+        window.location.href = "/trial-expired";
+        return;
+      }
 
       window.location.href = "/dashboard";
     } catch (error) {
@@ -89,6 +114,27 @@ function Login() {
             {loading ? "Logging in..." : "Login"}
           </button>
         </form>
+
+        <div
+          style={{
+            marginTop: "20px",
+            textAlign: "center",
+            fontSize: "13px",
+            color: "#6b7280",
+          }}
+        >
+          New business?{" "}
+          <Link
+            to="/register"
+            style={{
+              color: "#4f46e5",
+              fontWeight: 600,
+              textDecoration: "none",
+            }}
+          >
+            Start 3-day free trial
+          </Link>
+        </div>
       </div>
     </div>
   );

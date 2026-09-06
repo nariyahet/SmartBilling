@@ -19,6 +19,14 @@ function Dashboard() {
   const [currencySymbol, setCurrencySymbol] = useState("₹");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [trialInfo, setTrialInfo] = useState(() => {
+    try {
+      const saved = localStorage.getItem("company");
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
 
   const formatCurrency = (amount) => {
     return `${currencySymbol}${Number(amount || 0).toLocaleString("en-IN", {
@@ -32,11 +40,12 @@ function Dashboard() {
       setLoading(true);
       setError("");
 
-      const [statsResponse, lowStockResponse, settingsResponse] =
+      const [statsResponse, lowStockResponse, settingsResponse, meResponse] =
         await Promise.allSettled([
           API.get("/dashboard"),
           API.get("/dashboard/low-stock"),
           API.get("/business-settings"),
+          API.get("/auth/me"),
         ]);
 
       if (
@@ -70,6 +79,15 @@ function Dashboard() {
         settingsResponse.value.data?.settings?.currency_symbol
       ) {
         setCurrencySymbol(settingsResponse.value.data.settings.currency_symbol);
+      }
+
+      if (
+        meResponse.status === "fulfilled" &&
+        meResponse.value.data?.data?.company
+      ) {
+        const comp = meResponse.value.data.data.company;
+        setTrialInfo(comp);
+        localStorage.setItem("company", JSON.stringify(comp));
       }
     } catch (err) {
       console.error("Dashboard loading error:", err);
@@ -156,6 +174,99 @@ function Dashboard() {
       </div>
 
       {error && <div className="dashboard-error">{error}</div>}
+
+      {trialInfo && (trialInfo.is_demo === 1 || trialInfo.id === 1) && (
+        <div
+          style={{
+            background: "linear-gradient(90deg, #f0fdf4 0%, #ecfdf5 100%)",
+            border: "1px solid #a7f3d0",
+            borderRadius: "12px",
+            padding: "14px 20px",
+            marginBottom: "20px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: "10px",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <span style={{ fontSize: "20px" }}>🚀</span>
+            <div>
+              <strong style={{ color: "#065f46", fontSize: "14px" }}>
+                Demo Company Environment
+              </strong>
+              <span style={{ color: "#374151", fontSize: "13px", marginLeft: "8px" }}>
+                You are exploring SmartBilling in a permanent, isolated demonstration account.
+              </span>
+            </div>
+          </div>
+          <span
+            style={{
+              background: "#059669",
+              color: "#ffffff",
+              fontSize: "12px",
+              fontWeight: 700,
+              padding: "4px 12px",
+              borderRadius: "9999px",
+            }}
+          >
+            Permanent Demo
+          </span>
+        </div>
+      )}
+
+      {trialInfo &&
+        trialInfo.subscription_status === "trial" &&
+        trialInfo.is_demo !== 1 &&
+        trialInfo.id !== 1 && (
+          <div
+            style={{
+              background: "linear-gradient(90deg, #eff6ff 0%, #e0e7ff 100%)",
+              border: "1px solid #bfdbfe",
+              borderRadius: "12px",
+              padding: "14px 20px",
+              marginBottom: "20px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: "10px",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <span style={{ fontSize: "20px" }}>⚡</span>
+              <div>
+                <strong style={{ color: "#1e40af", fontSize: "14px" }}>
+                  3-Day Free Trial Active
+                </strong>
+                <span style={{ color: "#475569", fontSize: "13px", marginLeft: "8px" }}>
+                  {trialInfo.trial_end_at
+                    ? `Full access expires on ${new Date(trialInfo.trial_end_at).toLocaleDateString("en-IN", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}`
+                    : "Enjoy unlimited access during your trial period"}
+                </span>
+              </div>
+            </div>
+            <span
+              style={{
+                background: "#3b82f6",
+                color: "#ffffff",
+                fontSize: "12px",
+                fontWeight: 700,
+                padding: "4px 12px",
+                borderRadius: "9999px",
+              }}
+            >
+              Trial Mode
+            </span>
+          </div>
+        )}
 
       <div className="dashboard-stats">
         <div className="stat-card">

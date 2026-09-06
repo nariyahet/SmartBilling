@@ -37,39 +37,42 @@ app.use("/api/invoices", invoiceRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/business-settings", businessSettingsRoutes);
 
-app.get("/api/debug/admin", (req, res) => {
-  db.query(
-    "SELECT id, name, email, company_id FROM admins WHERE email = ? LIMIT 1",
-    ["admin@gmail.com"],
-    (err, result) => {
-      if (err) {
-        console.error("Debug DB Error:", err);
+// Debug endpoints enabled only in development/testing environments
+if (process.env.NODE_ENV !== "production") {
+  app.get("/api/debug/admin", (req, res) => {
+    db.query(
+      "SELECT id, name, email, company_id FROM admins WHERE email = ? LIMIT 1",
+      ["admin@gmail.com"],
+      (err, result) => {
+        if (err) {
+          console.error("Debug DB Error:", err);
 
-        return res.status(500).json({
-          success: false,
-          message: "Database error",
+          return res.status(500).json({
+            success: false,
+            message: "Database error",
+          });
+        }
+
+        return res.status(200).json({
+          success: true,
+          count: result.length,
+          admin: result[0] || null,
         });
-      }
-
-      return res.status(200).json({
-        success: true,
-        count: result.length,
-        admin: result[0] || null,
-      });
-    },
-  );
-});
-
-app.get("/api/debug/db", (req, res) => {
-  res.status(200).json({
-    success: true,
-    connection: {
-      database_name: process.env.DB_NAME,
-      host: process.env.DB_HOST,
-      port: Number(process.env.DB_PORT),
-    },
+      },
+    );
   });
-});
+
+  app.get("/api/debug/db", (req, res) => {
+    res.status(200).json({
+      success: true,
+      connection: {
+        database_name: process.env.DB_NAME,
+        host: process.env.DB_HOST,
+        port: Number(process.env.DB_PORT),
+      },
+    });
+  });
+}
 
 app.get("/", (req, res) => {
   res.status(200).json({

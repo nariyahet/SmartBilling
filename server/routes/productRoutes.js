@@ -4,8 +4,10 @@ const router = express.Router();
 
 const productController = require("../controllers/productController");
 const authMiddleware = require("../middleware/authMiddleware");
+const trialMiddleware = require("../middleware/trialMiddleware");
 
 router.use(authMiddleware);
+router.use(trialMiddleware);
 
 router.get("/", productController.getProducts);
 

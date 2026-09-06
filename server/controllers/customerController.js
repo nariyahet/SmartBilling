@@ -91,6 +91,16 @@ exports.createCustomer = (req, res) => {
     });
   }
 
+  if (email && String(email).trim()) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(String(email).trim())) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide a valid email address",
+      });
+    }
+  }
+
   const sql = `
     INSERT INTO customers
     (name, mobile, email, address, company_id)
@@ -148,6 +158,16 @@ exports.updateCustomer = (req, res) => {
       success: false,
       message: "Mobile number is required",
     });
+  }
+
+  if (email && String(email).trim()) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(String(email).trim())) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide a valid email address",
+      });
+    }
   }
 
   const sql = `

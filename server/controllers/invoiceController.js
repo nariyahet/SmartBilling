@@ -76,10 +76,10 @@ const createInvoice = async (req, res, next) => {
       const productId = Number(item.product_id);
       const quantity = Number(item.quantity);
 
-      if (!productId || !quantity || quantity <= 0) {
+      if (!productId || !quantity || quantity <= 0 || !Number.isInteger(quantity)) {
         return res.status(400).json({
           success: false,
-          message: "Invalid product or quantity",
+          message: "Invalid product or quantity. Quantity must be a positive integer.",
         });
       }
 
@@ -119,8 +119,29 @@ const createInvoice = async (req, res, next) => {
       });
     }
 
-    const discountPercent = Number(discount_percent) || 0;
-    const taxPercent = Number(tax_percent) || 0;
+    const discountPercent =
+      discount_percent !== undefined && discount_percent !== null && discount_percent !== ""
+        ? Number(discount_percent)
+        : 0;
+
+    if (isNaN(discountPercent) || discountPercent < 0 || discountPercent > 100) {
+      return res.status(400).json({
+        success: false,
+        message: "Discount percentage must be a number between 0 and 100",
+      });
+    }
+
+    const taxPercent =
+      tax_percent !== undefined && tax_percent !== null && tax_percent !== ""
+        ? Number(tax_percent)
+        : 18;
+
+    if (isNaN(taxPercent) || taxPercent < 0 || taxPercent > 100) {
+      return res.status(400).json({
+        success: false,
+        message: "Tax percentage must be a number between 0 and 100",
+      });
+    }
 
     const discountAmount = subtotal * (discountPercent / 100);
     const afterDiscount = subtotal - discountAmount;
@@ -132,83 +153,93 @@ const createInvoice = async (req, res, next) => {
       invoiceNo = await generateNextSequentialInvoiceNo(companyId);
     }
 
-    const invoiceResult = await db.promise().query(
-      `INSERT INTO invoices
-        (
-          company_id,
-          invoice_no,
-          customer_id,
-          subtotal,
-          discount_percent,
-          discount_amount,
-          tax_percent,
-          tax_amount,
-          grand_total
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        companyId,
-        invoiceNo,
-        customer_id,
-        subtotal,
-        discountPercent,
-        discountAmount,
-        taxPercent,
-        taxAmount,
-        grandTotal,
-      ],
-    );
+    const conn = db.promise();
+    await conn.beginTransaction();
 
-    const invoiceId = invoiceResult[0].insertId;
-
-    for (const item of invoiceItems) {
-      await db.promise().query(
-        `INSERT INTO invoice_items
+    try {
+      const invoiceResult = await conn.query(
+        `INSERT INTO invoices
           (
             company_id,
-            invoice_id,
-            product_id,
-            product_name,
-            quantity,
-            price,
-            total
+            invoice_no,
+            customer_id,
+            subtotal,
+            discount_percent,
+            discount_amount,
+            tax_percent,
+            tax_amount,
+            grand_total
           )
-          VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           companyId,
-          invoiceId,
-          item.product_id,
-          item.product_name,
-          item.quantity,
-          item.price,
-          item.total,
+          invoiceNo,
+          customer_id,
+          subtotal,
+          discountPercent,
+          discountAmount,
+          taxPercent,
+          taxAmount,
+          grandTotal,
         ],
       );
 
-      await db.promise().query(
-        `UPDATE products
-         SET stock = stock - ?
-         WHERE id = ? AND company_id = ?`,
-        [item.quantity, item.product_id, companyId],
-      );
-    }
+      const invoiceId = invoiceResult[0].insertId;
 
-    return res.status(201).json({
-      success: true,
-      message: "Invoice created successfully",
-      invoice: {
-        id: invoiceId,
-        invoice_no: invoiceNo,
-        customer: customers[0],
-        items: invoiceItems,
-        subtotal,
-        discount_percent: discountPercent,
-        discount_amount: discountAmount,
-        tax_percent: taxPercent,
-        tax_amount: taxAmount,
-        grand_total: grandTotal,
-      },
-    });
+      for (const item of invoiceItems) {
+        await conn.query(
+          `INSERT INTO invoice_items
+            (
+              company_id,
+              invoice_id,
+              product_id,
+              product_name,
+              quantity,
+              price,
+              total
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [
+            companyId,
+            invoiceId,
+            item.product_id,
+            item.product_name,
+            item.quantity,
+            item.price,
+            item.total,
+          ],
+        );
+
+        await conn.query(
+          `UPDATE products
+           SET stock = stock - ?
+           WHERE id = ? AND company_id = ?`,
+          [item.quantity, item.product_id, companyId],
+        );
+      }
+
+      await conn.commit();
+
+      return res.status(201).json({
+        success: true,
+        message: "Invoice created successfully",
+        invoice: {
+          id: invoiceId,
+          invoice_no: invoiceNo,
+          customer: customers[0],
+          items: invoiceItems,
+          subtotal,
+          discount_percent: discountPercent,
+          discount_amount: discountAmount,
+          tax_percent: taxPercent,
+          tax_amount: taxAmount,
+          grand_total: grandTotal,
+        },
+      });
+    } catch (txnErr) {
+      await conn.rollback();
+      throw txnErr;
+    }
   } catch (error) {
     next(error);
   }
