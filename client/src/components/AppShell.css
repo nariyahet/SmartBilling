@@ -1,0 +1,27 @@
+/* =======================================================
+   SmartBilling Reusable Application Shell Styles
+   ======================================================= */
+
+.sb-brand-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.sb-page-content-canvas {
+  padding: 32px;
+  max-width: 1440px;
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+@media (max-width: 768px) {
+  .sb-page-content-canvas {
+    padding: 20px 16px;
+  }
+}

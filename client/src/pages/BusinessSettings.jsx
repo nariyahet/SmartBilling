@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
 import API from "../api/axios";
 import LoadingScreen from "../components/LoadingScreen";
+import AppShell from "../components/AppShell";
 import "./BusinessSettings.css";
 
 const CURRENCIES = [
@@ -17,8 +17,6 @@ const CURRENCIES = [
 ];
 
 function BusinessSettings() {
-  const navigate = useNavigate();
-
   const [settings, setSettings] = useState({
     business_name: "",
     tagline: "",
@@ -163,7 +161,7 @@ function BusinessSettings() {
       });
 
       if (response.data && response.data.success) {
-        setSuccessMessage("Business settings saved successfully!");
+        setSuccessMessage("Business settings saved successfully! ✅");
         if (response.data.settings) {
           const data = response.data.settings;
           setSettings({
@@ -200,117 +198,94 @@ function BusinessSettings() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("admin");
-    navigate("/");
-  };
-
   if (loading) {
-    return <LoadingScreen title="Loading Business Settings..." subtitle="Please wait..." />;
+    return <LoadingScreen title="Loading Business Settings..." subtitle="Fetching company configuration..." />;
   }
 
   return (
-    <div className="settings-page">
-      {/* NAVIGATION */}
-      <nav className="dashboard-nav">
-        <div className="nav-brand">
-          <h2>Smart Billing</h2>
-        </div>
-
-        <div className="nav-links">
-          <Link to="/dashboard" className="nav-link">
-            🏠 Dashboard
-          </Link>
-
-          <Link to="/products" className="nav-link">
-            📦 Products
-          </Link>
-
-          <Link to="/customers" className="nav-link">
-            👥 Customers
-          </Link>
-
-          <Link to="/invoices/create" className="nav-link">
-            🧾 Invoices
-          </Link>
-
-          <Link to="/invoices/history" className="nav-link">
-            📋 Invoice History
-          </Link>
-
-          <Link to="/sales-report" className="nav-link">
-            📊 Sales Report
-          </Link>
-
-          <Link to="/settings" className="nav-link active">
-            ⚙️ Business Settings
-          </Link>
-
-          <Link to="/plastic-erp" className="nav-link" style={{ background: "#ecfdf5", color: "#065f46", fontWeight: 700 }}>
-            ♻️ Plastic ERP
-          </Link>
-
-          <button type="button" className="logout-btn" onClick={handleLogout}>
-            🚪 Logout
-          </button>
-        </div>
-      </nav>
-
-      {/* HEADER */}
-      <div className="settings-header">
-        <div>
-          <h1>⚙️ Business Settings</h1>
-          <p>Configure your business branding, tax profile, and invoice defaults</p>
-        </div>
-
+    <AppShell
+      activePage="settings"
+      headerActions={
         <button
           type="button"
-          className="settings-back-button"
-          onClick={() => navigate("/dashboard")}
+          className="sb-btn-primary"
+          onClick={handleSubmit}
+          disabled={saving}
         >
-          ← Dashboard
+          {saving ? "Saving..." : "💾 Save Changes"}
         </button>
+      }
+    >
+      {/* Header Bar */}
+      <div className="bs-header-bar">
+        <div>
+          <div className="bs-badge-tag">ORGANIZATION PROFILE</div>
+          <h1 className="bs-title">Business Settings</h1>
+          <p className="bs-subtitle">
+            Configure company branding, contact information, GST / tax rules, and invoice footer details.
+          </p>
+        </div>
+
+        <div className="bs-header-actions">
+          <button
+            type="button"
+            className="sb-btn-refresh-sm"
+            onClick={loadSettings}
+          >
+            🔄 Reload
+          </button>
+          <button
+            type="button"
+            className="sb-btn-primary"
+            onClick={handleSubmit}
+            disabled={saving}
+          >
+            {saving ? "Saving..." : "💾 Save All Settings"}
+          </button>
+        </div>
       </div>
 
-      {/* MAIN CONTENT GRID */}
-      <div className="settings-layout">
-        {/* SETTINGS FORM */}
-        <div className="settings-form-card">
-          <h2>🏢 Company Information</h2>
+      {/* Alerts */}
+      {successMessage && (
+        <div className="bs-alert-box alert-success">
+          <span>✅ {successMessage}</span>
+        </div>
+      )}
 
-          {/* NOTIFICATIONS AT TOP OF FORM */}
-          {successMessage && (
-            <div className="settings-alert alert-success" role="alert">
-              <span className="alert-icon">✅</span>
-              <span className="alert-text">{successMessage}</span>
+      {errorMessage && (
+        <div className="bs-alert-box alert-danger">
+          <span>⚠️ {errorMessage}</span>
+        </div>
+      )}
+
+      {/* Main Settings Grid: Left Form Cards + Right Live Branding Preview */}
+      <form onSubmit={handleSubmit} className="bs-layout-grid">
+        <div className="bs-cards-column">
+          {/* Card 1: Company Profile & Logo */}
+          <div className="bs-card">
+            <div className="bs-card-header">
+              <span className="bs-section-icon">🏢</span>
+              <div>
+                <h2 className="bs-card-title">Company Profile & Branding</h2>
+                <span className="bs-card-sub">Identity details shown at the top of customer invoices</span>
+              </div>
             </div>
-          )}
 
-          {errorMessage && (
-            <div className="settings-alert alert-danger" role="alert">
-              <span className="alert-icon">⚠️</span>
-              <span className="alert-text">{errorMessage}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit}>
-            <div className="settings-form-grid">
-              <div className="form-group full-width">
-                <label>
-                  Business Name <span className="required">*</span>
-                </label>
+            <div className="bs-card-body">
+              <div className="form-group">
+                <label>Company / Legal Business Name *</label>
                 <input
                   type="text"
                   name="business_name"
-                  placeholder="e.g. Shiv Enterprises"
+                  placeholder="e.g. Shiv Enterprises, Apex Polychem"
                   value={settings.business_name}
                   onChange={handleChange}
                   required
+                  className="bs-input"
                 />
               </div>
 
-              <div className="form-group full-width">
+              <div className="form-group">
                 <label>Tagline / Subtitle</label>
                 <input
                   type="text"
@@ -318,185 +293,226 @@ function BusinessSettings() {
                   placeholder="e.g. All Brands Electronic Appliances Sales & Service"
                   value={settings.tagline}
                   onChange={handleChange}
+                  className="bs-input"
                 />
               </div>
 
-              <div className="form-group full-width">
-                <label>Business Logo</label>
-                <div className="logo-upload-box">
+              <div className="form-group">
+                <label>Company Logo</label>
+                <div className="bs-logo-upload-wrap">
                   {logoPreview ? (
-                    <div className="logo-preview-wrapper">
-                      <img
-                        src={logoPreview}
-                        alt="Business Logo Preview"
-                        className="logo-preview-img"
-                      />
+                    <div className="bs-logo-preview-box">
+                      <img src={logoPreview} alt="Business Logo" className="bs-preview-img" />
                       <button
                         type="button"
-                        className="remove-logo-btn"
+                        className="bs-btn-remove-logo"
                         onClick={handleRemoveLogo}
                       >
-                        ✕ Remove Logo
+                        ✕ Remove
                       </button>
                     </div>
                   ) : (
-                    <div className="logo-placeholder">
-                      <div className="upload-icon">📷</div>
-                      <p>No logo uploaded yet</p>
+                    <div className="bs-logo-placeholder">
+                      <span>📷</span>
+                      <small>No logo uploaded</small>
                     </div>
                   )}
 
-                  <div className="upload-controls">
-                    <label className="upload-btn-label">
-                      📁 Choose Image File
+                  <div className="bs-logo-actions">
+                    <label className="bs-upload-btn-label">
+                      📁 Select Image File
                       <input
                         type="file"
                         accept="image/*"
                         onChange={handleLogoUpload}
-                        className="file-input-hidden"
+                        style={{ display: "none" }}
                       />
                     </label>
-                    <span className="file-help">PNG, JPG, SVG up to 2MB</span>
+                    <span className="bs-help-text">PNG, JPG, SVG, WebP up to 2MB</span>
                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 2: Contact & Address Details */}
+          <div className="bs-card">
+            <div className="bs-card-header">
+              <span className="bs-section-icon">📍</span>
+              <div>
+                <h2 className="bs-card-title">Contact & Registered Address</h2>
+                <span className="bs-card-sub">Phone, email, and location printed on invoices</span>
+              </div>
+            </div>
+
+            <div className="bs-card-body">
+              <div className="bs-grid-2">
+                <div className="form-group">
+                  <label>Business Phone Number</label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    placeholder="e.g. +91 9876543210"
+                    value={settings.phone}
+                    onChange={handleChange}
+                    className="bs-input"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Business Email Address</label>
+                  <input
+                    type="email"
+                    name="email"
+                    placeholder="e.g. contact@shiventerprises.com"
+                    value={settings.email}
+                    onChange={handleChange}
+                    className="bs-input"
+                  />
                 </div>
               </div>
 
               <div className="form-group">
-                <label>Phone Number</label>
-                <input
-                  type="tel"
-                  name="phone"
-                  placeholder="e.g. +91 9876543210"
-                  value={settings.phone}
-                  onChange={handleChange}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Email Address</label>
-                <input
-                  type="email"
-                  name="email"
-                  placeholder="e.g. contact@shiventerprises.com"
-                  value={settings.email}
-                  onChange={handleChange}
-                />
-              </div>
-
-              <div className="form-group full-width">
-                <label>Business Address</label>
+                <label>Registered Business Address</label>
                 <textarea
                   name="address"
                   rows="3"
                   placeholder="e.g. 101 Crystal Plaza, Ring Road, Surat, Gujarat - 395002"
                   value={settings.address}
                   onChange={handleChange}
-                ></textarea>
+                  className="bs-textarea"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Card 3: Tax & GST Configuration */}
+          <div className="bs-card">
+            <div className="bs-card-header">
+              <span className="bs-section-icon">🏛️</span>
+              <div>
+                <h2 className="bs-card-title">Tax & GST Configuration</h2>
+                <span className="bs-card-sub">Control whether sales invoices compute and display GST</span>
+              </div>
+            </div>
+
+            <div className="bs-card-body">
+              {/* Toggle Switch */}
+              <div className="bs-tax-toggle-panel">
+                <div className="bs-tax-toggle-info">
+                  <strong>GST / Tax Calculation Status</strong>
+                  <span>Enable to calculate GST on bills; disable for non-GST billing</span>
+                </div>
+
+                <div className="bs-toggle-switch-group">
+                  <button
+                    type="button"
+                    className={`bs-toggle-btn ${settings.tax_enabled ? "active-enabled" : ""}`}
+                    onClick={() => handleTaxToggle(true)}
+                  >
+                    🟢 Active (ON)
+                  </button>
+                  <button
+                    type="button"
+                    className={`bs-toggle-btn ${!settings.tax_enabled ? "active-disabled" : ""}`}
+                    onClick={() => handleTaxToggle(false)}
+                  >
+                    ⚪ Disabled (OFF)
+                  </button>
+                </div>
               </div>
 
-              <div className="form-group full-width tax-toggle-group">
-                <div className="tax-toggle-header">
-                  <div className="tax-toggle-title-box">
-                    <span className="tax-toggle-title">🏛️ GST / Tax Status</span>
-                    <span className="tax-toggle-desc">
-                      Enable or disable tax calculation across all customer invoices for this business
-                    </span>
-                  </div>
-                  <div className="tax-toggle-buttons" role="group" aria-label="GST or Tax status">
-                    <button
-                      type="button"
-                      className={`tax-toggle-btn ${settings.tax_enabled ? "active-on" : ""}`}
-                      onClick={() => handleTaxToggle(true)}
-                    >
-                      🟢 Enabled (ON)
-                    </button>
-                    <button
-                      type="button"
-                      className={`tax-toggle-btn ${!settings.tax_enabled ? "active-off" : ""}`}
-                      onClick={() => handleTaxToggle(false)}
-                    >
-                      ⚪ Disabled (OFF)
-                    </button>
+              {!settings.tax_enabled && (
+                <div className="bs-tax-disabled-callout">
+                  <span>ℹ️</span>
+                  <div>
+                    <strong>GST is currently DISABLED for this business.</strong>
+                    <p>New invoices will calculate 0% tax. Your GSTIN and default rate are securely preserved below.</p>
                   </div>
                 </div>
-                {!settings.tax_enabled && (
-                  <div className="tax-disabled-banner">
-                    <span className="tax-banner-icon">ℹ️</span>
-                    <div>
-                      <strong>GST / Tax is currently DISABLED for this business.</strong>
-                      <p>
-                        New invoices will calculate 0% tax, and GST details will be hidden from
-                        invoices and PDF receipts. Your saved GST number and rate are preserved below.
-                      </p>
-                    </div>
-                  </div>
-                )}
+              )}
+
+              <div className="bs-grid-2" style={{ marginTop: "14px" }}>
+                <div className="form-group">
+                  <label>
+                    GSTIN / Tax ID
+                    {!settings.tax_enabled && <span className="bs-tag-disabled"> (Disabled)</span>}
+                  </label>
+                  <input
+                    type="text"
+                    name="tax_number"
+                    placeholder="e.g. 24ABCDE1234F1Z5"
+                    value={settings.tax_number}
+                    onChange={handleChange}
+                    disabled={!settings.tax_enabled}
+                    className="bs-input"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>
+                    Default Tax Rate (%)
+                    {!settings.tax_enabled && <span className="bs-tag-disabled"> (Calculated at 0%)</span>}
+                  </label>
+                  <input
+                    type="number"
+                    name="default_tax_percent"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    placeholder="18"
+                    value={settings.default_tax_percent}
+                    onChange={handleChange}
+                    disabled={!settings.tax_enabled}
+                    className="bs-input"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 4: Currency & Invoice Footer */}
+          <div className="bs-card">
+            <div className="bs-card-header">
+              <span className="bs-section-icon">💵</span>
+              <div>
+                <h2 className="bs-card-title">Currency & Invoice Terms</h2>
+                <span className="bs-card-sub">Base currency formatting and printable legal footer terms</span>
+              </div>
+            </div>
+
+            <div className="bs-card-body">
+              <div className="bs-grid-2">
+                <div className="form-group">
+                  <label>Display Currency</label>
+                  <select
+                    name="currency"
+                    value={settings.currency}
+                    onChange={handleCurrencyChange}
+                    className="bs-select"
+                  >
+                    {CURRENCIES.map((curr) => (
+                      <option key={curr.code} value={curr.code}>
+                        {curr.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Currency Symbol</label>
+                  <input
+                    type="text"
+                    name="currency_symbol"
+                    placeholder="₹"
+                    value={settings.currency_symbol}
+                    onChange={handleChange}
+                    className="bs-input"
+                  />
+                </div>
               </div>
 
               <div className="form-group">
-                <label>
-                  GST / Tax Number
-                  {!settings.tax_enabled && (
-                    <span className="field-disabled-note">(Disabled)</span>
-                  )}
-                </label>
-                <input
-                  type="text"
-                  name="tax_number"
-                  placeholder="e.g. 24ABCDE1234F1Z5"
-                  value={settings.tax_number}
-                  onChange={handleChange}
-                  disabled={!settings.tax_enabled}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>
-                  Default GST / Tax Rate (%)
-                  {!settings.tax_enabled && (
-                    <span className="field-disabled-note">(Disabled — Calculated at 0%)</span>
-                  )}
-                </label>
-                <input
-                  type="number"
-                  name="default_tax_percent"
-                  min="0"
-                  max="100"
-                  step="0.01"
-                  placeholder="18"
-                  value={settings.default_tax_percent}
-                  onChange={handleChange}
-                  disabled={!settings.tax_enabled}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Currency</label>
-                <select
-                  name="currency"
-                  value={settings.currency}
-                  onChange={handleCurrencyChange}
-                >
-                  {CURRENCIES.map((curr) => (
-                    <option key={curr.code} value={curr.code}>
-                      {curr.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label>Currency Symbol</label>
-                <input
-                  type="text"
-                  name="currency_symbol"
-                  placeholder="₹"
-                  value={settings.currency_symbol}
-                  onChange={handleChange}
-                />
-              </div>
-
-              <div className="form-group full-width">
                 <label>Terms & Conditions / Invoice Footer Note</label>
                 <textarea
                   name="terms_conditions"
@@ -504,91 +520,85 @@ function BusinessSettings() {
                   placeholder="e.g. Goods once sold cannot be returned without valid terms."
                   value={settings.terms_conditions}
                   onChange={handleChange}
-                ></textarea>
+                  className="bs-textarea"
+                />
               </div>
             </div>
-
-            <div className="settings-submit-container">
-              <button
-                type="submit"
-                className="settings-save-button"
-                disabled={saving}
-              >
-                {saving ? "💾 Saving Settings..." : "💾 Save Business Settings"}
-              </button>
-            </div>
-          </form>
-        </div>
-
-        {/* LIVE INVOICE BRANDING PREVIEW CARD */}
-        <div className="settings-preview-card">
-          <div className="preview-card-header">
-            <h3>👁️ Live Invoice Branding Preview</h3>
-            <p>Here is how your business header will appear on customer invoices</p>
           </div>
 
-          <div className="invoice-header-mockup">
-            <div className="mockup-top">
-              {logoPreview && (
-                <div className="mockup-logo">
-                  <img src={logoPreview} alt="Business Logo" />
-                </div>
-              )}
-              <div className="mockup-business-info">
-                <h4>{settings.business_name || "Your Business Name"}</h4>
-                {settings.tagline && (
-                  <p className="mockup-tagline">{settings.tagline}</p>
-                )}
-                {settings.address && (
-                  <p className="mockup-detail">📍 {settings.address}</p>
-                )}
-                {settings.phone && (
-                  <p className="mockup-detail">📞 {settings.phone}</p>
-                )}
-                {settings.email && (
-                  <p className="mockup-detail">✉️ {settings.email}</p>
-                )}
-                {settings.tax_enabled && settings.tax_number && (
-                  <p className="mockup-tax">
-                    <strong>GST / Tax ID:</strong> {settings.tax_number}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="mockup-divider"></div>
-
-            <div className="mockup-sample-invoice">
-              {settings.tax_enabled ? (
-                <div className="mockup-row">
-                  <span>Default Tax Rate:</span>
-                  <strong>{settings.default_tax_percent}%</strong>
-                </div>
-              ) : (
-                <div className="mockup-row">
-                  <span>GST / Tax Rate:</span>
-                  <strong className="badge-tax-off">Disabled (0%)</strong>
-                </div>
-              )}
-              <div className="mockup-row">
-                <span>Currency Display:</span>
-                <strong>
-                  {settings.currency_symbol} 1,250.00 ({settings.currency})
-                </strong>
-              </div>
-            </div>
-
-            {settings.terms_conditions && (
-              <div className="mockup-terms">
-                <small>
-                  <strong>Footer Note:</strong> {settings.terms_conditions}
-                </small>
-              </div>
-            )}
+          {/* Bottom Save Action */}
+          <div className="bs-bottom-submit">
+            <button
+              type="submit"
+              className="sb-btn-primary bs-save-large"
+              disabled={saving}
+            >
+              {saving ? "💾 Saving Settings..." : "💾 Save Business Settings"}
+            </button>
           </div>
         </div>
-      </div>
-    </div>
+
+        {/* RIGHT COLUMN: Live Branding Preview */}
+        <div className="bs-preview-column">
+          <div className="bs-preview-sticky">
+            <div className="bs-preview-card">
+              <div className="bs-preview-header">
+                <h3>👁️ Live Invoice Branding Preview</h3>
+                <p>This is how your business identity renders on printed customer bills.</p>
+              </div>
+
+              <div className="bs-invoice-mockup">
+                <div className="mockup-top-row">
+                  {logoPreview ? (
+                    <img src={logoPreview} alt="Logo" className="mockup-logo-img" />
+                  ) : (
+                    <div className="mockup-logo-placeholder">
+                      <span>🏢</span>
+                    </div>
+                  )}
+
+                  <div className="mockup-info">
+                    <h4 className="mockup-title">{settings.business_name || "Your Business Name"}</h4>
+                    {settings.tagline && <p className="mockup-tagline">{settings.tagline}</p>}
+                    {settings.address && <p className="mockup-detail">📍 {settings.address}</p>}
+                    {settings.phone && <p className="mockup-detail">📞 {settings.phone}</p>}
+                    {settings.email && <p className="mockup-detail">✉️ {settings.email}</p>}
+                    {settings.tax_enabled && settings.tax_number && (
+                      <p className="mockup-gst">
+                        <strong>GSTIN:</strong> {settings.tax_number}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mockup-sep" />
+
+                <div className="mockup-stats-box">
+                  <div className="mockup-stat-row">
+                    <span>GST Status:</span>
+                    <strong className={settings.tax_enabled ? "text-mint" : "text-muted"}>
+                      {settings.tax_enabled ? `Active (${settings.default_tax_percent}%)` : "Disabled (0%)"}
+                    </strong>
+                  </div>
+                  <div className="mockup-stat-row">
+                    <span>Currency Sample:</span>
+                    <strong>{settings.currency_symbol} 1,250.00 ({settings.currency})</strong>
+                  </div>
+                </div>
+
+                {settings.terms_conditions && (
+                  <div className="mockup-terms-box">
+                    <small>
+                      <strong>Terms:</strong> {settings.terms_conditions}
+                    </small>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+    </AppShell>
   );
 }
 

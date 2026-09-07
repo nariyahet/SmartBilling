@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/axios";
 import LoadingScreen from "../components/LoadingScreen";
+import AppShell from "../components/AppShell";
 import "./Invoices.css";
 
 function Invoices() {
@@ -82,12 +83,8 @@ function Invoices() {
         }
       } catch (error) {
         if (cancelled) return;
-
         console.error("Invoice data error:", error);
-
-        alert(
-          error.response?.data?.message || "Unable to load billing data",
-        );
+        alert(error.response?.data?.message || "Unable to load billing data");
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -104,6 +101,10 @@ function Invoices() {
 
   const selectedProduct = products.find(
     (product) => String(product.id) === String(productId),
+  );
+
+  const selectedCustomer = customers.find(
+    (cust) => String(cust.id) === String(customerId),
   );
 
   const addItem = () => {
@@ -208,13 +209,9 @@ function Invoices() {
   }, [items]);
 
   const discountAmount = subtotal * (Number(discountPercent) / 100);
-
   const afterDiscount = subtotal - discountAmount;
-
   const effectiveTaxPercent = taxEnabled ? Number(taxPercent) : 0;
-
   const taxAmount = taxEnabled ? afterDiscount * (effectiveTaxPercent / 100) : 0;
-
   const grandTotal = afterDiscount + taxAmount;
 
   const formatCurrency = (amount) => {
@@ -256,14 +253,11 @@ function Invoices() {
       const response = await API.post("/invoices", {
         invoice_no: invoiceNo || undefined,
         customer_id: Number(customerId),
-
         items: items.map((item) => ({
           product_id: Number(item.product_id),
           quantity: Number(item.quantity),
         })),
-
         discount_percent: Number(discountPercent),
-
         tax_percent: taxEnabled ? Number(taxPercent) : 0,
       });
 
@@ -276,7 +270,6 @@ function Invoices() {
       }
     } catch (error) {
       console.error("Create Invoice Error:", error);
-
       alert(error.response?.data?.message || "Failed to create invoice");
     } finally {
       setSaving(false);
@@ -284,269 +277,369 @@ function Invoices() {
   };
 
   if (loading) {
-    return <LoadingScreen title="Loading Invoices..." subtitle="Please wait..." />;
+    return <LoadingScreen title="Loading Billing Terminal..." subtitle="Fetching inventory and clients..." />;
   }
 
+  const currentDateFormatted = new Date().toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+
   return (
-    <div className="invoices-page">
-      {/* HEADER */}
-
-      <div className="invoice-page-header">
+    <AppShell
+      activePage="invoices"
+      headerActions={
+        <button
+          type="button"
+          className="sb-btn-refresh-sm"
+          onClick={() => navigate("/invoices-history")}
+        >
+          📜 Invoice History
+        </button>
+      }
+    >
+      {/* Header Section */}
+      <div className="inv-header-bar">
         <div>
-          <h1>🧾 Create Invoice</h1>
-
-          <p>
-            Create professional bills for your customers
-            {invoiceNo && (
-              <span style={{ marginLeft: "10px", fontWeight: "600", color: "#2563eb" }}>
-                (Invoice No: {invoiceNo})
-              </span>
-            )}
+          <div className="inv-badge-tag">POINT OF SALE & INVOICING</div>
+          <h1 className="inv-title">Create New Invoice</h1>
+          <p className="inv-subtitle">
+            Generate tax-compliant bills, track discounts, and manage real-time inventory adjustments.
           </p>
         </div>
 
-        <button
-          type="button"
-          className="invoice-back-button"
-          onClick={() => navigate("/dashboard")}
-        >
-          ← Dashboard
-        </button>
-      </div>
-
-      <div className="invoice-card">
-        <h2>👤 Customer Details</h2>
-
-        <div className="invoice-form-grid">
-          <div className="invoice-form-group">
-            <label>Select Customer *</label>
-
-            <select
-              value={customerId}
-              onChange={(e) => setCustomerId(e.target.value)}
-            >
-              <option value="">Select Customer</option>
-
-              {customers.map((customer) => (
-                <option key={customer.id} value={customer.id}>
-                  {customer.name} - {customer.mobile}
-                </option>
-              ))}
-            </select>
+        <div className="inv-meta-badges">
+          <div className="inv-meta-pill">
+            <span className="meta-label">INVOICE NO</span>
+            <strong className="meta-value text-blue">{invoiceNo || "AUTO"}</strong>
+          </div>
+          <div className="inv-meta-pill">
+            <span className="meta-label">DATE</span>
+            <strong className="meta-value">{currentDateFormatted}</strong>
+          </div>
+          <div className="inv-meta-pill">
+            <span className="meta-label">TAX REGIME</span>
+            <strong className={`meta-value ${taxEnabled ? "text-mint" : "text-muted"}`}>
+              {taxEnabled ? `GST Active (${taxPercent}%)` : "Tax Disabled"}
+            </strong>
           </div>
         </div>
       </div>
 
-      <div className="invoice-card">
-        <h2>📦 Add Products</h2>
-
-        <div className="add-product-grid">
-          <div className="invoice-form-group">
-            <label>Product</label>
-
-            <select
-              value={productId}
-              onChange={(e) => setProductId(e.target.value)}
-            >
-              <option value="">Select Product</option>
-
-              {products
-                .filter((product) => Number(product.stock) > 0)
-                .map((product) => (
-                  <option key={product.id} value={product.id}>
-                    {product.name} — {formatCurrency(product.price)} — Stock:{" "}
-                    {product.stock}
-                  </option>
-                ))}
-            </select>
-          </div>
-
-          <div className="invoice-form-group">
-            <label>Quantity</label>
-
-            <input
-              type="number"
-              min="1"
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-            />
-          </div>
-
-          <button
-            type="button"
-            className="add-product-button"
-            onClick={addItem}
-          >
-            + Add Product
-          </button>
-        </div>
-      </div>
-
-      <div className="invoice-card">
-        <h2>🛒 Invoice Items</h2>
-
-        {items.length === 0 ? (
-          <div className="invoice-empty">
-            <div>🛒</div>
-
-            <h3>No products added</h3>
-
-            <p>Select a product above to add it to the invoice.</p>
-          </div>
-        ) : (
-          <div className="invoice-items-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>Product</th>
-
-                  <th>Price</th>
-
-                  <th>Quantity</th>
-
-                  <th>Total</th>
-
-                  <th>Action</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {items.map((item) => (
-                  <tr key={item.product_id}>
-                    <td>
-                      <strong>{item.product_name}</strong>
-                    </td>
-
-                    <td>{formatCurrency(item.price)}</td>
-
-                    <td>
-                      <input
-                        className="quantity-input"
-                        type="number"
-                        min="1"
-                        value={item.quantity}
-                        onChange={(e) =>
-                          updateQuantity(item.product_id, e.target.value)
-                        }
-                      />
-                    </td>
-
-                    <td>
-                      <strong>{formatCurrency(item.total)}</strong>
-                    </td>
-
-                    <td>
-                      <button
-                        type="button"
-                        className="remove-item-button"
-                        onClick={() => removeItem(item.product_id)}
-                      >
-                        🗑️ Remove
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      <div className="invoice-summary-card">
-        <div className="invoice-summary-left">
-          <h2>💰 Tax & Discount</h2>
-
-          <div className="summary-input">
-            <label>Discount (%)</label>
-
-            <input
-              type="number"
-              min="0"
-              max="100"
-              value={discountPercent}
-              onChange={(e) => setDiscountPercent(e.target.value)}
-            />
-          </div>
-
-          {taxEnabled ? (
-            <div className="summary-input">
-              <label>GST / Tax (%)</label>
-
-              <input
-                type="number"
-                min="0"
-                max="100"
-                value={taxPercent}
-                onChange={(e) => setTaxPercent(e.target.value)}
-              />
-            </div>
-          ) : (
-            <div className="summary-input" style={{ opacity: 0.8 }}>
-              <label>GST / Tax</label>
-
-              <div
-                style={{
-                  background: "#f3f4f6",
-                  padding: "10px 14px",
-                  borderRadius: "8px",
-                  fontSize: "13px",
-                  color: "#6b7280",
-                  border: "1px solid #e5e7eb",
-                  fontWeight: "500",
-                }}
-              >
-                🚫 Disabled (0% applied)
+      {/* Main 2-Column POS Layout */}
+      <div className="inv-pos-grid">
+        {/* LEFT COLUMN: Customer Selection + Product Selector + Cart Table */}
+        <div className="inv-pos-left">
+          {/* Customer Selection Card */}
+          <div className="inv-card">
+            <div className="inv-card-header">
+              <span className="inv-step-badge">1</span>
+              <div>
+                <h2 className="inv-card-title">Customer Details</h2>
+                <span className="inv-card-sub">Select the billing client for this invoice</span>
               </div>
             </div>
-          )}
-        </div>
 
-        <div className="invoice-total-box">
-          <div className="total-row">
-            <span>Subtotal</span>
+            <div className="inv-customer-form">
+              <div className="form-group">
+                <label>Select Customer *</label>
+                <select
+                  value={customerId}
+                  onChange={(e) => setCustomerId(e.target.value)}
+                  className="inv-select"
+                >
+                  <option value="">-- Choose Registered Customer --</option>
+                  {customers.map((customer) => (
+                    <option key={customer.id} value={customer.id}>
+                      {customer.name} {customer.mobile ? `(${customer.mobile})` : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            <strong>{formatCurrency(subtotal)}</strong>
-          </div>
-
-          <div className="total-row">
-            <span>
-              Discount ({discountPercent}
-              %)
-            </span>
-
-            <strong>- {formatCurrency(discountAmount)}</strong>
-          </div>
-
-          {taxEnabled && (
-            <div className="total-row">
-              <span>
-                GST ({taxPercent}
-                %)
-              </span>
-
-              <strong>+ {formatCurrency(taxAmount)}</strong>
+              {selectedCustomer && (
+                <div className="inv-customer-preview-box">
+                  <div className="preview-avatar">
+                    {selectedCustomer.name ? selectedCustomer.name[0].toUpperCase() : "C"}
+                  </div>
+                  <div className="preview-info">
+                    <strong className="preview-name">{selectedCustomer.name}</strong>
+                    <div className="preview-details">
+                      <span>📱 {selectedCustomer.mobile || "No phone"}</span>
+                      {selectedCustomer.email && <span>✉️ {selectedCustomer.email}</span>}
+                      {selectedCustomer.address && <span>📍 {selectedCustomer.address}</span>}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-          )}
+          </div>
 
-          <div className="grand-total-row">
-            <span>Grand Total</span>
+          {/* Product Selection Card */}
+          <div className="inv-card">
+            <div className="inv-card-header">
+              <span className="inv-step-badge">2</span>
+              <div>
+                <h2 className="inv-card-title">Add Products to Invoice</h2>
+                <span className="inv-card-sub">Choose product catalog item and specify quantity</span>
+              </div>
+            </div>
 
-            <strong>{formatCurrency(grandTotal)}</strong>
+            <div className="inv-add-product-row">
+              <div className="form-group flex-2">
+                <label>Select Product</label>
+                <select
+                  value={productId}
+                  onChange={(e) => setProductId(e.target.value)}
+                  className="inv-select"
+                >
+                  <option value="">-- Choose in-stock product --</option>
+                  {products
+                    .filter((product) => Number(product.stock) > 0)
+                    .map((product) => (
+                      <option key={product.id} value={product.id}>
+                        {product.name} — {formatCurrency(product.price)} (Stock: {product.stock})
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              <div className="form-group flex-1">
+                <label>Quantity</label>
+                <div className="inv-qty-input-wrap">
+                  <button
+                    type="button"
+                    className="qty-btn"
+                    onClick={() => setQuantity((q) => Math.max(1, Number(q) - 1))}
+                  >
+                    −
+                  </button>
+                  <input
+                    type="number"
+                    min="1"
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value)}
+                    className="inv-qty-input"
+                  />
+                  <button
+                    type="button"
+                    className="qty-btn"
+                    onClick={() => setQuantity((q) => Number(q) + 1)}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              <div className="inv-add-btn-wrap">
+                <button
+                  type="button"
+                  className="sb-btn-primary inv-btn-add"
+                  onClick={addItem}
+                >
+                  + Add Item
+                </button>
+              </div>
+            </div>
+
+            {selectedProduct && (
+              <div className="inv-selected-stock-hint">
+                <span>Unit Price: <strong>{formatCurrency(selectedProduct.price)}</strong></span>
+                <span>Available Stock: <strong className="text-mint">{selectedProduct.stock} units</strong></span>
+              </div>
+            )}
+          </div>
+
+          {/* Cart Items Table */}
+          <div className="inv-card">
+            <div className="inv-card-header justify-between">
+              <div className="flex-center gap-10">
+                <span className="inv-step-badge">3</span>
+                <div>
+                  <h2 className="inv-card-title">Invoice Items</h2>
+                  <span className="inv-card-sub">Review items added to this bill</span>
+                </div>
+              </div>
+              <span className="inv-item-count-badge">
+                {items.length} item{items.length !== 1 ? "s" : ""}
+              </span>
+            </div>
+
+            {items.length === 0 ? (
+              <div className="inv-cart-empty">
+                <div className="empty-cart-icon">🛒</div>
+                <h3>No Products in Invoice</h3>
+                <p>Select products from the catalog above to add them to this invoice.</p>
+              </div>
+            ) : (
+              <div className="inv-items-table-wrap">
+                <table className="inv-items-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: "40px" }}>#</th>
+                      <th>Product</th>
+                      <th style={{ textAlign: "right" }}>Price</th>
+                      <th style={{ textAlign: "center", width: "130px" }}>Quantity</th>
+                      <th style={{ textAlign: "right" }}>Total</th>
+                      <th style={{ textAlign: "center", width: "70px" }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((item, idx) => (
+                      <tr key={item.product_id}>
+                        <td className="text-muted font-bold">{idx + 1}</td>
+                        <td>
+                          <strong className="inv-item-name">{item.product_name}</strong>
+                          <span className="inv-item-id">ID: #{item.product_id}</span>
+                        </td>
+                        <td style={{ textAlign: "right" }}>{formatCurrency(item.price)}</td>
+                        <td>
+                          <div className="inv-inline-qty">
+                            <button
+                              type="button"
+                              className="qty-mini-btn"
+                              onClick={() => updateQuantity(item.product_id, item.quantity - 1)}
+                              disabled={item.quantity <= 1}
+                            >
+                              −
+                            </button>
+                            <input
+                              type="number"
+                              min="1"
+                              value={item.quantity}
+                              onChange={(e) => updateQuantity(item.product_id, e.target.value)}
+                              className="qty-mini-input"
+                            />
+                            <button
+                              type="button"
+                              className="qty-mini-btn"
+                              onClick={() => updateQuantity(item.product_id, item.quantity + 1)}
+                            >
+                              +
+                            </button>
+                          </div>
+                        </td>
+                        <td style={{ textAlign: "right" }}>
+                          <strong className="inv-item-total">{formatCurrency(item.total)}</strong>
+                        </td>
+                        <td style={{ textAlign: "center" }}>
+                          <button
+                            type="button"
+                            className="inv-btn-remove"
+                            onClick={() => removeItem(item.product_id)}
+                            title="Remove product"
+                          >
+                            🗑️
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN: Summary & Generation Card */}
+        <div className="inv-pos-right">
+          <div className="inv-summary-card">
+            <div className="summary-header">
+              <h2 className="summary-title">Billing Summary</h2>
+              <span className="summary-date">{currentDateFormatted}</span>
+            </div>
+
+            <div className="summary-rows">
+              <div className="summary-row">
+                <span className="summary-label">Subtotal</span>
+                <span className="summary-val">{formatCurrency(subtotal)}</span>
+              </div>
+
+              {/* Discount Input & Amount */}
+              <div className="summary-adjustment-box">
+                <div className="adj-header">
+                  <span className="summary-label">Discount Rate (%)</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={discountPercent}
+                    onChange={(e) => setDiscountPercent(e.target.value)}
+                    className="adj-input"
+                  />
+                </div>
+                {Number(discountPercent) > 0 && (
+                  <div className="adj-calculated text-orange">
+                    <span>Discount Amount</span>
+                    <strong>- {formatCurrency(discountAmount)}</strong>
+                  </div>
+                )}
+              </div>
+
+              {/* Tax Input & Amount */}
+              {taxEnabled ? (
+                <div className="summary-adjustment-box">
+                  <div className="adj-header">
+                    <span className="summary-label">GST / Tax Rate (%)</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={taxPercent}
+                      onChange={(e) => setTaxPercent(e.target.value)}
+                      className="adj-input"
+                    />
+                  </div>
+                  <div className="adj-calculated text-mint">
+                    <span>Tax Amount ({taxPercent}%)</span>
+                    <strong>+ {formatCurrency(taxAmount)}</strong>
+                  </div>
+                </div>
+              ) : (
+                <div className="tax-disabled-notice">
+                  <span>🚫 GST / Tax is currently disabled in Business Settings (0% applied)</span>
+                </div>
+              )}
+
+              <div className="summary-divider" />
+
+              {/* Grand Total */}
+              <div className="grand-total-box">
+                <div>
+                  <span className="grand-label">Grand Total</span>
+                  <span className="grand-sub">Net Payable Amount</span>
+                </div>
+                <strong className="grand-amount">{formatCurrency(grandTotal)}</strong>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="summary-actions">
+              <button
+                type="button"
+                className="btn-generate-invoice"
+                onClick={handleCreateInvoice}
+                disabled={saving || items.length === 0 || !customerId}
+              >
+                {saving ? "Creating Invoice..." : "🧾 Generate & View Invoice"}
+              </button>
+
+              <button
+                type="button"
+                className="btn-cancel-invoice"
+                onClick={() => {
+                  if (items.length > 0 && !window.confirm("Discard current invoice items?")) return;
+                  navigate("/invoices-history");
+                }}
+              >
+                Cancel / Discard
+              </button>
+            </div>
           </div>
         </div>
       </div>
-
-      <div className="invoice-create-section">
-        <button
-          type="button"
-          className="create-invoice-button"
-          onClick={handleCreateInvoice}
-          disabled={saving}
-        >
-          {saving ? "Creating Invoice..." : "🧾 Generate Invoice"}
-        </button>
-      </div>
-    </div>
+    </AppShell>
   );
 }
 
