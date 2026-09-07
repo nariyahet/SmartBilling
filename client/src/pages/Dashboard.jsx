@@ -505,7 +505,7 @@ function Dashboard() {
                 Open Plastic ERP →
               </Link>
             </div>
-            <h2>Scrap Purchase & Raw Material Stock Overview</h2>
+            <h2>Plastic Recycling Overview</h2>
             <p>Real-time scrap inward, weighment, and raw material inventory metrics</p>
           </div>
 

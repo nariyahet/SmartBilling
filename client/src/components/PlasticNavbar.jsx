@@ -20,7 +20,7 @@ function PlasticNavbar() {
     { path: "/plastic-erp/truck-inward", label: "🚚 Truck Inward" },
     { path: "/plastic-erp/weighment", label: "⚖️ Weighment" },
     { path: "/plastic-erp/purchase-bills", label: "📑 Purchase Bills" },
-    { path: "/plastic-erp/stock", label: "📦 Scrap Stock" },
+    { path: "/plastic-erp/stock", label: "📦 Stock & Adjustments" },
   ];
 
   const isActive = (link) => {
