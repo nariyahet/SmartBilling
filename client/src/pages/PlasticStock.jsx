@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import API from "../api/axios";
 import PlasticNavbar from "../components/PlasticNavbar";
 import LoadingScreen from "../components/LoadingScreen";
@@ -151,9 +152,14 @@ function PlasticStock() {
             <p>Real-time scrap inventory valuation, polymer balances, low stock alerts, and immutable audit movements</p>
           </div>
 
-          <button type="button" className="btn-refresh-stock" onClick={fetchStock}>
-            🔄 Refresh Stock
-          </button>
+          <div className="title-actions">
+            <Link to="/plastic-erp" className="btn-dashboard-nav">
+              📊 ERP Dashboard
+            </Link>
+            <button type="button" className="btn-refresh-stock" onClick={fetchStock}>
+              🔄 Refresh Stock
+            </button>
+          </div>
         </div>
 
         {error && <div className="alert-box error">{error}</div>}

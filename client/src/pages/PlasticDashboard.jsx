@@ -46,7 +46,7 @@ function PlasticDashboard() {
   const [purchaseBills, setPurchaseBills] = useState([]);
   const [suppliersList, setSuppliersList] = useState([]);
 
-  const [plasticPeriod, setPlasticPeriod] = useState("month");
+  const [plasticPeriod, setPlasticPeriod] = useState("today");
   const [customFromDate, setCustomFromDate] = useState("");
   const [customToDate, setCustomToDate] = useState("");
   const [currencySymbol, setCurrencySymbol] = useState("₹");

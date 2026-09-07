@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import API from "../api/axios";
 import PlasticNavbar from "../components/PlasticNavbar";
 import LoadingScreen from "../components/LoadingScreen";
@@ -214,9 +215,14 @@ function PlasticTruckInward() {
             <p>Log incoming scrap delivery vehicles, assign suppliers & polymers, and capture initial weighment scale data</p>
           </div>
 
-          <button type="button" className="btn-add-entity" onClick={handleOpenAddModal}>
-            ➕ Log New Truck Inward
-          </button>
+          <div className="title-actions">
+            <Link to="/plastic-erp" className="btn-dashboard-nav">
+              📊 ERP Dashboard
+            </Link>
+            <button type="button" className="btn-add-entity" onClick={handleOpenAddModal}>
+              ➕ Log New Truck Inward
+            </button>
+          </div>
         </div>
 
         {error && <div className="alert-box error">{error}</div>}

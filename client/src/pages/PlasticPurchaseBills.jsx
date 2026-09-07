@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import API from "../api/axios";
 import PlasticNavbar from "../components/PlasticNavbar";
 import LoadingScreen from "../components/LoadingScreen";
@@ -315,9 +316,14 @@ function PlasticPurchaseBills() {
             <p>Vendor purchase invoices, itemized scrap materials, company GST ON/OFF calculation, and atomic inventory stock updates</p>
           </div>
 
-          <button type="button" className="btn-add-entity" onClick={handleOpenCreateModal}>
-            ➕ Create Purchase Bill
-          </button>
+          <div className="title-actions">
+            <Link to="/plastic-erp" className="btn-dashboard-nav">
+              📊 ERP Dashboard
+            </Link>
+            <button type="button" className="btn-add-entity" onClick={handleOpenCreateModal}>
+              ➕ Create Purchase Bill
+            </button>
+          </div>
         </div>
 
         {error && <div className="alert-box error">{error}</div>}

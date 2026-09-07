@@ -46,13 +46,39 @@ function PlasticNavbar() {
         <button
           type="button"
           className="plastic-nav-toggle"
-          onClick={() => setMobileOpen(!mobileOpen)}
-          aria-label="Toggle navigation menu"
+          onClick={() => setMobileOpen(true)}
+          aria-label="Open navigation menu"
         >
-          {mobileOpen ? "✕" : "☰"}
+          ☰
         </button>
 
+        {mobileOpen && (
+          <div
+            className="plastic-drawer-backdrop"
+            onClick={() => setMobileOpen(false)}
+            aria-hidden="true"
+          />
+        )}
+
         <div className={`plastic-nav-links ${mobileOpen ? "open" : ""}`}>
+          <div className="plastic-drawer-header">
+            <div className="drawer-brand">
+              <span className="drawer-icon">♻️</span>
+              <div>
+                <strong className="drawer-title">Plastic Recycling ERP</strong>
+                <small className="drawer-subtitle">Kim, Surat Plant</small>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="plastic-drawer-close"
+              onClick={() => setMobileOpen(false)}
+              aria-label="Close navigation menu"
+            >
+              ✕
+            </button>
+          </div>
+
           <div className="plastic-nav-core-links">
             {navLinks.map((link) => (
               <Link
