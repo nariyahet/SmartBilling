@@ -1,0 +1,85 @@
+.wip-summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.summary-stat-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.stat-label {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.stat-value {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.stat-sub {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.text-blue { color: #0284c7; }
+.text-green { color: #059669; }
+.text-purple { color: #7c3aed; }
+
+.stage-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.stage-sorting { background: #fef3c7; color: #b45309; }
+.stage-crushing { background: #fee2e2; color: #b91c1c; }
+.stage-washing { background: #e0f2fe; color: #0369a1; }
+.stage-extrusion { background: #dcfce7; color: #15803d; }
+.stage-pelletizing { background: #ede9fe; color: #6d28d9; }
+.stage-packing { background: #f1f5f9; color: #475569; }
+
+.polymer-pill {
+  background: #e6f4ea;
+  color: #065f46;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.dispatch-ready { background: #dcfce7; color: #15803d; }
+.dispatch-reserved { background: #fef3c7; color: #b45309; }
+.dispatch-dispatched { background: #e2e8f0; color: #475569; }
+
+.btn-update-stage {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  color: #334155;
+  transition: all 0.2s;
+}
+
+.btn-update-stage:hover {
+  background: #059669;
+  color: #ffffff;
+  border-color: #059669;
+}

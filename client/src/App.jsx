@@ -18,6 +18,16 @@ import PlasticTruckInward from "./pages/PlasticTruckInward";
 import PlasticWeighment from "./pages/PlasticWeighment";
 import PlasticPurchaseBills from "./pages/PlasticPurchaseBills";
 import PlasticStock from "./pages/PlasticStock";
+import PlasticProduction from "./pages/PlasticProduction";
+import PlasticRecipes from "./pages/PlasticRecipes";
+import PlasticWipFg from "./pages/PlasticWipFg";
+import PlasticQuality from "./pages/PlasticQuality";
+import PlasticScrapRegrind from "./pages/PlasticScrapRegrind";
+import PlasticMachines from "./pages/PlasticMachines";
+import PlasticOperations from "./pages/PlasticOperations";
+import PlasticTraceability from "./pages/PlasticTraceability";
+import PlasticCosting from "./pages/PlasticCosting";
+import PlasticReports from "./pages/PlasticReports";
 
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem("token");
@@ -171,6 +181,96 @@ function App() {
           element={
             <ProtectedRoute>
               <PlasticStock />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/plastic-erp/production"
+          element={
+            <ProtectedRoute>
+              <PlasticProduction />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/plastic-erp/recipes"
+          element={
+            <ProtectedRoute>
+              <PlasticRecipes />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/plastic-erp/wip-fg"
+          element={
+            <ProtectedRoute>
+              <PlasticWipFg />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/plastic-erp/quality"
+          element={
+            <ProtectedRoute>
+              <PlasticQuality />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/plastic-erp/scrap-regrind"
+          element={
+            <ProtectedRoute>
+              <PlasticScrapRegrind />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/plastic-erp/machines"
+          element={
+            <ProtectedRoute>
+              <PlasticMachines />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/plastic-erp/operations"
+          element={
+            <ProtectedRoute>
+              <PlasticOperations />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/plastic-erp/traceability"
+          element={
+            <ProtectedRoute>
+              <PlasticTraceability />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/plastic-erp/costing"
+          element={
+            <ProtectedRoute>
+              <PlasticCosting />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/plastic-erp/reports"
+          element={
+            <ProtectedRoute>
+              <PlasticReports />
             </ProtectedRoute>
           }
         />

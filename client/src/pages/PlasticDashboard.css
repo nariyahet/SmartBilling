@@ -197,6 +197,9 @@
 .plastic-kpi-card.accent-amber { border-left: 4px solid #d97706; }
 .plastic-kpi-card.accent-purple { border-left: 4px solid #7c3aed; }
 .plastic-kpi-card.accent-rose { border-left: 4px solid #e11d48; }
+.plastic-kpi-card.accent-emerald { border-left: 4px solid #10b981; }
+.plastic-kpi-card.accent-indigo { border-left: 4px solid #6366f1; }
+.plastic-kpi-card.accent-cyan { border-left: 4px solid #06b6d4; }
 
 .kpi-icon-wrap {
   font-size: 26px;

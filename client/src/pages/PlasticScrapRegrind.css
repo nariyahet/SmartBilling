@@ -1,0 +1,5 @@
+/* Reuses shared plastic styles with custom accents */
+.type-tag.regrind {
+  background: #fef3c7;
+  color: #b45309;
+}

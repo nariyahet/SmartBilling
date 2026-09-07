@@ -257,10 +257,110 @@ exports.getPlasticDashboardStats = async (req, res) => {
       LIMIT 10
     `, [companyId]);
 
+    // ==========================================
+    // PHASE 2 EXECUTIVE KPIS
+    // ==========================================
+    let dateConditionBatches = "";
+    const paramsBatches = [companyId];
+
+    if (period === "today") {
+      dateConditionBatches = " AND DATE(batch_date) = CURDATE()";
+    } else if (period === "year") {
+      dateConditionBatches = " AND YEAR(batch_date) = YEAR(CURDATE())";
+    } else if (period === "custom" && from_date && to_date) {
+      dateConditionBatches = " AND DATE(batch_date) >= ? AND DATE(batch_date) <= ?";
+      paramsBatches.push(from_date, to_date);
+    } else {
+      // month
+      dateConditionBatches = " AND DATE_FORMAT(batch_date, '%Y-%m') = DATE_FORMAT(CURDATE(), '%Y-%m')";
+    }
+
+    // Production volume in selected period
+    const [batchMetrics] = await db.promise().query(`
+      SELECT
+        COALESCE(SUM(actual_quantity), 0) AS totalProductionKg,
+        COALESCE(SUM(planned_quantity), 0) AS totalPlannedKg,
+        COALESCE(SUM(scrap_quantity), 0) AS totalScrapKg,
+        COALESCE(SUM(regrind_quantity), 0) AS totalRegrindKg,
+        COALESCE(AVG(efficiency_percent), 0) AS avgEfficiencyPercent
+      FROM plastic_production_batches
+      WHERE company_id = ? ${dateConditionBatches}
+    `, paramsBatches);
+
+    // Today's production specifically
+    const [todayProdRows] = await db.promise().query(`
+      SELECT COALESCE(SUM(actual_quantity), 0) AS todayProductionKg
+      FROM plastic_production_batches
+      WHERE company_id = ? AND DATE(batch_date) = CURDATE()
+    `, [companyId]);
+
+    // Monthly production specifically
+    const [monthProdRows] = await db.promise().query(`
+      SELECT COALESCE(SUM(actual_quantity), 0) AS monthProductionKg
+      FROM plastic_production_batches
+      WHERE company_id = ? AND DATE_FORMAT(batch_date, '%Y-%m') = DATE_FORMAT(CURDATE(), '%Y-%m')
+    `, [companyId]);
+
+    // Active production batches
+    const [activeBatchesRows] = await db.promise().query(`
+      SELECT COUNT(id) AS activeBatches
+      FROM plastic_production_batches
+      WHERE company_id = ? AND status = 'RUNNING'
+    `, [companyId]);
+
+    // Current WIP stock
+    const [wipRows] = await db.promise().query(`
+      SELECT COALESCE(SUM(wip_quantity), 0) AS currentWipKg
+      FROM plastic_wip_stock
+      WHERE company_id = ? AND status IN ('OPEN', 'PROCESSING')
+    `, [companyId]);
+
+    // Finished Goods stock
+    const [fgRows] = await db.promise().query(`
+      SELECT COALESCE(SUM(current_stock), 0) AS fgStockKg
+      FROM plastic_finished_goods
+      WHERE company_id = ?
+    `, [companyId]);
+
+    // Machines count and utilization
+    const [machinesRows] = await db.promise().query(`
+      SELECT
+        COUNT(id) AS totalMachines,
+        COUNT(CASE WHEN status = 'ACTIVE' THEN 1 END) AS activeMachines,
+        COUNT(CASE WHEN status IN ('MAINTENANCE', 'BREAKDOWN') THEN 1 END) AS maintenanceMachines
+      FROM plastic_machines
+      WHERE company_id = ?
+    `, [companyId]);
+
+    // QC Pending / Rejected
+    const [qcRows] = await db.promise().query(`
+      SELECT
+        COUNT(CASE WHEN overall_status = 'PENDING' THEN 1 END) AS qcPending,
+        COUNT(CASE WHEN overall_status = 'REJECTED' THEN 1 END) AS qcRejected
+      FROM plastic_quality_inspections
+      WHERE company_id = ?
+    `, [companyId]);
+
+    // Production cost
+    const [costRows] = await db.promise().query(`
+      SELECT COALESCE(SUM(total_cost), 0) AS totalProductionCost
+      FROM plastic_production_costs
+      WHERE company_id = ?
+    `, [companyId]);
+
+    const totalProd = Number(batchMetrics[0]?.totalProductionKg) || 0;
+    const plannedProd = Number(batchMetrics[0]?.totalPlannedKg) || 0;
+    const achievementPercent = plannedProd > 0 ? ((totalProd / plannedProd) * 100).toFixed(1) : (totalProd > 0 ? "100.0" : "0.0");
+
+    const totalMachines = Number(machinesRows[0]?.totalMachines) || 0;
+    const activeMachines = Number(machinesRows[0]?.activeMachines) || 0;
+    const machineUtilization = totalMachines > 0 ? ((activeMachines / totalMachines) * 100).toFixed(1) : "0.0";
+
     res.status(200).json({
       success: true,
       period,
       stats: {
+        // Phase 1 preserved stats
         totalPurchasedKg: Number(itemsVolume[0]?.totalPurchasedKg) || 0,
         totalPurchaseAmount: Number(purchases[0]?.totalPurchaseAmount) || 0,
         currentStockKg: Number(stock[0]?.currentStockKg) || 0,
@@ -269,6 +369,23 @@ exports.getPlasticDashboardStats = async (req, res) => {
         totalTruckInwards: Number(trucks[0]?.totalTruckInwards) || 0,
         totalPurchaseBills: Number(purchases[0]?.totalPurchaseBills) || 0,
         lowStockMaterials: lowStockMaterials || [],
+        // Phase 2 executive KPIs
+        todayProductionKg: Number(todayProdRows[0]?.todayProductionKg) || 0,
+        monthProductionKg: Number(monthProdRows[0]?.monthProductionKg) || 0,
+        productionTargetKg: plannedProd,
+        productionAchievementPercent: Number(achievementPercent),
+        activeBatches: Number(activeBatchesRows[0]?.activeBatches) || 0,
+        currentWipKg: Number(wipRows[0]?.currentWipKg) || 0,
+        finishedGoodsStockKg: Number(fgRows[0]?.fgStockKg) || 0,
+        scrapGeneratedKg: Number(batchMetrics[0]?.totalScrapKg) || 0,
+        regrindGeneratedKg: Number(batchMetrics[0]?.totalRegrindKg) || 0,
+        efficiencyPercent: Number(batchMetrics[0]?.avgEfficiencyPercent) || 0,
+        machineUtilizationPercent: Number(machineUtilization),
+        activeMachines,
+        maintenanceMachines: Number(machinesRows[0]?.maintenanceMachines) || 0,
+        qcPending: Number(qcRows[0]?.qcPending) || 0,
+        qcRejected: Number(qcRows[0]?.qcRejected) || 0,
+        totalProductionCost: Number(costRows[0]?.totalProductionCost) || 0,
       },
     });
   } catch (error) {
@@ -276,6 +393,103 @@ exports.getPlasticDashboardStats = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to load plastic recycling dashboard statistics",
+    });
+  }
+};
+
+exports.getPlasticPhase2Analytics = async (req, res) => {
+  try {
+    const companyId = req.user.company_id;
+    const { period = "today", from_date, to_date } = req.query;
+
+    let dateCond = "";
+    const params = [companyId];
+
+    if (period === "today") {
+      dateCond = " AND DATE(b.batch_date) = CURDATE()";
+    } else if (period === "year") {
+      dateCond = " AND YEAR(b.batch_date) = YEAR(CURDATE())";
+    } else if (period === "custom" && from_date && to_date) {
+      dateCond = " AND DATE(b.batch_date) >= ? AND DATE(b.batch_date) <= ?";
+      params.push(from_date, to_date);
+    } else {
+      dateCond = " AND DATE_FORMAT(b.batch_date, '%Y-%m') = DATE_FORMAT(CURDATE(), '%Y-%m')";
+    }
+
+    // A. Daily production trend in period
+    const [dailyTrend] = await db.promise().query(`
+      SELECT
+        DATE_FORMAT(b.batch_date, '%Y-%m-%d') AS date,
+        COALESCE(SUM(b.actual_quantity), 0) AS production_kg,
+        COALESCE(SUM(b.scrap_quantity), 0) AS scrap_kg
+      FROM plastic_production_batches b
+      WHERE b.company_id = ? ${dateCond}
+      GROUP BY DATE_FORMAT(b.batch_date, '%Y-%m-%d')
+      ORDER BY date ASC
+    `, params);
+
+    // B. Material consumption breakdown
+    const [consumptionData] = await db.promise().query(`
+      SELECT
+        c.material_name,
+        COALESCE(SUM(c.actual_quantity), 0) AS total_kg,
+        COALESCE(SUM(c.total_cost), 0) AS total_cost
+      FROM plastic_material_consumptions c
+      WHERE c.company_id = ?
+      GROUP BY c.material_name
+      ORDER BY total_kg DESC
+      LIMIT 6
+    `, [companyId]);
+
+    // C. Machine status & downtime breakdown
+    const [machinesData] = await db.promise().query(`
+      SELECT
+        m.id,
+        m.machine_name,
+        m.machine_code,
+        m.status,
+        m.capacity,
+        COALESCE(SUM(d.duration_minutes), 0) AS downtime_minutes
+      FROM plastic_machines m
+      LEFT JOIN plastic_machine_downtime d ON m.id = d.machine_id AND m.company_id = d.company_id
+      WHERE m.company_id = ?
+      GROUP BY m.id, m.machine_name, m.machine_code, m.status, m.capacity
+    `, [companyId]);
+
+    // D. Running batches (Live operations)
+    const [runningBatches] = await db.promise().query(`
+      SELECT
+        b.id,
+        b.batch_no,
+        b.product_name,
+        b.planned_quantity,
+        b.status,
+        m.machine_name,
+        s.shift_name,
+        o.name AS operator_name
+      FROM plastic_production_batches b
+      LEFT JOIN plastic_machines m ON b.machine_id = m.id AND b.company_id = m.company_id
+      LEFT JOIN plastic_shifts s ON b.shift_id = s.id AND b.company_id = s.company_id
+      LEFT JOIN plastic_operators o ON b.operator_id = o.id AND b.company_id = o.company_id
+      WHERE b.company_id = ? AND b.status IN ('RUNNING', 'PAUSED')
+      ORDER BY b.id DESC
+      LIMIT 5
+    `, [companyId]);
+
+    res.status(200).json({
+      success: true,
+      analytics: {
+        dailyTrend,
+        consumptionData,
+        machinesData,
+        runningBatches,
+      },
+    });
+  } catch (error) {
+    console.error("Plastic Phase 2 Analytics Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to load plastic operations analytics",
     });
   }
 };

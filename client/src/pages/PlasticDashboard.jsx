@@ -433,6 +433,86 @@ function PlasticDashboard() {
       link: "/plastic-erp/stock",
       color: "#0d9488",
     },
+    {
+      title: "Production & Shop Floor",
+      icon: "⚙️",
+      count: `${plasticStats.activeBatches || 0} Batches Live`,
+      desc: "Work orders, daily production plans, live batch tracking & execution",
+      link: "/plastic-erp/production",
+      color: "#059669",
+    },
+    {
+      title: "BOM & Recipes",
+      icon: "📋",
+      count: "Formulations",
+      desc: "Raw material ratios, regrind % limits, masterbatch formulations",
+      link: "/plastic-erp/recipes",
+      color: "#2563eb",
+    },
+    {
+      title: "WIP & Finished Goods",
+      icon: "🏷️",
+      count: `${Number(plasticStats.finishedGoodsStockKg || 0).toLocaleString("en-IN")} KG FG`,
+      desc: "Crushed flake WIP stages, finished pellets inventory & lot records",
+      link: "/plastic-erp/wip-fg",
+      color: "#7c3aed",
+    },
+    {
+      title: "Quality Control (QC)",
+      icon: "🔬",
+      count: `${plasticStats.qcPending || 0} Pending`,
+      desc: "Incoming, in-process, and finished goods lab tests & MFI/moisture",
+      link: "/plastic-erp/quality",
+      color: "#db2777",
+    },
+    {
+      title: "Scrap & Regrind",
+      icon: "♻️",
+      count: `${Number(plasticStats.regrindGeneratedKg || 0).toLocaleString("en-IN")} KG`,
+      desc: "Extruder purging, startup scrap tracking, regrind generation & reuse",
+      link: "/plastic-erp/scrap-regrind",
+      color: "#d97706",
+    },
+    {
+      title: "Plant Machines",
+      icon: "🏭",
+      count: `${plasticStats.activeMachines || 0} Active`,
+      desc: "Extruders, crushers, downtime logs, and preventive maintenance",
+      link: "/plastic-erp/machines",
+      color: "#0284c7",
+    },
+    {
+      title: "Shifts & Operators",
+      icon: "👷",
+      count: "Workforce",
+      desc: "Plant shifts, machine operators, skill levels, and assignment",
+      link: "/plastic-erp/operations",
+      color: "#0d9488",
+    },
+    {
+      title: "Batch Traceability",
+      icon: "🔍",
+      count: "End-to-End",
+      desc: "Upstream scrap supplier slips to downstream customer FG lots",
+      link: "/plastic-erp/traceability",
+      color: "#4f46e5",
+    },
+    {
+      title: "Production Costing",
+      icon: "💰",
+      count: formatCurrency(plasticStats.totalProductionCost),
+      desc: "Batch-wise costing, labour, machine power, and standard variance",
+      link: "/plastic-erp/costing",
+      color: "#9333ea",
+    },
+    {
+      title: "Operational Reports",
+      icon: "📊",
+      count: "Plant Intelligence",
+      desc: "Daily plant reports, material yield, machine OEE, and live alerts",
+      link: "/plastic-erp/reports",
+      color: "#0f172a",
+    },
   ];
 
   return (
@@ -577,6 +657,78 @@ function PlasticDashboard() {
               <span className="kpi-label">Purchase Bills</span>
               <strong className="kpi-value">{plasticStats.totalPurchaseBills || 0}</strong>
               <span className="kpi-subtext">Billed transactions</span>
+            </div>
+          </div>
+        </section>
+
+        {/* Phase 2: Plant Operations & Production KPIs */}
+        <div className="section-title-wrap" style={{ marginBottom: "14px", marginTop: "10px" }}>
+          <h2 style={{ fontSize: "16px", color: "#065f46" }}>⚙️ Plant Operations, Production & Quality KPIs</h2>
+        </div>
+        <section className="plastic-kpi-grid">
+          <div className="plastic-kpi-card accent-emerald">
+            <div className="kpi-icon-wrap">⚙️</div>
+            <div className="kpi-details">
+              <span className="kpi-label">Active Batches</span>
+              <strong className="kpi-value">{plasticStats.activeBatches || 0} Running</strong>
+              <span className="kpi-subtext">Live on extrusion shop floor</span>
+            </div>
+          </div>
+
+          <div className="plastic-kpi-card accent-indigo">
+            <div className="kpi-icon-wrap">🏷️</div>
+            <div className="kpi-details">
+              <span className="kpi-label">Finished Goods Stock</span>
+              <strong className="kpi-value">
+                {Number(plasticStats.finishedGoodsStockKg || 0).toLocaleString("en-IN")} KG
+              </strong>
+              <span className="kpi-subtext">Pellets / granules in warehouse</span>
+            </div>
+          </div>
+
+          <div className="plastic-kpi-card accent-cyan">
+            <div className="kpi-icon-wrap">🔄</div>
+            <div className="kpi-details">
+              <span className="kpi-label">WIP Inventory</span>
+              <strong className="kpi-value">
+                {Number(plasticStats.currentWipKg || 0).toLocaleString("en-IN")} KG
+              </strong>
+              <span className="kpi-subtext">Flakes & material in process</span>
+            </div>
+          </div>
+
+          <div className="plastic-kpi-card accent-amber">
+            <div className="kpi-icon-wrap">♻️</div>
+            <div className="kpi-details">
+              <span className="kpi-label">Regrind Generated</span>
+              <strong className="kpi-value">
+                {Number(plasticStats.regrindGeneratedKg || 0).toLocaleString("en-IN")} KG
+              </strong>
+              <span className="kpi-subtext">Recycled back to production</span>
+            </div>
+          </div>
+
+          <div className="plastic-kpi-card accent-purple">
+            <div className="kpi-icon-wrap">🏭</div>
+            <div className="kpi-details">
+              <span className="kpi-label">Active Machines</span>
+              <strong className="kpi-value">
+                {plasticStats.activeMachines || 0} Operational
+              </strong>
+              <span className="kpi-subtext">
+                {plasticStats.machineUtilizationPercent || 0}% Plant Utilization
+              </span>
+            </div>
+          </div>
+
+          <div className="plastic-kpi-card accent-rose">
+            <div className="kpi-icon-wrap">🔬</div>
+            <div className="kpi-details">
+              <span className="kpi-label">Quality Status</span>
+              <strong className="kpi-value">{plasticStats.qcPending || 0} Pending</strong>
+              <span className="kpi-subtext">
+                {plasticStats.qcRejected || 0} Rejection(s) logged
+              </span>
             </div>
           </div>
         </section>

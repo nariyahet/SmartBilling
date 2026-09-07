@@ -38,6 +38,16 @@ const weighmentRoutes = require("./routes/weighmentRoutes");
 const purchaseBillRoutes = require("./routes/purchaseBillRoutes");
 const rawMaterialStockRoutes = require("./routes/rawMaterialStockRoutes");
 
+// Plastic Recycling ERP Routes (Phase 2 Operations)
+const plantOperationsRoutes = require("./routes/plantOperationsRoutes");
+const recipeRoutes = require("./routes/recipeRoutes");
+const productionRoutes = require("./routes/productionRoutes");
+const productionInventoryRoutes = require("./routes/productionInventoryRoutes");
+const qualityRoutes = require("./routes/qualityRoutes");
+const traceabilityRoutes = require("./routes/traceabilityRoutes");
+const productionCostingRoutes = require("./routes/productionCostingRoutes");
+const plasticReportsRoutes = require("./routes/plasticReportsRoutes");
+
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/customers", customerRoutes);
@@ -45,13 +55,24 @@ app.use("/api/invoices", invoiceRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/business-settings", businessSettingsRoutes);
 
-// Plastic Recycling ERP Endpoints
+// Plastic Recycling ERP Endpoints (Phase 1)
 app.use("/api/suppliers", supplierRoutes);
 app.use("/api/raw-materials", rawMaterialRoutes);
 app.use("/api/truck-inwards", truckInwardRoutes);
 app.use("/api/weighments", weighmentRoutes);
 app.use("/api/purchase-bills", purchaseBillRoutes);
 app.use("/api/raw-material-stock", rawMaterialStockRoutes);
+
+// Plastic Recycling ERP Endpoints (Phase 2 Operations)
+app.use("/api/plastic-erp/plant", plantOperationsRoutes);
+app.use("/api/plastic-erp/recipes", recipeRoutes);
+app.use("/api/plastic-erp/production", productionRoutes);
+app.use("/api/plastic-erp/inventory", productionInventoryRoutes);
+app.use("/api/plastic-erp/quality", qualityRoutes);
+app.use("/api/plastic-erp/traceability", traceabilityRoutes);
+app.use("/api/plastic-erp/costing", productionCostingRoutes);
+app.use("/api/plastic-erp/reports", plasticReportsRoutes);
+
 
 // Debug endpoints enabled only in development/testing environments
 if (process.env.NODE_ENV !== "production") {
