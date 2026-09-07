@@ -11,6 +11,9 @@
 
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .invoice-actions button {
@@ -322,6 +325,7 @@
 .invoice-action-right {
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 .download-pdf-btn {
@@ -330,4 +334,120 @@
 
 .download-pdf-btn:hover {
   background: #1d4ed8 !important;
+}
+
+.whatsapp-btn {
+  background: #16a34a !important;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 8px rgba(22, 163, 74, 0.25);
+  transition: all 0.2s ease;
+}
+
+.whatsapp-btn:hover {
+  background: #15803d !important;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.35);
+  transform: translateY(-1px);
+}
+
+/* WHATSAPP PHONE MODAL */
+.phone-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(17, 24, 39, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+  animation: fadeIn 0.2s ease;
+}
+
+.phone-modal-card {
+  background: #ffffff;
+  border-radius: 14px;
+  max-width: 440px;
+  width: 100%;
+  padding: 24px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  border: 1px solid #e5e7eb;
+  animation: scaleUp 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleUp {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.phone-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.phone-modal-icon {
+  font-size: 26px;
+}
+
+.phone-modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.phone-modal-body {
+  margin: 0 0 20px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #4b5563;
+}
+
+.phone-modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.phone-modal-btn {
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.phone-modal-primary-btn {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.phone-modal-primary-btn:hover {
+  background: #1d4ed8;
+}
+
+.phone-modal-secondary-btn {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.phone-modal-secondary-btn:hover {
+  background: #e5e7eb;
 }

@@ -1,12 +1,18 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { jsPDF } from "jspdf";
 import API from "../api/axios";
 import LoadingScreen from "../components/LoadingScreen";
+import {
+  buildWhatsAppUrl,
+  formatWhatsAppPhone,
+  generateInvoiceWhatsAppMessage,
+} from "../utils/whatsapp";
 import "./InvoicePreview.css";
 
 function InvoicePreview() {
   const { id } = useParams();
+  const navigate = useNavigate();
 
   const [invoice, setInvoice] = useState(null);
   const [businessSettings, setBusinessSettings] = useState({
@@ -23,6 +29,12 @@ function InvoicePreview() {
     terms_conditions: "Goods once sold cannot be returned without valid terms.",
   });
   const [loading, setLoading] = useState(true);
+  const [phoneModal, setPhoneModal] = useState({
+    open: false,
+    type: "",
+    message: "",
+    actionUrl: "",
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -48,9 +60,11 @@ function InvoicePreview() {
           settingsRes.status === "fulfilled" &&
           settingsRes.value.data?.settings
         ) {
+          const s = settingsRes.value.data.settings;
           setBusinessSettings((prev) => ({
             ...prev,
-            ...settingsRes.value.data.settings,
+            ...s,
+            tax_enabled: s.tax_enabled === true || Number(s.tax_enabled) === 1,
           }));
         }
       } catch (error) {
@@ -235,7 +249,11 @@ function InvoicePreview() {
         textY += 4.5;
       }
 
-      if (businessSettings?.tax_enabled !== false && businessSettings?.tax_number) {
+      const isTaxEnabled =
+        businessSettings?.tax_enabled === true ||
+        Number(businessSettings?.tax_enabled) === 1;
+
+      if (isTaxEnabled && businessSettings?.tax_number) {
         pdf.text(`GST / Tax ID: ${businessSettings.tax_number}`, textStartX, textY);
         textY += 4.5;
       }
@@ -384,7 +402,7 @@ function InvoicePreview() {
         { align: "right" }
       );
 
-      if (businessSettings?.tax_enabled !== false) {
+      if (isTaxEnabled) {
         y += 7;
         pdf.text(`GST (${invoice.tax_percent || 0}%)`, summaryX, y);
         pdf.text(
@@ -445,6 +463,60 @@ function InvoicePreview() {
     }
   };
 
+  const handleSendWhatsApp = () => {
+    if (!invoice) {
+      alert("Invoice data is unavailable.");
+      return;
+    }
+
+    const rawPhone = invoice.customer_mobile;
+    if (!rawPhone || !String(rawPhone).trim()) {
+      setPhoneModal({
+        open: true,
+        type: "missing",
+        message: "Customer phone number is required to send this invoice via WhatsApp.",
+        actionUrl: "",
+      });
+      return;
+    }
+
+    const formattedPhone = formatWhatsAppPhone(rawPhone);
+    if (!formattedPhone) {
+      setPhoneModal({
+        open: true,
+        type: "invalid",
+        message: `Customer phone number (${rawPhone}) is invalid. A valid 10-digit mobile or international number is required to send via WhatsApp.`,
+        actionUrl: "",
+      });
+      return;
+    }
+
+    const message = generateInvoiceWhatsAppMessage({
+      invoice,
+      businessSettings,
+      formatCurrency,
+      formatDate,
+    });
+
+    const whatsappUrl = buildWhatsAppUrl(formattedPhone, message);
+    if (!whatsappUrl) {
+      alert("Failed to build WhatsApp link.");
+      return;
+    }
+
+    const openedWindow = window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+
+    // Detect if popup blocker prevented the new tab from opening
+    if (!openedWindow || openedWindow.closed || typeof openedWindow.closed === "undefined") {
+      setPhoneModal({
+        open: true,
+        type: "popup_blocked",
+        message: "Your browser blocked opening WhatsApp in a new tab. Click below to continue directly to WhatsApp.",
+        actionUrl: whatsappUrl,
+      });
+    }
+  };
+
   if (loading) {
     return <LoadingScreen title="Loading Invoice..." subtitle="Please wait..." />;
   }
@@ -465,6 +537,10 @@ function InvoicePreview() {
 
           <button onClick={downloadPDF} className="download-pdf-btn">
             📥 Download PDF
+          </button>
+
+          <button onClick={handleSendWhatsApp} className="whatsapp-btn">
+            🟢 Send via WhatsApp
           </button>
         </div>
       </div>
@@ -491,7 +567,7 @@ function InvoicePreview() {
               )}
               {businessSettings?.phone && <p>📞 {businessSettings.phone}</p>}
               {businessSettings?.email && <p>✉️ {businessSettings.email}</p>}
-              {businessSettings?.tax_enabled !== false && businessSettings?.tax_number && (
+              {(businessSettings?.tax_enabled === true || Number(businessSettings?.tax_enabled) === 1) && businessSettings?.tax_number && (
                 <p>GST / Tax ID: {businessSettings.tax_number}</p>
               )}
             </div>
@@ -572,7 +648,7 @@ function InvoicePreview() {
               <strong>- {formatCurrency(invoice.discount_amount)}</strong>
             </div>
 
-            {businessSettings?.tax_enabled !== false && (
+            {(businessSettings?.tax_enabled === true || Number(businessSettings?.tax_enabled) === 1) && (
               <div>
                 <span>GST ({invoice.tax_percent || 0}%)</span>
                 <strong>+ {formatCurrency(invoice.tax_amount)}</strong>
@@ -591,6 +667,57 @@ function InvoicePreview() {
           <p>{businessSettings?.business_name || "SmartBilling"}</p>
         </div>
       </div>
+
+      {phoneModal.open && (
+        <div className="phone-modal-overlay" role="dialog" aria-modal="true">
+          <div className="phone-modal-card">
+            <div className="phone-modal-header">
+              <span className="phone-modal-icon">
+                {phoneModal.type === "popup_blocked" ? "⚠️" : "📱"}
+              </span>
+              <h3>
+                {phoneModal.type === "missing"
+                  ? "Phone Number Required"
+                  : phoneModal.type === "invalid"
+                  ? "Invalid Phone Number"
+                  : "Popup Blocked"}
+              </h3>
+            </div>
+            <p className="phone-modal-body">{phoneModal.message}</p>
+            <div className="phone-modal-actions">
+              {phoneModal.actionUrl ? (
+                <a
+                  href={phoneModal.actionUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="phone-modal-btn phone-modal-primary-btn"
+                  onClick={() => setPhoneModal({ open: false, type: "", message: "", actionUrl: "" })}
+                >
+                  Open WhatsApp Directly
+                </a>
+              ) : (
+                <button
+                  type="button"
+                  className="phone-modal-btn phone-modal-primary-btn"
+                  onClick={() => {
+                    setPhoneModal({ open: false, type: "", message: "", actionUrl: "" });
+                    navigate("/customers");
+                  }}
+                >
+                  👥 Go to Customers
+                </button>
+              )}
+              <button
+                type="button"
+                className="phone-modal-btn phone-modal-secondary-btn"
+                onClick={() => setPhoneModal({ open: false, type: "", message: "", actionUrl: "" })}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
