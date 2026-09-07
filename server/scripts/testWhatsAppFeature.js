@@ -191,8 +191,10 @@ const runWhatsAppTests = async () => {
   assert(previewCode.includes("window.print()"), "window.print() must remain in InvoicePreview");
   assert(previewCode.includes("downloadPDF"), "downloadPDF must remain in InvoicePreview");
   assert(previewCode.includes("handleSendWhatsApp"), "handleSendWhatsApp must be present in InvoicePreview");
+  assert(previewCode.includes('window.open("", "_blank")'), 'window.open("", "_blank") must be used for popup blocker safety');
+  assert(previewCode.includes("whatsappWindow.location.href = whatsappUrl"), "whatsappWindow.location.href must navigate tab");
   assert(previewCode.includes("phone-modal-overlay"), "Phone validation modal must be present in InvoicePreview");
-  console.log("✅ TEST 6 & 7 PASSED: Print Invoice and Download PDF actions are completely preserved.");
+  console.log("✅ TEST 6 & 7 PASSED: Print Invoice, Download PDF, and WhatsApp popup-safe opening are completely preserved.");
 
   // TEST 8: Multi-tenant safety
   console.log("\n--- TEST 8: Multi-Tenant Isolation Verification ---");

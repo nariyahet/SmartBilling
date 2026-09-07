@@ -491,6 +491,9 @@ function InvoicePreview() {
       return;
     }
 
+    // Open blank tab immediately to satisfy browser user-gesture requirements
+    const whatsappWindow = window.open("", "_blank");
+
     const message = generateInvoiceWhatsAppMessage({
       invoice,
       businessSettings,
@@ -500,21 +503,29 @@ function InvoicePreview() {
 
     const whatsappUrl = buildWhatsAppUrl(formattedPhone, message);
     if (!whatsappUrl) {
+      if (whatsappWindow) whatsappWindow.close();
       alert("Failed to build WhatsApp link.");
       return;
     }
 
-    const openedWindow = window.open(whatsappUrl, "_blank", "noopener,noreferrer");
-
-    // Detect if popup blocker prevented the new tab from opening
-    if (!openedWindow || openedWindow.closed || typeof openedWindow.closed === "undefined") {
+    // If popup blocker prevented opening the tab, show the fallback modal
+    if (!whatsappWindow) {
       setPhoneModal({
         open: true,
         type: "popup_blocked",
         message: "Your browser blocked opening WhatsApp in a new tab. Click below to continue directly to WhatsApp.",
         actionUrl: whatsappUrl,
       });
+      return;
     }
+
+    // Navigate the already-opened window directly to WhatsApp Web
+    try {
+      whatsappWindow.opener = null;
+    } catch {
+      // ignore
+    }
+    whatsappWindow.location.href = whatsappUrl;
   };
 
   if (loading) {
