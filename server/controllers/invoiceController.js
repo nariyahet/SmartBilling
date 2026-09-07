@@ -131,21 +131,42 @@ const createInvoice = async (req, res, next) => {
       });
     }
 
-    const taxPercent =
-      tax_percent !== undefined && tax_percent !== null && tax_percent !== ""
-        ? Number(tax_percent)
-        : 18;
+    const [settingsRows] = await db.promise().query(
+      `SELECT tax_enabled, default_tax_percent FROM business_settings WHERE company_id = ? LIMIT 1`,
+      [companyId]
+    );
 
-    if (isNaN(taxPercent) || taxPercent < 0 || taxPercent > 100) {
-      return res.status(400).json({
-        success: false,
-        message: "Tax percentage must be a number between 0 and 100",
-      });
+    const isTaxEnabled =
+      settingsRows.length > 0 && settingsRows[0].tax_enabled !== null
+        ? Boolean(settingsRows[0].tax_enabled)
+        : true;
+
+    let finalTaxPercent = 0;
+    if (isTaxEnabled) {
+      const defaultTax =
+        settingsRows[0]?.default_tax_percent !== undefined
+          ? Number(settingsRows[0].default_tax_percent)
+          : 18;
+      const parsedTax =
+        tax_percent !== undefined && tax_percent !== null && tax_percent !== ""
+          ? Number(tax_percent)
+          : defaultTax;
+
+      if (isNaN(parsedTax) || parsedTax < 0 || parsedTax > 100) {
+        return res.status(400).json({
+          success: false,
+          message: "Tax percentage must be a number between 0 and 100",
+        });
+      }
+      finalTaxPercent = parsedTax;
+    } else {
+      // If company has GST/Tax disabled, strictly enforce 0% regardless of client input
+      finalTaxPercent = 0;
     }
 
     const discountAmount = subtotal * (discountPercent / 100);
     const afterDiscount = subtotal - discountAmount;
-    const taxAmount = afterDiscount * (taxPercent / 100);
+    const taxAmount = isTaxEnabled ? afterDiscount * (finalTaxPercent / 100) : 0;
     const grandTotal = afterDiscount + taxAmount;
 
     let invoiceNo = req.body.invoice_no ? String(req.body.invoice_no).trim() : "";
@@ -178,7 +199,7 @@ const createInvoice = async (req, res, next) => {
           subtotal,
           discountPercent,
           discountAmount,
-          taxPercent,
+          finalTaxPercent,
           taxAmount,
           grandTotal,
         ],
@@ -231,7 +252,7 @@ const createInvoice = async (req, res, next) => {
           subtotal,
           discount_percent: discountPercent,
           discount_amount: discountAmount,
-          tax_percent: taxPercent,
+          tax_percent: finalTaxPercent,
           tax_amount: taxAmount,
           grand_total: grandTotal,
         },

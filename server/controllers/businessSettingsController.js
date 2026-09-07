@@ -28,10 +28,24 @@ exports.updateSettings = (req, res, next) => {
     email,
     tax_number,
     default_tax_percent,
+    tax_enabled,
     currency,
     currency_symbol,
     terms_conditions,
   } = req.body;
+
+  let validatedTaxEnabled = undefined;
+  if (tax_enabled !== undefined) {
+    if (typeof tax_enabled === "boolean") {
+      validatedTaxEnabled = tax_enabled;
+    } else if (tax_enabled === "true" || tax_enabled === 1) {
+      validatedTaxEnabled = true;
+    } else if (tax_enabled === "false" || tax_enabled === 0) {
+      validatedTaxEnabled = false;
+    } else {
+      return error(res, "tax_enabled must be a boolean", 400);
+    }
+  }
 
   if (business_name !== undefined && !String(business_name).trim()) {
     return error(res, "Business name cannot be empty", 400);
@@ -62,6 +76,7 @@ exports.updateSettings = (req, res, next) => {
       email,
       tax_number,
       default_tax_percent,
+      tax_enabled: validatedTaxEnabled,
       currency,
       currency_symbol,
       terms_conditions,

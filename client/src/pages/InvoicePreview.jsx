@@ -17,6 +17,7 @@ function InvoicePreview() {
     phone: "+91 9876543210",
     email: "",
     tax_number: "24ABCDE1234F1Z5",
+    tax_enabled: true,
     currency: "INR",
     currency_symbol: "₹",
     terms_conditions: "Goods once sold cannot be returned without valid terms.",
@@ -234,7 +235,7 @@ function InvoicePreview() {
         textY += 4.5;
       }
 
-      if (businessSettings?.tax_number) {
+      if (businessSettings?.tax_enabled !== false && businessSettings?.tax_number) {
         pdf.text(`GST / Tax ID: ${businessSettings.tax_number}`, textStartX, textY);
         textY += 4.5;
       }
@@ -383,14 +384,16 @@ function InvoicePreview() {
         { align: "right" }
       );
 
-      y += 7;
-      pdf.text(`GST (${invoice.tax_percent || 0}%)`, summaryX, y);
-      pdf.text(
-        `+ ${formatCurrency(invoice.tax_amount)}`,
-        summaryX + summaryWidth,
-        y,
-        { align: "right" }
-      );
+      if (businessSettings?.tax_enabled !== false) {
+        y += 7;
+        pdf.text(`GST (${invoice.tax_percent || 0}%)`, summaryX, y);
+        pdf.text(
+          `+ ${formatCurrency(invoice.tax_amount)}`,
+          summaryX + summaryWidth,
+          y,
+          { align: "right" }
+        );
+      }
 
       y += 9;
       pdf.setDrawColor(229, 231, 235);
@@ -488,7 +491,7 @@ function InvoicePreview() {
               )}
               {businessSettings?.phone && <p>📞 {businessSettings.phone}</p>}
               {businessSettings?.email && <p>✉️ {businessSettings.email}</p>}
-              {businessSettings?.tax_number && (
+              {businessSettings?.tax_enabled !== false && businessSettings?.tax_number && (
                 <p>GST / Tax ID: {businessSettings.tax_number}</p>
               )}
             </div>
@@ -569,10 +572,12 @@ function InvoicePreview() {
               <strong>- {formatCurrency(invoice.discount_amount)}</strong>
             </div>
 
-            <div>
-              <span>GST ({invoice.tax_percent || 0}%)</span>
-              <strong>+ {formatCurrency(invoice.tax_amount)}</strong>
-            </div>
+            {businessSettings?.tax_enabled !== false && (
+              <div>
+                <span>GST ({invoice.tax_percent || 0}%)</span>
+                <strong>+ {formatCurrency(invoice.tax_amount)}</strong>
+              </div>
+            )}
 
             <div className="invoice-grand-total">
               <span>Grand Total</span>

@@ -28,6 +28,7 @@ function BusinessSettings() {
     email: "",
     tax_number: "",
     default_tax_percent: 18,
+    tax_enabled: true,
     currency: "INR",
     currency_symbol: "₹",
     terms_conditions: "",
@@ -60,6 +61,8 @@ function BusinessSettings() {
             data.default_tax_percent !== undefined
               ? Number(data.default_tax_percent)
               : 18,
+          tax_enabled:
+            data.tax_enabled !== undefined ? Boolean(data.tax_enabled) : true,
           currency: data.currency || "INR",
           currency_symbol: data.currency_symbol || "₹",
           terms_conditions: data.terms_conditions || "",
@@ -86,6 +89,13 @@ function BusinessSettings() {
     setSettings((prev) => ({
       ...prev,
       [name]: value,
+    }));
+  };
+
+  const handleTaxToggle = (enabled) => {
+    setSettings((prev) => ({
+      ...prev,
+      tax_enabled: enabled,
     }));
   };
 
@@ -138,7 +148,7 @@ function BusinessSettings() {
     }
 
     const tax = Number(settings.default_tax_percent);
-    if (isNaN(tax) || tax < 0 || tax > 100) {
+    if (settings.tax_enabled && (isNaN(tax) || tax < 0 || tax > 100)) {
       setErrorMessage("Default tax percentage must be between 0 and 100");
       return;
     }
@@ -148,7 +158,8 @@ function BusinessSettings() {
 
       const response = await API.put("/business-settings", {
         ...settings,
-        default_tax_percent: tax,
+        tax_enabled: Boolean(settings.tax_enabled),
+        default_tax_percent: isNaN(tax) ? 18 : tax,
       });
 
       if (response.data && response.data.success) {
@@ -167,6 +178,8 @@ function BusinessSettings() {
               data.default_tax_percent !== undefined
                 ? Number(data.default_tax_percent)
                 : 18,
+            tax_enabled:
+              data.tax_enabled !== undefined ? Boolean(data.tax_enabled) : true,
             currency: data.currency || "INR",
             currency_symbol: data.currency_symbol || "₹",
             terms_conditions: data.terms_conditions || "",
@@ -377,19 +390,69 @@ function BusinessSettings() {
                 ></textarea>
               </div>
 
+              <div className="form-group full-width tax-toggle-group">
+                <div className="tax-toggle-header">
+                  <div className="tax-toggle-title-box">
+                    <span className="tax-toggle-title">🏛️ GST / Tax Status</span>
+                    <span className="tax-toggle-desc">
+                      Enable or disable tax calculation across all customer invoices for this business
+                    </span>
+                  </div>
+                  <div className="tax-toggle-buttons" role="group" aria-label="GST or Tax status">
+                    <button
+                      type="button"
+                      className={`tax-toggle-btn ${settings.tax_enabled ? "active-on" : ""}`}
+                      onClick={() => handleTaxToggle(true)}
+                    >
+                      🟢 Enabled (ON)
+                    </button>
+                    <button
+                      type="button"
+                      className={`tax-toggle-btn ${!settings.tax_enabled ? "active-off" : ""}`}
+                      onClick={() => handleTaxToggle(false)}
+                    >
+                      ⚪ Disabled (OFF)
+                    </button>
+                  </div>
+                </div>
+                {!settings.tax_enabled && (
+                  <div className="tax-disabled-banner">
+                    <span className="tax-banner-icon">ℹ️</span>
+                    <div>
+                      <strong>GST / Tax is currently DISABLED for this business.</strong>
+                      <p>
+                        New invoices will calculate 0% tax, and GST details will be hidden from
+                        invoices and PDF receipts. Your saved GST number and rate are preserved below.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="form-group">
-                <label>GST / Tax Number</label>
+                <label>
+                  GST / Tax Number
+                  {!settings.tax_enabled && (
+                    <span className="field-disabled-note">(Disabled)</span>
+                  )}
+                </label>
                 <input
                   type="text"
                   name="tax_number"
                   placeholder="e.g. 24ABCDE1234F1Z5"
                   value={settings.tax_number}
                   onChange={handleChange}
+                  disabled={!settings.tax_enabled}
                 />
               </div>
 
               <div className="form-group">
-                <label>Default GST / Tax Rate (%)</label>
+                <label>
+                  Default GST / Tax Rate (%)
+                  {!settings.tax_enabled && (
+                    <span className="field-disabled-note">(Disabled — Calculated at 0%)</span>
+                  )}
+                </label>
                 <input
                   type="number"
                   name="default_tax_percent"
@@ -399,6 +462,7 @@ function BusinessSettings() {
                   placeholder="18"
                   value={settings.default_tax_percent}
                   onChange={handleChange}
+                  disabled={!settings.tax_enabled}
                 />
               </div>
 
@@ -480,7 +544,7 @@ function BusinessSettings() {
                 {settings.email && (
                   <p className="mockup-detail">✉️ {settings.email}</p>
                 )}
-                {settings.tax_number && (
+                {settings.tax_enabled && settings.tax_number && (
                   <p className="mockup-tax">
                     <strong>GST / Tax ID:</strong> {settings.tax_number}
                   </p>
@@ -491,10 +555,17 @@ function BusinessSettings() {
             <div className="mockup-divider"></div>
 
             <div className="mockup-sample-invoice">
-              <div className="mockup-row">
-                <span>Default Tax Rate:</span>
-                <strong>{settings.default_tax_percent}%</strong>
-              </div>
+              {settings.tax_enabled ? (
+                <div className="mockup-row">
+                  <span>Default Tax Rate:</span>
+                  <strong>{settings.default_tax_percent}%</strong>
+                </div>
+              ) : (
+                <div className="mockup-row">
+                  <span>GST / Tax Rate:</span>
+                  <strong className="badge-tax-off">Disabled (0%)</strong>
+                </div>
+              )}
               <div className="mockup-row">
                 <span>Currency Display:</span>
                 <strong>

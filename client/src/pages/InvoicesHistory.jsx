@@ -8,6 +8,7 @@ function InvoicesHistory() {
   const [invoices, setInvoices] = useState([]);
   const [currencyCode, setCurrencyCode] = useState("INR");
   const [currencySymbol, setCurrencySymbol] = useState("₹");
+  const [taxEnabled, setTaxEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -34,6 +35,9 @@ function InvoicesHistory() {
       ) {
         setCurrencyCode(settingsRes.value.data.settings.currency || "INR");
         setCurrencySymbol(settingsRes.value.data.settings.currency_symbol || "₹");
+        if (settingsRes.value.data.settings.tax_enabled !== undefined) {
+          setTaxEnabled(Boolean(settingsRes.value.data.settings.tax_enabled));
+        }
       }
     } catch (error) {
       console.error("Invoices loading error:", error);
@@ -254,7 +258,7 @@ function InvoicesHistory() {
                   <th>Mobile</th>
                   <th>Date</th>
                   <th>Subtotal</th>
-                  <th>GST</th>
+                  {taxEnabled && <th>GST</th>}
                   <th>Grand Total</th>
                   <th>Action</th>
                 </tr>
@@ -277,7 +281,7 @@ function InvoicesHistory() {
 
                     <td>{formatCurrency(invoice.subtotal)}</td>
 
-                    <td>{formatCurrency(invoice.tax_amount)}</td>
+                    {taxEnabled && <td>{formatCurrency(invoice.tax_amount)}</td>}
 
                     <td>
                       <strong>{formatCurrency(invoice.grand_total)}</strong>

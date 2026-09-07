@@ -108,6 +108,7 @@ CREATE TABLE IF NOT EXISTS business_settings (
   email VARCHAR(100) DEFAULT 'contact@smartbilling.com',
   tax_number VARCHAR(100) DEFAULT '24ABCDE1234F1Z5',
   default_tax_percent DECIMAL(5,2) NOT NULL DEFAULT 18.00,
+  tax_enabled BOOLEAN NOT NULL DEFAULT TRUE,
   currency VARCHAR(10) NOT NULL DEFAULT 'INR',
   currency_symbol VARCHAR(10) NOT NULL DEFAULT '₹',
   terms_conditions TEXT,

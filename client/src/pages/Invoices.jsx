@@ -18,6 +18,7 @@ function Invoices() {
 
   const [discountPercent, setDiscountPercent] = useState(0);
   const [taxPercent, setTaxPercent] = useState(18);
+  const [taxEnabled, setTaxEnabled] = useState(true);
   const [currencyCode, setCurrencyCode] = useState("INR");
   const [currencySymbol, setCurrencySymbol] = useState("₹");
   const [invoiceNo, setInvoiceNo] = useState("");
@@ -59,6 +60,9 @@ function Invoices() {
           settingsResponse.value.data?.settings
         ) {
           const s = settingsResponse.value.data.settings;
+          if (s.tax_enabled !== undefined) {
+            setTaxEnabled(Boolean(s.tax_enabled));
+          }
           if (s.default_tax_percent !== undefined) {
             setTaxPercent(Number(s.default_tax_percent));
           }
@@ -207,7 +211,9 @@ function Invoices() {
 
   const afterDiscount = subtotal - discountAmount;
 
-  const taxAmount = afterDiscount * (Number(taxPercent) / 100);
+  const effectiveTaxPercent = taxEnabled ? Number(taxPercent) : 0;
+
+  const taxAmount = taxEnabled ? afterDiscount * (effectiveTaxPercent / 100) : 0;
 
   const grandTotal = afterDiscount + taxAmount;
 
@@ -239,7 +245,7 @@ function Invoices() {
       return;
     }
 
-    if (Number(taxPercent) < 0 || Number(taxPercent) > 100) {
+    if (taxEnabled && (Number(taxPercent) < 0 || Number(taxPercent) > 100)) {
       alert("GST must be between 0 and 100");
       return;
     }
@@ -258,7 +264,7 @@ function Invoices() {
 
         discount_percent: Number(discountPercent),
 
-        tax_percent: Number(taxPercent),
+        tax_percent: taxEnabled ? Number(taxPercent) : 0,
       });
 
       const invoice = response.data?.invoice;
@@ -462,17 +468,37 @@ function Invoices() {
             />
           </div>
 
-          <div className="summary-input">
-            <label>GST / Tax (%)</label>
+          {taxEnabled ? (
+            <div className="summary-input">
+              <label>GST / Tax (%)</label>
 
-            <input
-              type="number"
-              min="0"
-              max="100"
-              value={taxPercent}
-              onChange={(e) => setTaxPercent(e.target.value)}
-            />
-          </div>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={taxPercent}
+                onChange={(e) => setTaxPercent(e.target.value)}
+              />
+            </div>
+          ) : (
+            <div className="summary-input" style={{ opacity: 0.8 }}>
+              <label>GST / Tax</label>
+
+              <div
+                style={{
+                  background: "#f3f4f6",
+                  padding: "10px 14px",
+                  borderRadius: "8px",
+                  fontSize: "13px",
+                  color: "#6b7280",
+                  border: "1px solid #e5e7eb",
+                  fontWeight: "500",
+                }}
+              >
+                🚫 Disabled (0% applied)
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="invoice-total-box">
@@ -491,14 +517,16 @@ function Invoices() {
             <strong>- {formatCurrency(discountAmount)}</strong>
           </div>
 
-          <div className="total-row">
-            <span>
-              GST ({taxPercent}
-              %)
-            </span>
+          {taxEnabled && (
+            <div className="total-row">
+              <span>
+                GST ({taxPercent}
+                %)
+              </span>
 
-            <strong>+ {formatCurrency(taxAmount)}</strong>
-          </div>
+              <strong>+ {formatCurrency(taxAmount)}</strong>
+            </div>
+          )}
 
           <div className="grand-total-row">
             <span>Grand Total</span>

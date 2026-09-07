@@ -9,6 +9,7 @@ const DEFAULT_SETTINGS = {
   email: "contact@smartbilling.com",
   tax_number: "24ABCDE1234F1Z5",
   default_tax_percent: 18.0,
+  tax_enabled: true,
   currency: "INR",
   currency_symbol: "₹",
   terms_conditions: "Goods once sold cannot be returned without valid terms.",
@@ -26,8 +27,8 @@ const ensureCompanySettings = (companyId, callback) => {
       const insertSql = `
         INSERT INTO business_settings (
           company_id, business_name, tagline, logo, address, phone, email,
-          tax_number, default_tax_percent, currency, currency_symbol, terms_conditions
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          tax_number, default_tax_percent, tax_enabled, currency, currency_symbol, terms_conditions
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
       db.query(
         insertSql,
@@ -41,6 +42,7 @@ const ensureCompanySettings = (companyId, callback) => {
           DEFAULT_SETTINGS.email,
           DEFAULT_SETTINGS.tax_number,
           DEFAULT_SETTINGS.default_tax_percent,
+          DEFAULT_SETTINGS.tax_enabled,
           DEFAULT_SETTINGS.currency,
           DEFAULT_SETTINGS.currency_symbol,
           DEFAULT_SETTINGS.terms_conditions,
@@ -65,7 +67,11 @@ exports.getSettings = (companyId, callback) => {
     if (err) {
       return callback(err);
     }
-    return callback(null, rows[0] || { company_id: companyId, ...DEFAULT_SETTINGS });
+    const settings = rows[0] || { company_id: companyId, ...DEFAULT_SETTINGS };
+    return callback(null, {
+      ...settings,
+      tax_enabled: settings.tax_enabled !== undefined ? Boolean(settings.tax_enabled) : true,
+    });
   });
 };
 
@@ -107,6 +113,10 @@ exports.updateSettings = (companyId, data, callback) => {
         data.default_tax_percent !== undefined
           ? Number(data.default_tax_percent)
           : Number(existing.default_tax_percent || 18),
+      tax_enabled:
+        data.tax_enabled !== undefined
+          ? Boolean(data.tax_enabled)
+          : (existing.tax_enabled !== undefined ? Boolean(existing.tax_enabled) : true),
       currency:
         data.currency !== undefined
           ? String(data.currency).trim().toUpperCase()
@@ -131,6 +141,7 @@ exports.updateSettings = (companyId, data, callback) => {
         email = ?,
         tax_number = ?,
         default_tax_percent = ?,
+        tax_enabled = ?,
         currency = ?,
         currency_symbol = ?,
         terms_conditions = ?
@@ -148,6 +159,7 @@ exports.updateSettings = (companyId, data, callback) => {
         updatedData.email,
         updatedData.tax_number,
         updatedData.default_tax_percent,
+        updatedData.tax_enabled,
         updatedData.currency,
         updatedData.currency_symbol,
         updatedData.terms_conditions,
