@@ -113,17 +113,17 @@ export function generateInvoiceWhatsAppMessage({
 }
 
 /**
- * Builds the complete WhatsApp Click-to-Chat URL.
- * Reference: https://wa.me/<number>?text=<encoded_message>
+ * Builds the complete WhatsApp Web URL with prefilled message.
+ * Pattern: https://web.whatsapp.com/send?phone=<INTERNATIONAL_PHONE>&text=<URL_ENCODED_MESSAGE>
  *
  * @param {string|number} phone
  * @param {string} message
- * @returns {string|null} Complete wa.me URL or null if phone is invalid
+ * @returns {string|null} Complete WhatsApp Web URL or null if phone is invalid
  */
 export function buildWhatsAppUrl(phone, message) {
   const formattedPhone = formatWhatsAppPhone(phone);
   if (!formattedPhone) return null;
 
   const encodedMessage = encodeURIComponent(message || "");
-  return `https://wa.me/${formattedPhone}?text=${encodedMessage}`;
+  return `https://web.whatsapp.com/send?phone=${formattedPhone}&text=${encodedMessage}`;
 }

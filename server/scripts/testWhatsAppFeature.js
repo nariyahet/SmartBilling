@@ -75,7 +75,7 @@ const runWhatsAppTests = async () => {
   assert(!message1.includes("ðŸ"), "Message must NOT contain mojibake characters");
 
   const url1 = buildWhatsAppUrl(sampleInvoice.customer_mobile, message1);
-  assert(url1.startsWith("https://wa.me/919876543210?text="), "URL must begin with https://wa.me/919876543210?text=");
+  assert(url1.startsWith("https://web.whatsapp.com/send?phone=919876543210&text="), "URL must begin with https://web.whatsapp.com/send?phone=919876543210&text=");
   assert(url1.includes(encodeURIComponent("Rahul Patel")), "URL text parameter must be properly encoded");
   console.log("✅ TEST 1 PASSED: Phone converted to 919876543210, valid UTF-8 emojis verified, and message contains all required fields.");
 
