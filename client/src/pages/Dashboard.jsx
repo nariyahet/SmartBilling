@@ -15,6 +15,20 @@ function Dashboard() {
     todaySales: 0,
   });
 
+  const [plasticStats, setPlasticStats] = useState({
+    totalPurchasedKg: 0,
+    totalPurchaseAmount: 0,
+    currentStockKg: 0,
+    currentStockValue: 0,
+    totalSuppliers: 0,
+    totalTruckInwards: 0,
+    totalPurchaseBills: 0,
+    lowStockMaterials: [],
+  });
+  const [plasticPeriod, setPlasticPeriod] = useState("month");
+  const [customFromDate, setCustomFromDate] = useState("");
+  const [customToDate, setCustomToDate] = useState("");
+
   const [lowStockProducts, setLowStockProducts] = useState([]);
   const [currencySymbol, setCurrencySymbol] = useState("₹");
   const [loading, setLoading] = useState(true);
@@ -35,17 +49,52 @@ function Dashboard() {
     })}`;
   };
 
+  const fetchPlasticStats = async (period = plasticPeriod, fromDate = customFromDate, toDate = customToDate) => {
+    try {
+      let url = `/dashboard/plastic-stats?period=${period}`;
+      if (period === "custom" && fromDate && toDate) {
+        url += `&from_date=${fromDate}&to_date=${toDate}`;
+      }
+      const res = await API.get(url);
+      if (res.data?.success && res.data?.stats) {
+        setPlasticStats(res.data.stats);
+      }
+    } catch (err) {
+      console.error("Failed to load plastic recycling stats:", err);
+    }
+  };
+
+  const handlePeriodChange = (newPeriod) => {
+    setPlasticPeriod(newPeriod);
+    if (newPeriod !== "custom") {
+      fetchPlasticStats(newPeriod);
+    }
+  };
+
+  const handleApplyCustomFilter = (e) => {
+    if (e?.preventDefault) e.preventDefault();
+    if (customFromDate && customToDate) {
+      fetchPlasticStats("custom", customFromDate, customToDate);
+    }
+  };
+
   const loadDashboardData = async () => {
     try {
       setLoading(true);
       setError("");
 
-      const [statsResponse, lowStockResponse, settingsResponse, meResponse] =
+      let plasticUrl = `/dashboard/plastic-stats?period=${plasticPeriod}`;
+      if (plasticPeriod === "custom" && customFromDate && customToDate) {
+        plasticUrl += `&from_date=${customFromDate}&to_date=${customToDate}`;
+      }
+
+      const [statsResponse, lowStockResponse, settingsResponse, meResponse, plasticResponse] =
         await Promise.allSettled([
           API.get("/dashboard"),
           API.get("/dashboard/low-stock"),
           API.get("/business-settings"),
           API.get("/auth/me"),
+          API.get(plasticUrl),
         ]);
 
       if (
@@ -89,6 +138,14 @@ function Dashboard() {
         setTrialInfo(comp);
         localStorage.setItem("company", JSON.stringify(comp));
       }
+
+      if (
+        plasticResponse.status === "fulfilled" &&
+        plasticResponse.value.data?.success &&
+        plasticResponse.value.data?.stats
+      ) {
+        setPlasticStats(plasticResponse.value.data.stats);
+      }
     } catch (err) {
       console.error("Dashboard loading error:", err);
 
@@ -102,6 +159,7 @@ function Dashboard() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadDashboardData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleLogout = () => {
@@ -412,6 +470,170 @@ function Dashboard() {
 
               <strong>{formatCurrency(stats.todaySales)}</strong>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ---------------------------------------------------- */}
+      {/* Plastic Recycling Business ERP Section (Kim, Surat)  */}
+      {/* ---------------------------------------------------- */}
+      <div className="plastic-erp-section">
+        <div className="plastic-erp-header">
+          <div className="plastic-erp-title-block">
+            <div className="plastic-badge">♻️ PLASTIC RECYCLING ERP</div>
+            <h2>Scrap Purchase & Raw Material Stock Overview</h2>
+            <p>Real-time scrap inward, weighment, and raw material inventory metrics</p>
+          </div>
+
+          <div className="period-filters">
+            <button
+              type="button"
+              className={`period-btn ${plasticPeriod === "today" ? "active" : ""}`}
+              onClick={() => handlePeriodChange("today")}
+            >
+              Today
+            </button>
+            <button
+              type="button"
+              className={`period-btn ${plasticPeriod === "month" ? "active" : ""}`}
+              onClick={() => handlePeriodChange("month")}
+            >
+              This Month
+            </button>
+            <button
+              type="button"
+              className={`period-btn ${plasticPeriod === "year" ? "active" : ""}`}
+              onClick={() => handlePeriodChange("year")}
+            >
+              This Year
+            </button>
+            <button
+              type="button"
+              className={`period-btn ${plasticPeriod === "custom" ? "active" : ""}`}
+              onClick={() => handlePeriodChange("custom")}
+            >
+              Custom Range
+            </button>
+          </div>
+        </div>
+
+        {plasticPeriod === "custom" && (
+          <form className="custom-date-row" onSubmit={handleApplyCustomFilter}>
+            <label>
+              <span>From: </span>
+              <input
+                type="date"
+                value={customFromDate}
+                onChange={(e) => setCustomFromDate(e.target.value)}
+                required
+              />
+            </label>
+            <label>
+              <span>To: </span>
+              <input
+                type="date"
+                value={customToDate}
+                onChange={(e) => setCustomToDate(e.target.value)}
+                required
+              />
+            </label>
+            <button type="submit" className="apply-filter-btn">
+              Apply Filter
+            </button>
+          </form>
+        )}
+
+        {/* 6 Key Recycling KPI Cards */}
+        <div className="dashboard-stats plastic-stats-grid">
+          <div className="stat-card plastic-card">
+            <div className="stat-icon">⚖️</div>
+            <div className="stat-content">
+              <h3>Raw Material Purchased</h3>
+              <strong>{Number(plasticStats.totalPurchasedKg || 0).toLocaleString("en-IN")} KG</strong>
+            </div>
+          </div>
+
+          <div className="stat-card plastic-card">
+            <div className="stat-icon">💵</div>
+            <div className="stat-content">
+              <h3>Total Purchase Amount</h3>
+              <strong>{formatCurrency(plasticStats.totalPurchaseAmount)}</strong>
+            </div>
+          </div>
+
+          <div className="stat-card plastic-card">
+            <div className="stat-icon">🏭</div>
+            <div className="stat-content">
+              <h3>Current Scrap Stock</h3>
+              <strong>{Number(plasticStats.currentStockKg || 0).toLocaleString("en-IN")} KG</strong>
+              <small style={{ color: "#059669", fontWeight: 600, display: "block", marginTop: "4px" }}>
+                Valuation: {formatCurrency(plasticStats.currentStockValue)}
+              </small>
+            </div>
+          </div>
+
+          <div className="stat-card plastic-card">
+            <div className="stat-icon">🏢</div>
+            <div className="stat-content">
+              <h3>Active Suppliers</h3>
+              <strong>{plasticStats.totalSuppliers || 0}</strong>
+            </div>
+          </div>
+
+          <div className="stat-card plastic-card">
+            <div className="stat-icon">🚚</div>
+            <div className="stat-content">
+              <h3>Truck Inwards</h3>
+              <strong>{plasticStats.totalTruckInwards || 0}</strong>
+            </div>
+          </div>
+
+          <div className="stat-card plastic-card">
+            <div className="stat-icon">📑</div>
+            <div className="stat-content">
+              <h3>Purchase Bills</h3>
+              <strong>{plasticStats.totalPurchaseBills || 0}</strong>
+            </div>
+          </div>
+        </div>
+
+        {/* Low Stock Scrap Raw Materials Card */}
+        <div className="dashboard-card plastic-low-stock-card">
+          <div className="card-header">
+            <div>
+              <h2>Low Stock Raw Materials</h2>
+              <p>Scrap grades at or below minimum threshold</p>
+            </div>
+            <span className="card-count">
+              {Array.isArray(plasticStats.lowStockMaterials) ? plasticStats.lowStockMaterials.length : 0}
+            </span>
+          </div>
+
+          <div className="low-stock-list">
+            {Array.isArray(plasticStats.lowStockMaterials) && plasticStats.lowStockMaterials.length > 0 ? (
+              plasticStats.lowStockMaterials.map((mat) => (
+                <div className="low-stock-item" key={mat.id}>
+                  <div className="product-info">
+                    <div className="product-icon">♻️</div>
+                    <div>
+                      <h3>{mat.material_name}</h3>
+                      <p>Type: {mat.plastic_type} | Threshold: {mat.minimum_stock} {mat.unit || "KG"}</p>
+                    </div>
+                  </div>
+                  <div className="stock-info">
+                    <span className="stock-danger">
+                      {mat.current_stock} {mat.unit || "KG"} left
+                    </span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="empty-state">
+                <div className="empty-icon">✅</div>
+                <h3>All Scrap Materials Sufficiently Stocked</h3>
+                <p>No raw material scrap grades are currently below their minimum threshold.</p>
+              </div>
+            )}
           </div>
         </div>
       </div>

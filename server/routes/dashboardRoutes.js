@@ -15,4 +15,6 @@ router.get("/low-stock", dashboardController.getLowStockProducts);
 
 router.get("/sales-report", dashboardController.getSalesReport);
 
+router.get("/plastic-stats", dashboardController.getPlasticDashboardStats);
+
 module.exports = router;

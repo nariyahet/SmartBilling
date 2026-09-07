@@ -30,12 +30,28 @@ const invoiceRoutes = require("./routes/invoiceRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const businessSettingsRoutes = require("./routes/businessSettingsRoutes");
 
+// Plastic Recycling ERP Routes (Phase 1)
+const supplierRoutes = require("./routes/supplierRoutes");
+const rawMaterialRoutes = require("./routes/rawMaterialRoutes");
+const truckInwardRoutes = require("./routes/truckInwardRoutes");
+const weighmentRoutes = require("./routes/weighmentRoutes");
+const purchaseBillRoutes = require("./routes/purchaseBillRoutes");
+const rawMaterialStockRoutes = require("./routes/rawMaterialStockRoutes");
+
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/customers", customerRoutes);
 app.use("/api/invoices", invoiceRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/business-settings", businessSettingsRoutes);
+
+// Plastic Recycling ERP Endpoints
+app.use("/api/suppliers", supplierRoutes);
+app.use("/api/raw-materials", rawMaterialRoutes);
+app.use("/api/truck-inwards", truckInwardRoutes);
+app.use("/api/weighments", weighmentRoutes);
+app.use("/api/purchase-bills", purchaseBillRoutes);
+app.use("/api/raw-material-stock", rawMaterialStockRoutes);
 
 // Debug endpoints enabled only in development/testing environments
 if (process.env.NODE_ENV !== "production") {
