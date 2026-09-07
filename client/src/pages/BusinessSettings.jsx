@@ -247,6 +247,10 @@ function BusinessSettings() {
             ⚙️ Business Settings
           </Link>
 
+          <Link to="/plastic-erp" className="nav-link" style={{ background: "#ecfdf5", color: "#065f46", fontWeight: 700 }}>
+            ♻️ Plastic ERP
+          </Link>
+
           <button type="button" className="logout-btn" onClick={handleLogout}>
             🚪 Logout
           </button>

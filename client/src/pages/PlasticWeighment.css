@@ -1,0 +1,189 @@
+.plastic-weighment-page {
+  min-height: 100vh;
+  background: #f8fafc;
+  color: #1e293b;
+}
+
+.inward-ref-pill {
+  display: inline-block;
+  background: #f1f5f9;
+  color: #475569;
+  font-family: monospace;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 6px;
+  border-radius: 4px;
+}
+
+.operator-tag {
+  font-size: 12px;
+  color: #475569;
+}
+
+.btn-view-slip {
+  background: #faf5ff;
+  color: #7e22ce;
+  border: 1px solid #e9d5ff;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-view-slip:hover {
+  background: #f3e8ff;
+}
+
+/* SLIP MODAL */
+.slip-modal-card {
+  background: #ffffff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 540px;
+  overflow: hidden;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.slip-paper {
+  padding: 28px;
+  background: #ffffff;
+  border-bottom: 2px dashed #cbd5e1;
+}
+
+.slip-header {
+  text-align: center;
+  border-bottom: 2px solid #0f172a;
+  padding-bottom: 14px;
+  margin-bottom: 18px;
+}
+
+.slip-header h2 {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 4px 0;
+  letter-spacing: 0.05em;
+}
+
+.slip-header p {
+  font-size: 11px;
+  color: #64748b;
+  margin: 0 0 8px 0;
+}
+
+.slip-badge {
+  display: inline-block;
+  background: #0f172a;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 4px;
+  letter-spacing: 0.08em;
+}
+
+.slip-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  font-size: 12px;
+  margin-bottom: 20px;
+}
+
+.slip-label {
+  display: block;
+  color: #64748b;
+  font-size: 11px;
+}
+
+.slip-weights-table {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+}
+
+.slip-weight-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 13px;
+  color: #334155;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.slip-weight-row:last-child {
+  border-bottom: none;
+}
+
+.slip-weight-row.net-row {
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 2px solid #0f172a;
+}
+
+.slip-net-val {
+  font-size: 18px;
+  color: #059669;
+  font-weight: 900;
+}
+
+.slip-footer {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-top: 24px;
+  padding-top: 16px;
+}
+
+.signature-line {
+  border-top: 1px solid #0f172a;
+  padding-top: 4px;
+  font-size: 11px;
+  color: #64748b;
+  width: 140px;
+  text-align: center;
+}
+
+.slip-modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  background: #f8fafc;
+}
+
+.btn-print {
+  background: #0f172a;
+  color: #ffffff;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-print:hover {
+  background: #1e293b;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .slip-paper,
+  .slip-paper * {
+    visibility: visible;
+  }
+  .slip-paper {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+}

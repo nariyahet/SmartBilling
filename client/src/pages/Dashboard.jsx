@@ -209,6 +209,10 @@ function Dashboard() {
             ⚙️ Business Settings
           </Link>
 
+          <Link to="/plastic-erp" className="nav-link" style={{ background: "#ecfdf5", color: "#065f46", fontWeight: 700 }}>
+            ♻️ Plastic ERP
+          </Link>
+
           <button type="button" className="logout-btn" onClick={handleLogout}>
             🚪 Logout
           </button>
@@ -480,7 +484,27 @@ function Dashboard() {
       <div className="plastic-erp-section">
         <div className="plastic-erp-header">
           <div className="plastic-erp-title-block">
-            <div className="plastic-badge">♻️ PLASTIC RECYCLING ERP</div>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", marginBottom: "6px" }}>
+              <div className="plastic-badge" style={{ margin: 0 }}>♻️ PLASTIC RECYCLING ERP</div>
+              <Link
+                to="/plastic-erp"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  background: "#059669",
+                  color: "#ffffff",
+                  fontSize: "12px",
+                  fontWeight: 700,
+                  padding: "5px 14px",
+                  borderRadius: "6px",
+                  textDecoration: "none",
+                  boxShadow: "0 1px 3px rgba(5, 150, 105, 0.3)",
+                }}
+              >
+                Open Plastic ERP →
+              </Link>
+            </div>
             <h2>Scrap Purchase & Raw Material Stock Overview</h2>
             <p>Real-time scrap inward, weighment, and raw material inventory metrics</p>
           </div>

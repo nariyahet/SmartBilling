@@ -1,0 +1,362 @@
+.plastic-purchase-page {
+  min-height: 100vh;
+  background: #f8fafc;
+  color: #1e293b;
+}
+
+.tax-on-badge {
+  display: inline-block;
+  background: #ecfdf5;
+  color: #065f46;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 6px;
+  border-radius: 4px;
+}
+
+.tax-off-badge {
+  display: inline-block;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 6px;
+  border-radius: 4px;
+}
+
+.grand-total-highlight {
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.payment-pill {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.payment-pill.unpaid {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.payment-pill.partial {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.payment-pill.paid {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.btn-view-bill {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-view-bill:hover {
+  background: #dbeafe;
+}
+
+.large-modal {
+  max-width: 840px !important;
+}
+
+/* Dynamic Items Table */
+.items-section-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.items-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.items-header-bar h3 {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.btn-add-item-row {
+  background: #ffffff;
+  border: 1px solid #059669;
+  color: #059669;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-add-item-row:hover {
+  background: #ecfdf5;
+}
+
+.items-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.items-table th {
+  background: #ffffff;
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid #cbd5e1;
+  color: #475569;
+  font-weight: 600;
+}
+
+.items-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.items-table input,
+.items-table select {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.btn-remove-row {
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+/* Bill Calc Summary */
+.bill-calc-summary {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.calc-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+  font-size: 13px;
+  color: #334155;
+  width: 100%;
+}
+
+.calc-row label,
+.calc-row span {
+  color: #64748b;
+}
+
+.calc-row.grand-total-row {
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 2px solid #0f172a;
+  font-size: 16px;
+}
+
+.calc-row.grand-total-row strong {
+  color: #059669;
+  font-size: 18px;
+}
+
+.gst-disabled-notice {
+  font-style: italic;
+  color: #94a3b8 !important;
+}
+
+/* View Bill Detail Paper */
+.bill-detail-modal-card {
+  background: #ffffff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 720px;
+  overflow: hidden;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.bill-detail-paper {
+  padding: 28px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.bill-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  border-bottom: 2px solid #0f172a;
+  padding-bottom: 16px;
+  margin-bottom: 20px;
+}
+
+.bill-header h2 {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 4px 0;
+}
+
+.bill-number-display {
+  display: inline-block;
+  background: #0f172a;
+  color: #ffffff;
+  font-family: monospace;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.bill-meta-right {
+  text-align: right;
+  font-size: 13px;
+  color: #475569;
+}
+
+.bill-party-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  background: #f8fafc;
+  padding: 16px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+
+.party-box h4 {
+  font-size: 12px;
+  text-transform: uppercase;
+  color: #64748b;
+  margin: 0 0 6px 0;
+  letter-spacing: 0.04em;
+}
+
+.party-box strong {
+  display: block;
+  font-size: 14px;
+  color: #0f172a;
+  margin-bottom: 2px;
+}
+
+.party-box span,
+.party-box p {
+  display: block;
+  font-size: 12px;
+  color: #475569;
+  margin: 2px 0;
+}
+
+.bill-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-bottom: 20px;
+}
+
+.bill-items-table th {
+  background: #f1f5f9;
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid #cbd5e1;
+  color: #334155;
+  font-weight: 700;
+}
+
+.bill-items-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.bill-footer-calc {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  padding: 16px 0;
+  border-top: 1px solid #e2e8f0;
+  font-size: 13px;
+}
+
+.bill-footer-calc div {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 20px;
+  width: 280px;
+}
+
+.bill-final-row {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 2px solid #0f172a;
+}
+
+.bill-final-amt {
+  font-size: 18px;
+  color: #059669;
+}
+
+.payment-updater-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-top: 16px;
+}
+
+.payment-updater-bar span {
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.btn-pay-status {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #64748b;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-pay-status.active {
+  background: #0f172a;
+  color: #ffffff;
+  border-color: #0f172a;
+}

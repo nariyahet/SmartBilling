@@ -11,6 +11,13 @@ import InvoicePreview from "./pages/InvoicePreview";
 import InvoicesHistory from "./pages/InvoicesHistory";
 import SalesReport from "./pages/SalesReport";
 import BusinessSettings from "./pages/BusinessSettings";
+import PlasticDashboard from "./pages/PlasticDashboard";
+import PlasticSuppliers from "./pages/PlasticSuppliers";
+import PlasticRawMaterials from "./pages/PlasticRawMaterials";
+import PlasticTruckInward from "./pages/PlasticTruckInward";
+import PlasticWeighment from "./pages/PlasticWeighment";
+import PlasticPurchaseBills from "./pages/PlasticPurchaseBills";
+import PlasticStock from "./pages/PlasticStock";
 
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem("token");
@@ -98,6 +105,72 @@ function App() {
           element={
             <ProtectedRoute>
               <BusinessSettings />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ---------------------------------------------------- */}
+        {/* Plastic Recycling ERP Routes (Kim, Surat Operations) */}
+        {/* ---------------------------------------------------- */}
+        <Route
+          path="/plastic-erp"
+          element={
+            <ProtectedRoute>
+              <PlasticDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/plastic-erp/suppliers"
+          element={
+            <ProtectedRoute>
+              <PlasticSuppliers />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/plastic-erp/raw-materials"
+          element={
+            <ProtectedRoute>
+              <PlasticRawMaterials />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/plastic-erp/truck-inward"
+          element={
+            <ProtectedRoute>
+              <PlasticTruckInward />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/plastic-erp/weighment"
+          element={
+            <ProtectedRoute>
+              <PlasticWeighment />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/plastic-erp/purchase-bills"
+          element={
+            <ProtectedRoute>
+              <PlasticPurchaseBills />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/plastic-erp/stock"
+          element={
+            <ProtectedRoute>
+              <PlasticStock />
             </ProtectedRoute>
           }
         />

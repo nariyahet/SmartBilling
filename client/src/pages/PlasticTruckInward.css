@@ -1,0 +1,121 @@
+.plastic-inward-page {
+  min-height: 100vh;
+  background: #f8fafc;
+  color: #1e293b;
+}
+
+.truck-number-badge {
+  display: block;
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.driver-subtext {
+  display: block;
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.date-text {
+  display: block;
+  font-size: 13px;
+  color: #1e293b;
+  font-weight: 500;
+}
+
+.time-subtext {
+  display: block;
+  font-size: 11px;
+  color: #64748b;
+}
+
+.weight-stack span {
+  display: block;
+  font-size: 11px;
+  color: #64748b;
+}
+
+.net-weight-highlight {
+  display: block;
+  font-size: 13px;
+  color: #047857;
+  font-weight: 800;
+  margin-top: 2px;
+}
+
+.quality-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.quality-badge.pending {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.quality-badge.accepted {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.quality-badge.rejected {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.quality-badge.partial {
+  background: #e0e7ff;
+  color: #4338ca;
+}
+
+/* Weight Calc Box inside Modal */
+.calc-summary-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.calc-summary-card h3 {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 12px 0;
+}
+
+.live-weight-preview-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+  border: 1px dashed #cbd5e1;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.live-weight-preview-bar span {
+  font-size: 13px;
+  color: #64748b;
+  margin-right: 8px;
+}
+
+.highlight-green {
+  font-size: 16px;
+  font-weight: 800;
+  color: #047857;
+}
+
+.highlight-blue {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0284c7;
+}

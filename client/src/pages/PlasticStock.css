@@ -1,0 +1,193 @@
+.plastic-stock-page {
+  min-height: 100vh;
+  background: #f8fafc;
+  color: #1e293b;
+}
+
+.btn-refresh-stock {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-refresh-stock:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.stock-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.stock-kpi-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.stock-kpi-card.accent-green { border-left: 4px solid #059669; }
+.stock-kpi-card.accent-teal { border-left: 4px solid #0d9488; }
+.stock-kpi-card.accent-rose { border-left: 4px solid #e11d48; }
+
+.stock-kpi-icon {
+  font-size: 28px;
+  background: #f8fafc;
+  padding: 12px;
+  border-radius: 12px;
+  line-height: 1;
+}
+
+.stock-kpi-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #64748b;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+
+.stock-kpi-num {
+  display: block;
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.stock-kpi-card small {
+  display: block;
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.btn-toggle-low-stock {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-toggle-low-stock.active {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.btn-action-ledger {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-action-ledger:hover {
+  background: #e2e8f0;
+}
+
+.btn-action-adjust {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-action-adjust:hover {
+  background: #d1fae5;
+}
+
+/* Movement Table inside Ledger Modal */
+.movement-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.movement-table th {
+  background: #f8fafc;
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid #cbd5e1;
+  color: #475569;
+  font-weight: 700;
+}
+
+.movement-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.movement-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.movement-badge.purchase {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.movement-badge.inward {
+  background: #e0e7ff;
+  color: #4338ca;
+}
+
+.movement-badge.outward {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.movement-badge.adjustment {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.qty-positive {
+  color: #059669;
+}
+
+.qty-negative {
+  color: #dc2626;
+}
+
+.remarks-text {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.highlight-red {
+  font-size: 16px;
+  font-weight: 800;
+  color: #dc2626;
+}
