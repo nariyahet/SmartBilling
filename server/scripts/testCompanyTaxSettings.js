@@ -44,11 +44,14 @@ const cleanupCompany2TestRecords = async (pdb) => {
     "SELECT id FROM invoices WHERE company_id = 2 AND invoice_no LIKE 'INV-TAX-%'"
   );
   for (const inv of testInvoices) {
+    await pdb.query("DELETE FROM plastic_customer_ledger WHERE reference_type = 'INVOICE' AND reference_id = ?", [inv.id]);
     await pdb.query("DELETE FROM invoice_items WHERE invoice_id = ?", [inv.id]);
     await pdb.query("DELETE FROM invoices WHERE id = ?", [inv.id]);
   }
+  await pdb.query("DELETE FROM plastic_customer_ledger WHERE customer_id IN (SELECT id FROM customers WHERE company_id = 2 AND name LIKE 'Test Tax Customer%')");
   await pdb.query("DELETE FROM products WHERE company_id = 2 AND name LIKE 'Test Tax Product%'");
   await pdb.query("DELETE FROM customers WHERE company_id = 2 AND name LIKE 'Test Tax Customer%'");
+  await pdb.query("UPDATE business_settings SET tax_enabled = 1 WHERE company_id = 2");
 };
 
 const runAllTests = async () => {
@@ -60,6 +63,7 @@ const runAllTests = async () => {
   const pdb = db.promise();
 
   try {
+    await cleanupCompany2TestRecords(pdb);
     // Record historical invoice snapshots before running test
     const [historicalInvoicesBefore] = await pdb.query(
       "SELECT id, invoice_no, company_id, subtotal, tax_percent, tax_amount, grand_total FROM invoices WHERE company_id = 1 ORDER BY id ASC"

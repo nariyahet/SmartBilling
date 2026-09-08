@@ -1,8 +1,43 @@
 require("dotenv").config();
+const path = require("path");
+const { spawn } = require("child_process");
 const bcrypt = require("bcrypt");
 const db = require("../config/db");
 
 const BASE_URL = "http://localhost:5000/api";
+let serverProcess = null;
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const startServerIfNeeded = async () => {
+  try {
+    const res = await fetch(`${BASE_URL}/auth/me`);
+    if (res.status === 401 || res.status === 200) {
+      console.log("ℹ️ Server is already running on port 5000.");
+      return;
+    }
+  } catch {
+    console.log("🚀 Starting local backend server for automated tests...");
+    serverProcess = spawn("node", ["server.js"], {
+      cwd: path.resolve(__dirname, ".."),
+      stdio: "inherit",
+      shell: true,
+      env: { ...process.env },
+    });
+
+    for (let i = 0; i < 20; i++) {
+      await sleep(500);
+      try {
+        const res = await fetch(`${BASE_URL}/auth/me`);
+        if (res.status === 401 || res.status === 200) {
+          console.log("✅ Local server is online and ready.");
+          return;
+        }
+      } catch {}
+    }
+    throw new Error("Failed to start server within timeout");
+  }
+};
 
 const results = [];
 
@@ -47,6 +82,7 @@ async function runTests() {
   console.log("🚀 Starting SmartBilling Trial Registration System Tests (A-M)");
   console.log("==================================================\n");
 
+  await startServerIfNeeded();
   const pdb = db.promise();
 
   // Test data constants
@@ -425,6 +461,7 @@ async function runTests() {
         await pdb.query("DELETE FROM invoice_items WHERE invoice_id IN (SELECT id FROM invoices WHERE company_id = ?)", [companyIdA]);
         await pdb.query("DELETE FROM invoices WHERE company_id = ?", [companyIdA]);
         await pdb.query("DELETE FROM products WHERE company_id = ?", [companyIdA]);
+        await pdb.query("DELETE FROM plastic_customer_ledger WHERE company_id = ?", [companyIdA]);
         await pdb.query("DELETE FROM customers WHERE company_id = ?", [companyIdA]);
         await pdb.query("DELETE FROM business_settings WHERE company_id = ?", [companyIdA]);
         await pdb.query("DELETE FROM admins WHERE company_id = ?", [companyIdA]);
@@ -438,6 +475,11 @@ async function runTests() {
       console.log("✅ Cleanup complete. Demo Company (1) and SmartBilling Main (2) remain untouched.");
     } catch (cleanupErr) {
       console.error("Cleanup notice:", cleanupErr.message);
+    }
+
+    if (serverProcess) {
+      console.log("Stopping temporary test server process...");
+      serverProcess.kill();
     }
 
     console.log("\n==================================================");

@@ -178,6 +178,10 @@ const createInvoice = async (req, res, next) => {
     await conn.beginTransaction();
 
     try {
+      const salesOrderId = req.body.sales_order_id ? Number(req.body.sales_order_id) : null;
+      const dispatchId = req.body.dispatch_id ? Number(req.body.dispatch_id) : null;
+      const skipStockDeduction = Boolean(req.body.skip_product_stock_deduction);
+
       const invoiceResult = await conn.query(
         `INSERT INTO invoices
           (
@@ -189,9 +193,13 @@ const createInvoice = async (req, res, next) => {
             discount_amount,
             tax_percent,
             tax_amount,
-            grand_total
+            grand_total,
+            sales_order_id,
+            dispatch_id,
+            payment_status,
+            paid_amount
           )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'UNPAID', 0.00)`,
         [
           companyId,
           invoiceNo,
@@ -202,6 +210,8 @@ const createInvoice = async (req, res, next) => {
           finalTaxPercent,
           taxAmount,
           grandTotal,
+          salesOrderId,
+          dispatchId,
         ],
       );
 
@@ -231,13 +241,32 @@ const createInvoice = async (req, res, next) => {
           ],
         );
 
-        await conn.query(
-          `UPDATE products
-           SET stock = stock - ?
-           WHERE id = ? AND company_id = ?`,
-          [item.quantity, item.product_id, companyId],
-        );
+        if (!skipStockDeduction) {
+          await conn.query(
+            `UPDATE products
+             SET stock = stock - ?
+             WHERE id = ? AND company_id = ?`,
+            [item.quantity, item.product_id, companyId],
+          );
+        }
       }
+
+      // Record customer ledger entry for the invoice
+      const { recordLedgerEntry } = require("../utils/ledgerHelper");
+      await recordLedgerEntry(conn, {
+        companyId,
+        customerId: customer_id,
+        transactionDate: new Date(),
+        referenceType: "INVOICE",
+        referenceId: invoiceId,
+        referenceNo: invoiceNo,
+        debit: grandTotal,
+        credit: 0.00,
+        notes: dispatchId
+          ? `Sales Invoice linked to Dispatch #${dispatchId}`
+          : `Sales Invoice ${invoiceNo}`,
+        createdBy: req.user?.id || null,
+      });
 
       await conn.commit();
 

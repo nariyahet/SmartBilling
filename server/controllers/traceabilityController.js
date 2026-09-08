@@ -90,6 +90,46 @@ exports.traceBatch = async (req, res) => {
       [batchId, companyId]
     );
 
+    // 2b. Downstream Dispatches, Orders & Invoices for this batch's FG lots
+    const lotIds = fgLots.map((l) => l.id);
+    let downstreamSales = [];
+    if (lotIds.length > 0) {
+      const [salesRows] = await db.promise().query(
+        `SELECT
+          di.id AS dispatch_item_id,
+          di.quantity AS dispatched_quantity,
+          di.rate,
+          di.lot_id,
+          fgl.lot_number,
+          d.id AS dispatch_id,
+          d.dispatch_no,
+          d.dispatch_date,
+          d.status AS dispatch_status,
+          c.id AS customer_id,
+          c.name AS customer_name,
+          c.mobile AS customer_mobile,
+          so.id AS sales_order_id,
+          so.sales_order_no,
+          inv.id AS invoice_id,
+          inv.invoice_no,
+          inv.grand_total AS invoice_amount,
+          inv.payment_status AS invoice_payment_status,
+          dc.id AS challan_id,
+          dc.challan_no
+         FROM plastic_dispatch_items di
+         JOIN plastic_dispatches d ON di.dispatch_id = d.id AND di.company_id = d.company_id
+         JOIN customers c ON d.customer_id = c.id AND d.company_id = c.company_id
+         LEFT JOIN plastic_finished_goods_lots fgl ON di.lot_id = fgl.id AND di.company_id = fgl.company_id
+         LEFT JOIN plastic_sales_orders so ON d.sales_order_id = so.id AND d.company_id = so.company_id
+         LEFT JOIN invoices inv ON d.id = inv.dispatch_id AND d.company_id = inv.company_id
+         LEFT JOIN plastic_delivery_challans dc ON d.id = dc.dispatch_id AND d.company_id = dc.company_id
+         WHERE di.company_id = ? AND di.lot_id IN (${lotIds.map(() => "?").join(",")})
+         ORDER BY d.dispatch_date DESC`,
+        [companyId, ...lotIds]
+      );
+      downstreamSales = salesRows;
+    }
+
     // 3. Quality Inspections
     const [qcInspections] = await db.promise().query(
       `SELECT * FROM plastic_quality_inspections WHERE batch_id = ? AND company_id = ? ORDER BY inspection_date ASC`,
@@ -126,6 +166,7 @@ exports.traceBatch = async (req, res) => {
           finishedGoodsLots: fgLots,
           scrapRecords,
           regrindTransactions,
+          downstreamSales,
         },
         quality: qcInspections,
         timeline,

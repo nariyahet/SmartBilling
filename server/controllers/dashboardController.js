@@ -331,6 +331,9 @@ exports.getPlasticDashboardStats = async (req, res) => {
       FROM plastic_machines
       WHERE company_id = ?
     `, [companyId]);
+    const totalMachines = Number(machinesRows[0]?.totalMachines) || 0;
+    const activeMachines = Number(machinesRows[0]?.activeMachines) || 0;
+    const machineUtilization = totalMachines > 0 ? ((activeMachines / totalMachines) * 100).toFixed(1) : "0.0";
 
     // QC Pending / Rejected
     const [qcRows] = await db.promise().query(`
@@ -352,9 +355,66 @@ exports.getPlasticDashboardStats = async (req, res) => {
     const plannedProd = Number(batchMetrics[0]?.totalPlannedKg) || 0;
     const achievementPercent = plannedProd > 0 ? ((totalProd / plannedProd) * 100).toFixed(1) : (totalProd > 0 ? "100.0" : "0.0");
 
-    const totalMachines = Number(machinesRows[0]?.totalMachines) || 0;
-    const activeMachines = Number(machinesRows[0]?.activeMachines) || 0;
-    const machineUtilization = totalMachines > 0 ? ((activeMachines / totalMachines) * 100).toFixed(1) : "0.0";
+    // ==========================================
+    // PHASE 3 SALES, DISPATCH & FINANCE KPIS
+    // ==========================================
+    const [salesToday] = await db.promise().query(
+      `SELECT COALESCE(SUM(grand_total), 0) AS todaySales FROM invoices WHERE company_id = ? AND DATE(created_at) = CURDATE()`,
+      [companyId]
+    );
+    const [salesMonth] = await db.promise().query(
+      `SELECT COALESCE(SUM(grand_total), 0) AS monthSales FROM invoices WHERE company_id = ? AND DATE_FORMAT(created_at, '%Y-%m') = DATE_FORMAT(CURDATE(), '%Y-%m')`,
+      [companyId]
+    );
+    const [soStats] = await db.promise().query(
+      `SELECT
+        COUNT(id) AS totalOrders,
+        COUNT(CASE WHEN status IN ('DRAFT', 'CONFIRMED', 'RESERVED') THEN 1 END) AS pendingOrders
+       FROM plastic_sales_orders WHERE company_id = ?`,
+      [companyId]
+    );
+    const [dispatchStats] = await db.promise().query(
+      `SELECT
+        COUNT(id) AS totalDispatches,
+        COUNT(CASE WHEN DATE(dispatch_date) = CURDATE() THEN 1 END) AS todayDispatches,
+        COUNT(CASE WHEN DATE_FORMAT(dispatch_date, '%Y-%m') = DATE_FORMAT(CURDATE(), '%Y-%m') THEN 1 END) AS monthDispatches
+       FROM plastic_dispatches WHERE company_id = ?`,
+      [companyId]
+    );
+    const [fgSoldRows] = await db.promise().query(
+      `SELECT COALESCE(SUM(quantity), 0) AS fgSoldKg FROM plastic_sales_stock_movements WHERE company_id = ? AND movement_type = 'SALES_OUTWARD'`,
+      [companyId]
+    );
+    const [receivablesRows] = await db.promise().query(
+      `SELECT COALESCE(SUM(grand_total - paid_amount), 0) AS outstandingReceivables FROM invoices WHERE company_id = ? AND (payment_status != 'PAID' OR paid_amount < grand_total)`,
+      [companyId]
+    );
+    const [paymentsRows] = await db.promise().query(
+      `SELECT COALESCE(SUM(amount), 0) AS paymentsCollected FROM plastic_payments WHERE company_id = ? AND status = 'RECEIVED'`,
+      [companyId]
+    );
+    const [returnsRows] = await db.promise().query(
+      `SELECT COUNT(id) AS totalReturns, COALESCE(SUM(grand_total), 0) AS totalReturnAmount FROM plastic_sales_returns WHERE company_id = ?`,
+      [companyId]
+    );
+
+    // Estimate gross profit: Total Sales - (FG Sold * avg cost or standard cost)
+    const [costEstimateRows] = await db.promise().query(
+      `SELECT
+        COALESCE(SUM(di.quantity * di.rate), 0) AS dispatchRevenue,
+        COALESCE(SUM(di.quantity * COALESCE(pc.cost_per_kg, fg.standard_cost, 0)), 0) AS dispatchCost
+       FROM plastic_dispatch_items di
+       JOIN plastic_dispatches d ON di.dispatch_id = d.id AND di.company_id = d.company_id
+       JOIN plastic_finished_goods fg ON di.finished_good_id = fg.id AND di.company_id = fg.company_id
+       LEFT JOIN plastic_finished_goods_lots fgl ON di.lot_id = fgl.id AND di.company_id = fgl.company_id
+       LEFT JOIN plastic_production_costs pc ON fgl.batch_id = pc.batch_id AND fgl.company_id = pc.company_id
+       WHERE di.company_id = ? AND d.status IN ('DISPATCHED', 'DELIVERED')`,
+      [companyId]
+    );
+    const dRev = Number(costEstimateRows[0]?.dispatchRevenue) || 0;
+    const dCost = Number(costEstimateRows[0]?.dispatchCost) || 0;
+    const grossProfit = dRev > 0 ? dRev - dCost : 0;
+    const grossMarginPercent = dRev > 0 ? Number(((grossProfit / dRev) * 100).toFixed(1)) : 0;
 
     res.status(200).json({
       success: true,
@@ -386,6 +446,22 @@ exports.getPlasticDashboardStats = async (req, res) => {
         qcPending: Number(qcRows[0]?.qcPending) || 0,
         qcRejected: Number(qcRows[0]?.qcRejected) || 0,
         totalProductionCost: Number(costRows[0]?.totalProductionCost) || 0,
+        // Phase 3 Sales, Dispatch & Finance KPIs
+        todaySales: Number(salesToday[0]?.todaySales) || 0,
+        monthSales: Number(salesMonth[0]?.monthSales) || 0,
+        salesOrders: Number(soStats[0]?.totalOrders) || 0,
+        pendingOrders: Number(soStats[0]?.pendingOrders) || 0,
+        todayDispatches: Number(dispatchStats[0]?.todayDispatches) || 0,
+        monthDispatches: Number(dispatchStats[0]?.monthDispatches) || 0,
+        totalDispatches: Number(dispatchStats[0]?.totalDispatches) || 0,
+        finishedGoodsSoldKg: Number(fgSoldRows[0]?.fgSoldKg) || 0,
+        finishedGoodsAvailableKg: Number(fgRows[0]?.fgStockKg) || 0,
+        outstandingReceivables: Number(receivablesRows[0]?.outstandingReceivables) || 0,
+        paymentsCollected: Number(paymentsRows[0]?.paymentsCollected) || 0,
+        salesReturns: Number(returnsRows[0]?.totalReturns) || 0,
+        salesReturnAmount: Number(returnsRows[0]?.totalReturnAmount) || 0,
+        grossProfit,
+        grossMarginPercent,
       },
     });
   } catch (error) {
@@ -490,6 +566,126 @@ exports.getPlasticPhase2Analytics = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to load plastic operations analytics",
+    });
+  }
+};
+
+exports.getPlasticPhase3Analytics = async (req, res) => {
+  try {
+    const companyId = req.user.company_id;
+
+    // 1. Top Customers
+    const [topCustomers] = await db.promise().query(
+      `SELECT
+        c.id,
+        c.name,
+        c.mobile,
+        COUNT(i.id) AS invoices_count,
+        COALESCE(SUM(i.grand_total), 0) AS total_revenue,
+        COALESCE(SUM(i.grand_total - i.paid_amount), 0) AS outstanding
+       FROM customers c
+       LEFT JOIN invoices i ON c.id = i.customer_id AND c.company_id = i.company_id
+       WHERE c.company_id = ?
+       GROUP BY c.id
+       ORDER BY total_revenue DESC
+       LIMIT 5`,
+      [companyId]
+    );
+
+    // 2. Top Selling Finished Goods
+    const [topFinishedGoods] = await db.promise().query(
+      `SELECT
+        fg.id,
+        fg.fg_name,
+        fg.fg_code,
+        fg.plastic_type,
+        COALESCE(SUM(di.quantity), 0) AS sold_qty,
+        COALESCE(SUM(di.quantity * di.rate), 0) AS revenue
+       FROM plastic_finished_goods fg
+       JOIN plastic_dispatch_items di ON fg.id = di.finished_good_id AND fg.company_id = di.company_id
+       JOIN plastic_dispatches d ON di.dispatch_id = d.id AND di.company_id = d.company_id
+       WHERE fg.company_id = ? AND d.status IN ('DISPATCHED', 'DELIVERED')
+       GROUP BY fg.id
+       ORDER BY sold_qty DESC
+       LIMIT 5`,
+      [companyId]
+    );
+
+    // 3. Recent Dispatches
+    const [recentDispatches] = await db.promise().query(
+      `SELECT
+        d.id,
+        d.dispatch_no,
+        d.dispatch_date,
+        d.status,
+        c.name AS customer_name,
+        d.vehicle_number,
+        COALESCE(SUM(di.quantity), 0) AS total_kg
+       FROM plastic_dispatches d
+       JOIN customers c ON d.customer_id = c.id AND d.company_id = c.company_id
+       LEFT JOIN plastic_dispatch_items di ON d.id = di.dispatch_id AND d.company_id = di.company_id
+       WHERE d.company_id = ?
+       GROUP BY d.id
+       ORDER BY d.id DESC
+       LIMIT 5`,
+      [companyId]
+    );
+
+    // 4. Sales Orders Pipeline
+    const [pipeline] = await db.promise().query(
+      `SELECT
+        status,
+        COUNT(id) AS count,
+        COALESCE(SUM(grand_total), 0) AS value
+       FROM plastic_sales_orders
+       WHERE company_id = ?
+       GROUP BY status`,
+      [companyId]
+    );
+
+    // 5. Operational Alerts
+    const [pendingOrdersCount] = await db.promise().query(
+      `SELECT COUNT(id) AS cnt FROM plastic_sales_orders WHERE company_id = ? AND status IN ('DRAFT', 'CONFIRMED', 'RESERVED')`,
+      [companyId]
+    );
+    const [readyDispatchesCount] = await db.promise().query(
+      `SELECT COUNT(id) AS cnt FROM plastic_dispatches WHERE company_id = ? AND status = 'READY'`,
+      [companyId]
+    );
+    const [overdueInvoicesCount] = await db.promise().query(
+      `SELECT COUNT(id) AS cnt FROM invoices WHERE company_id = ? AND (payment_status != 'PAID' OR paid_amount < grand_total) AND DATEDIFF(CURDATE(), COALESCE(due_date, DATE(created_at))) > 0`,
+      [companyId]
+    );
+    const [pendingReturnsCount] = await db.promise().query(
+      `SELECT COUNT(id) AS cnt FROM plastic_sales_returns WHERE company_id = ? AND status IN ('DRAFT', 'RECEIVED', 'INSPECTED')`,
+      [companyId]
+    );
+    const [lowStockFg] = await db.promise().query(
+      `SELECT COUNT(id) AS cnt FROM plastic_finished_goods WHERE company_id = ? AND current_stock <= minimum_stock`,
+      [companyId]
+    );
+
+    res.status(200).json({
+      success: true,
+      analytics: {
+        topCustomers,
+        topFinishedGoods,
+        recentDispatches,
+        pipeline,
+        alerts: {
+          pendingOrders: pendingOrdersCount[0]?.cnt || 0,
+          readyDispatches: readyDispatchesCount[0]?.cnt || 0,
+          overdueInvoices: overdueInvoicesCount[0]?.cnt || 0,
+          pendingReturns: pendingReturnsCount[0]?.cnt || 0,
+          lowStockFg: lowStockFg[0]?.cnt || 0,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Plastic Phase 3 Analytics Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to load plastic sales analytics",
     });
   }
 };

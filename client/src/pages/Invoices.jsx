@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import API from "../api/axios";
 import LoadingScreen from "../components/LoadingScreen";
 import AppShell from "../components/AppShell";
@@ -7,15 +7,16 @@ import "./Invoices.css";
 
 function Invoices() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [customers, setCustomers] = useState([]);
   const [products, setProducts] = useState([]);
 
-  const [customerId, setCustomerId] = useState("");
+  const [customerId, setCustomerId] = useState(() => (location.state?.prefillCustomer ? String(location.state.prefillCustomer) : ""));
   const [productId, setProductId] = useState("");
   const [quantity, setQuantity] = useState(1);
 
-  const [items, setItems] = useState([]);
+  const [items, setItems] = useState(() => (Array.isArray(location.state?.prefillItems) ? location.state.prefillItems : []));
 
   const [discountPercent, setDiscountPercent] = useState(0);
   const [taxPercent, setTaxPercent] = useState(18);
@@ -23,6 +24,8 @@ function Invoices() {
   const [currencyCode, setCurrencyCode] = useState("INR");
   const [currencySymbol, setCurrencySymbol] = useState("₹");
   const [invoiceNo, setInvoiceNo] = useState("");
+  const [salesOrderId] = useState(() => location.state?.prefillSalesOrderId || null);
+  const [dispatchId] = useState(() => location.state?.prefillDispatchId || null);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -259,6 +262,9 @@ function Invoices() {
         })),
         discount_percent: Number(discountPercent),
         tax_percent: taxEnabled ? Number(taxPercent) : 0,
+        sales_order_id: salesOrderId || undefined,
+        dispatch_id: dispatchId || undefined,
+        skip_product_stock_deduction: Boolean(dispatchId),
       });
 
       const invoice = response.data?.invoice;

@@ -28,6 +28,17 @@ import PlasticOperations from "./pages/PlasticOperations";
 import PlasticTraceability from "./pages/PlasticTraceability";
 import PlasticCosting from "./pages/PlasticCosting";
 import PlasticReports from "./pages/PlasticReports";
+import PlasticSalesOrders from "./pages/PlasticSalesOrders";
+import PlasticDispatch from "./pages/PlasticDispatch";
+import PlasticDeliveryChallan from "./pages/PlasticDeliveryChallan";
+import PlasticTransport from "./pages/PlasticTransport";
+import PlasticPayments from "./pages/PlasticPayments";
+import PlasticReceivables from "./pages/PlasticReceivables";
+import PlasticCustomerLedger from "./pages/PlasticCustomerLedger";
+import PlasticSalesReturns from "./pages/PlasticSalesReturns";
+import PlasticCreditNotes from "./pages/PlasticCreditNotes";
+import PlasticDebitNotes from "./pages/PlasticDebitNotes";
+import PlasticSalesReports from "./pages/PlasticSalesReports";
 
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem("token");
@@ -271,6 +282,168 @@ function App() {
           element={
             <ProtectedRoute>
               <PlasticReports />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Phase 3: Sales, Dispatch & Finance Routes */}
+        <Route
+          path="/plastic-erp/sales-orders"
+          element={
+            <ProtectedRoute>
+              <PlasticSalesOrders />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plastic-erp/sales"
+          element={
+            <ProtectedRoute>
+              <PlasticSalesOrders />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plastic-erp/dispatch"
+          element={
+            <ProtectedRoute>
+              <PlasticDispatch />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plastic-erp/dispatches"
+          element={
+            <ProtectedRoute>
+              <PlasticDispatch />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plastic-erp/delivery-challans"
+          element={
+            <ProtectedRoute>
+              <PlasticDeliveryChallan />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plastic-erp/transport/challans"
+          element={
+            <ProtectedRoute>
+              <PlasticDeliveryChallan />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plastic-erp/transport"
+          element={
+            <ProtectedRoute>
+              <PlasticTransport />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plastic-erp/transport/vehicles"
+          element={
+            <ProtectedRoute>
+              <PlasticTransport />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plastic-erp/sales-returns"
+          element={
+            <ProtectedRoute>
+              <PlasticSalesReturns />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plastic-erp/payments"
+          element={
+            <ProtectedRoute>
+              <PlasticPayments />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plastic-erp/receivables"
+          element={
+            <ProtectedRoute>
+              <PlasticReceivables />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plastic-erp/finance/receivables"
+          element={
+            <ProtectedRoute>
+              <PlasticReceivables />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plastic-erp/customer-ledger"
+          element={
+            <ProtectedRoute>
+              <PlasticCustomerLedger />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plastic-erp/finance/ledger"
+          element={
+            <ProtectedRoute>
+              <PlasticCustomerLedger />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plastic-erp/credit-notes"
+          element={
+            <ProtectedRoute>
+              <PlasticCreditNotes />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plastic-erp/finance/credit-notes"
+          element={
+            <ProtectedRoute>
+              <PlasticCreditNotes />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plastic-erp/debit-notes"
+          element={
+            <ProtectedRoute>
+              <PlasticDebitNotes />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plastic-erp/finance/debit-notes"
+          element={
+            <ProtectedRoute>
+              <PlasticDebitNotes />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plastic-erp/sales-reports"
+          element={
+            <ProtectedRoute>
+              <PlasticSalesReports />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plastic-erp/reports/sales"
+          element={
+            <ProtectedRoute>
+              <PlasticSalesReports />
             </ProtectedRoute>
           }
         />

@@ -70,6 +70,8 @@ function PlasticDashboard() {
         });
   };
 
+  const [phase3Analytics, setPhase3Analytics] = useState(null);
+
   const fetchDashboardData = async (
     period = plasticPeriod,
     fromDate = customFromDate,
@@ -89,7 +91,7 @@ function PlasticDashboard() {
         statsUrl += `&from_date=${fromDate}&to_date=${toDate}`;
       }
 
-      const [statsRes, stockRes, inwardsRes, billsRes, suppliersRes, settingsRes] =
+      const [statsRes, stockRes, inwardsRes, billsRes, suppliersRes, settingsRes, p3Res] =
         await Promise.allSettled([
           API.get(statsUrl),
           API.get("/raw-material-stock"),
@@ -97,6 +99,7 @@ function PlasticDashboard() {
           API.get("/purchase-bills"),
           API.get("/suppliers"),
           API.get("/business-settings"),
+          API.get("/dashboard/plastic-phase3-analytics"),
         ]);
 
       if (statsRes.status === "fulfilled" && statsRes.value.data?.success && statsRes.value.data?.stats) {
@@ -133,6 +136,10 @@ function PlasticDashboard() {
 
       if (settingsRes.status === "fulfilled" && settingsRes.value.data?.settings?.currency_symbol) {
         setCurrencySymbol(settingsRes.value.data.settings.currency_symbol);
+      }
+
+      if (p3Res.status === "fulfilled" && p3Res.value.data?.success) {
+        setPhase3Analytics(p3Res.value.data.analytics || p3Res.value.data.phase3 || null);
       }
     } catch (err) {
       console.error("Failed to load plastic dashboard data:", err);
@@ -513,6 +520,86 @@ function PlasticDashboard() {
       link: "/plastic-erp/reports",
       color: "#0f172a",
     },
+    {
+      title: "Sales Orders",
+      icon: "📋",
+      count: `${plasticStats.pendingOrders ?? 0} Pending`,
+      desc: "Customer orders, delivery dates, finished goods stock reservation",
+      link: "/plastic-erp/sales-orders",
+      color: "#2563eb",
+    },
+    {
+      title: "Dispatch & Deliveries",
+      icon: "🚚",
+      count: `${plasticStats.todayDispatches ?? 0} Today`,
+      desc: "Outward dispatch queue, truck loading, FG stock deduction, 1-click billing",
+      link: "/plastic-erp/dispatches",
+      color: "#0284c7",
+    },
+    {
+      title: "Delivery Challans",
+      icon: "📄",
+      count: "Rule 55 DC",
+      desc: "Goods delivery challans, e-way bills, driver slips, printable passes",
+      link: "/plastic-erp/transport/challans",
+      color: "#059669",
+    },
+    {
+      title: "Transport & Fleet",
+      icon: "🚛",
+      count: "Vehicle Master",
+      desc: "Dedicated vehicles, transporter registry, capacity & driver directory",
+      link: "/plastic-erp/transport/vehicles",
+      color: "#6366f1",
+    },
+    {
+      title: "Customer Collections",
+      icon: "💵",
+      count: formatCurrency(plasticStats.paymentsCollected || 0),
+      desc: "Bank/UPI/Cash payment receipts, ledger updates, invoice matching",
+      link: "/plastic-erp/payments",
+      color: "#10b981",
+    },
+    {
+      title: "Receivables & Aging",
+      icon: "⏳",
+      count: formatCurrency(plasticStats.outstandingReceivables || 0),
+      desc: "Customer outstanding dues, 30/60/90+ day aging buckets & overdue tracking",
+      link: "/plastic-erp/finance/receivables",
+      color: "#dc2626",
+    },
+    {
+      title: "Customer Ledger",
+      icon: "📑",
+      count: "Audit Trail",
+      desc: "Debit/credit financial statement with live running balances",
+      link: "/plastic-erp/finance/ledger",
+      color: "#475569",
+    },
+    {
+      title: "Sales Returns & QC",
+      icon: "🔄",
+      count: `${plasticStats.salesReturns || 0} Returns`,
+      desc: "Defective material inspection, granule restock, scrap regrind & credit notes",
+      link: "/plastic-erp/sales-returns",
+      color: "#d97706",
+    },
+    {
+      title: "Credit & Debit Notes",
+      icon: "⚖️",
+      count: "Tax Notes",
+      desc: "GST credit notes for returns/discounts and supplementary debit notes",
+      link: "/plastic-erp/finance/credit-notes",
+      color: "#b45309",
+    },
+    {
+      title: "Sales & Margin Intelligence",
+      icon: "📈",
+      count: `${Number(plasticStats.grossMarginPercent || 0).toFixed(1)}% Margin`,
+      desc: "Executive analytics, actual lot costing margins vs selling price",
+      link: "/plastic-erp/sales-reports",
+      color: "#0d9488",
+    },
   ];
 
   return (
@@ -728,6 +815,84 @@ function PlasticDashboard() {
               <strong className="kpi-value">{plasticStats.qcPending || 0} Pending</strong>
               <span className="kpi-subtext">
                 {plasticStats.qcRejected || 0} Rejection(s) logged
+              </span>
+            </div>
+          </div>
+        </section>
+
+        {/* Phase 3: Sales, Outward Dispatch & Financial Collections KPIs */}
+        <div className="section-title-wrap" style={{ marginBottom: "14px", marginTop: "16px" }}>
+          <h2 style={{ fontSize: "16px", color: "#1e3a8a" }}>💼 Sales, Dispatch & Finance Intelligence (Phase 3)</h2>
+        </div>
+        <section className="plastic-kpi-grid">
+          <div className="plastic-kpi-card accent-blue">
+            <div className="kpi-icon-wrap">📋</div>
+            <div className="kpi-details">
+              <span className="kpi-label">Active Sales Orders</span>
+              <strong className="kpi-value">
+                {plasticStats.pendingOrders || 0} Orders
+              </strong>
+              <span className="kpi-subtext">Total Confirmed: {plasticStats.salesOrders || 0}</span>
+            </div>
+          </div>
+
+          <div className="plastic-kpi-card accent-green">
+            <div className="kpi-icon-wrap">🚚</div>
+            <div className="kpi-details">
+              <span className="kpi-label">Dispatch Operations</span>
+              <strong className="kpi-value">
+                {plasticStats.totalDispatches || 0} Shipped
+              </strong>
+              <span className="kpi-subtext">
+                {plasticStats.todayDispatches || 0} shipped today
+              </span>
+            </div>
+          </div>
+
+          <div className="plastic-kpi-card accent-emerald">
+            <div className="kpi-icon-wrap">💵</div>
+            <div className="kpi-details">
+              <span className="kpi-label">Realized Collections</span>
+              <strong className="kpi-value">
+                {formatCurrency(plasticStats.paymentsCollected || 0)}
+              </strong>
+              <span className="kpi-subtext">Cash, bank & UPI receipts</span>
+            </div>
+          </div>
+
+          <div className="plastic-kpi-card accent-rose">
+            <div className="kpi-icon-wrap">⏳</div>
+            <div className="kpi-details">
+              <span className="kpi-label">Net Receivables Dues</span>
+              <strong className="kpi-value">
+                {formatCurrency(plasticStats.outstandingReceivables || 0)}
+              </strong>
+              <span className="kpi-subtext">Customer outstanding balance</span>
+            </div>
+          </div>
+
+          <div className="plastic-kpi-card accent-purple">
+            <div className="kpi-icon-wrap">📈</div>
+            <div className="kpi-details">
+              <span className="kpi-label">Gross Profit & Margin</span>
+              <strong className="kpi-value">
+                {formatCurrency(plasticStats.grossProfit || 0)}
+              </strong>
+              <span className="kpi-subtext">
+                {Number(plasticStats.grossMarginPercent || 0).toFixed(1)}% Realized margin
+              </span>
+            </div>
+          </div>
+
+          <div className="plastic-kpi-card accent-amber">
+            <div className="kpi-icon-wrap">🏷️</div>
+            <div className="kpi-details">
+              <span className="kpi-label">Finished Goods Sold</span>
+              <strong className="kpi-value">
+                {Number(plasticStats.finishedGoodsSoldKg || 0).toLocaleString("en-IN")} KG
+              </strong>
+              <span className="kpi-subtext">
+                {plasticStats.salesReturns || 0} returns ({formatCurrency(plasticStats.salesReturnAmount || 0)})
               </span>
             </div>
           </div>
@@ -1130,6 +1295,248 @@ function PlasticDashboard() {
                 <span className="empty-icon">🏢</span>
                 <h3>No Suppliers Registered</h3>
                 <p>Add scrap vendors to track purchases, truck deliveries, and balances.</p>
+              </div>
+            )}
+          </section>
+        </div>
+
+        {/* ---------------------------------------------------- */}
+        {/* Phase 3 Alerts Strip (if any active alerts)          */}
+        {/* ---------------------------------------------------- */}
+        {phase3Analytics?.alerts && (
+          (phase3Analytics.alerts.pendingOrders > 0) ||
+          (phase3Analytics.alerts.readyDispatches > 0) ||
+          (phase3Analytics.alerts.overdueInvoices > 0) ||
+          (phase3Analytics.alerts.lowStockFg > 0)
+        ) && (
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "24px" }}>
+            {phase3Analytics.alerts.pendingOrders > 0 && (
+              <Link to="/plastic-erp/sales-orders" style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe", padding: "8px 14px", borderRadius: "8px", fontSize: "12px", fontWeight: 600, textDecoration: "none" }}>
+                <span>📋 {phase3Analytics.alerts.pendingOrders} Sales Order(s) Awaiting Confirmation</span>
+              </Link>
+            )}
+            {phase3Analytics.alerts.readyDispatches > 0 && (
+              <Link to="/plastic-erp/dispatches" style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: "#f0fdf4", color: "#15803d", border: "1px solid #bbf7d0", padding: "8px 14px", borderRadius: "8px", fontSize: "12px", fontWeight: 600, textDecoration: "none" }}>
+                <span>🚚 {phase3Analytics.alerts.readyDispatches} Dispatch(es) Ready for Truck Loading</span>
+              </Link>
+            )}
+            {phase3Analytics.alerts.overdueInvoices > 0 && (
+              <Link to="/plastic-erp/finance/receivables" style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: "#fef2f2", color: "#b91c1c", border: "1px solid #fecaca", padding: "8px 14px", borderRadius: "8px", fontSize: "12px", fontWeight: 600, textDecoration: "none" }}>
+                <span>⏳ {phase3Analytics.alerts.overdueInvoices} Overdue Invoice(s)</span>
+              </Link>
+            )}
+            {phase3Analytics.alerts.lowStockFg > 0 && (
+              <Link to="/plastic-erp/wip-fg" style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: "#fffbeb", color: "#b45309", border: "1px solid #fde68a", padding: "8px 14px", borderRadius: "8px", fontSize: "12px", fontWeight: 600, textDecoration: "none" }}>
+                <span>⚠️ {phase3Analytics.alerts.lowStockFg} Finished Good(s) at Low Stock</span>
+              </Link>
+            )}
+          </div>
+        )}
+
+        {/* ---------------------------------------------------- */}
+        {/* ROW 4: Phase 3 Dispatches & Top Finished Goods       */}
+        {/* ---------------------------------------------------- */}
+        <div className="plastic-dashboard-dual-grid">
+          {/* Recent Outward Dispatches */}
+          <section className="plastic-executive-card">
+            <div className="exec-card-header">
+              <div>
+                <h2>🚚 Recent Outward Dispatches</h2>
+                <p>Latest outbound finished goods dispatches</p>
+              </div>
+              <Link to="/plastic-erp/dispatches" className="exec-view-all-link">
+                View All →
+              </Link>
+            </div>
+
+            {Array.isArray(phase3Analytics?.recentDispatches) && phase3Analytics.recentDispatches.length > 0 ? (
+              <div className="exec-table-wrap">
+                <table className="exec-mini-table">
+                  <thead>
+                    <tr>
+                      <th>Dispatch No</th>
+                      <th>Customer</th>
+                      <th>Date</th>
+                      <th>Vehicle</th>
+                      <th style={{ textAlign: "right" }}>Volume</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {phase3Analytics.recentDispatches.map((d) => (
+                      <tr key={d.id}>
+                        <td><strong>{d.dispatch_no}</strong></td>
+                        <td>{d.customer_name}</td>
+                        <td>{formatDate(d.dispatch_date)}</td>
+                        <td>{d.vehicle_number || "-"}</td>
+                        <td style={{ textAlign: "right", fontWeight: 700 }}>
+                          {Number(d.total_kg || 0).toLocaleString("en-IN")} KG
+                        </td>
+                        <td>
+                          <span className={`exec-status-badge status-${(d.status || "").toLowerCase()}`}>
+                            {d.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="plastic-empty-card mini">
+                <span className="empty-icon">🚚</span>
+                <h3>No Outward Dispatches Yet</h3>
+                <p>Create dispatches against confirmed sales orders to track outward shipments.</p>
+              </div>
+            )}
+          </section>
+
+          {/* Top Selling Finished Goods */}
+          <section className="plastic-executive-card">
+            <div className="exec-card-header">
+              <div>
+                <h2>🏷️ Top Selling Finished Goods</h2>
+                <p>Leading plastic granules and finished products by volume</p>
+              </div>
+              <Link to="/plastic-erp/wip-fg" className="exec-view-all-link">
+                View Catalog →
+              </Link>
+            </div>
+
+            {Array.isArray(phase3Analytics?.topFinishedGoods) && phase3Analytics.topFinishedGoods.length > 0 ? (
+              <div className="exec-table-wrap">
+                <table className="exec-mini-table">
+                  <thead>
+                    <tr>
+                      <th>Product</th>
+                      <th>Polymer</th>
+                      <th style={{ textAlign: "right" }}>Sold Volume</th>
+                      <th style={{ textAlign: "right" }}>Revenue</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {phase3Analytics.topFinishedGoods.map((fg) => (
+                      <tr key={fg.id}>
+                        <td>
+                          <div className="cell-subline">
+                            <span className="cell-title">{fg.fg_name}</span>
+                            <span className="cell-sub">{fg.fg_code}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <span className="polymer-badge-mini">{fg.plastic_type}</span>
+                        </td>
+                        <td style={{ textAlign: "right", fontWeight: 700 }}>
+                          {Number(fg.sold_qty || 0).toLocaleString("en-IN")} KG
+                        </td>
+                        <td style={{ textAlign: "right", fontWeight: 700 }}>
+                          {formatCurrency(fg.revenue)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="plastic-empty-card mini">
+                <span className="empty-icon">🏷️</span>
+                <h3>No Finished Goods Sales Recorded</h3>
+                <p>Dispatch finished granules to record product-wise sales and revenue.</p>
+              </div>
+            )}
+          </section>
+        </div>
+
+        {/* ---------------------------------------------------- */}
+        {/* ROW 5: Phase 3 Top Customers & Sales Pipeline        */}
+        {/* ---------------------------------------------------- */}
+        <div className="plastic-dashboard-dual-grid">
+          {/* Key Sales Customers */}
+          <section className="plastic-executive-card">
+            <div className="exec-card-header">
+              <div>
+                <h2>👥 Key Sales Customers</h2>
+                <p>Top revenue-generating plastic granule buyers</p>
+              </div>
+              <Link to="/plastic-erp/finance/receivables" className="exec-view-all-link">
+                Receivables →
+              </Link>
+            </div>
+
+            {Array.isArray(phase3Analytics?.topCustomers) && phase3Analytics.topCustomers.length > 0 ? (
+              <div className="exec-table-wrap">
+                <table className="exec-mini-table">
+                  <thead>
+                    <tr>
+                      <th>Customer</th>
+                      <th>Mobile</th>
+                      <th style={{ textAlign: "right" }}>Total Revenue</th>
+                      <th style={{ textAlign: "right" }}>Outstanding</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {phase3Analytics.topCustomers.map((c) => (
+                      <tr key={c.id}>
+                        <td>
+                          <strong>{c.name}</strong>
+                          <span style={{ fontSize: "11px", color: "#64748b", display: "block" }}>
+                            {c.invoices_count} Invoice{c.invoices_count === 1 ? "" : "s"}
+                          </span>
+                        </td>
+                        <td>{c.mobile || "-"}</td>
+                        <td style={{ textAlign: "right", fontWeight: 700 }}>
+                          {formatCurrency(c.total_revenue)}
+                        </td>
+                        <td style={{ textAlign: "right", fontWeight: 700, color: Number(c.outstanding) > 0 ? "#dc2626" : "#059669" }}>
+                          {formatCurrency(c.outstanding)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="plastic-empty-card mini">
+                <span className="empty-icon">👥</span>
+                <h3>No Customer Revenue History</h3>
+                <p>Generate customer invoices from dispatches to view client ranking.</p>
+              </div>
+            )}
+          </section>
+
+          {/* Sales Order Pipeline */}
+          <section className="plastic-executive-card">
+            <div className="exec-card-header">
+              <div>
+                <h2>📊 Sales Order Pipeline</h2>
+                <p>Order status distribution and pipeline value</p>
+              </div>
+              <Link to="/plastic-erp/sales-orders" className="exec-view-all-link">
+                View Orders →
+              </Link>
+            </div>
+
+            {Array.isArray(phase3Analytics?.pipeline) && phase3Analytics.pipeline.length > 0 ? (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: "10px", padding: "8px 0" }}>
+                {phase3Analytics.pipeline.map((pipe) => (
+                  <div key={pipe.status} style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "12px", textAlign: "center" }}>
+                    <span className={`exec-status-badge status-${(pipe.status || "").toLowerCase()}`}>
+                      {pipe.status}
+                    </span>
+                    <div style={{ fontSize: "18px", fontWeight: 800, color: "#0f172a", marginTop: "6px" }}>
+                      {pipe.count}
+                    </div>
+                    <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>
+                      {formatCurrency(pipe.value)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="plastic-empty-card mini">
+                <span className="empty-icon">📋</span>
+                <h3>No Orders in Pipeline</h3>
+                <p>Create customer sales orders to monitor fulfillment stages.</p>
               </div>
             )}
           </section>

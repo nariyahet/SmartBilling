@@ -48,6 +48,18 @@ const traceabilityRoutes = require("./routes/traceabilityRoutes");
 const productionCostingRoutes = require("./routes/productionCostingRoutes");
 const plasticReportsRoutes = require("./routes/plasticReportsRoutes");
 
+// Plastic Recycling ERP Routes (Phase 3 Sales, Dispatch & Finance)
+const salesOrderRoutes = require("./routes/salesOrderRoutes");
+const dispatchRoutes = require("./routes/dispatchRoutes");
+const transportRoutes = require("./routes/transportRoutes");
+const paymentRoutes = require("./routes/paymentRoutes");
+const receivablesRoutes = require("./routes/receivablesRoutes");
+const customerLedgerRoutes = require("./routes/customerLedgerRoutes");
+const salesReturnRoutes = require("./routes/salesReturnRoutes");
+const creditNoteRoutes = require("./routes/creditNoteRoutes");
+const debitNoteRoutes = require("./routes/debitNoteRoutes");
+const phase3ReportsRoutes = require("./routes/phase3ReportsRoutes");
+
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/customers", customerRoutes);
@@ -72,6 +84,19 @@ app.use("/api/plastic-erp/quality", qualityRoutes);
 app.use("/api/plastic-erp/traceability", traceabilityRoutes);
 app.use("/api/plastic-erp/costing", productionCostingRoutes);
 app.use("/api/plastic-erp/reports", plasticReportsRoutes);
+
+// Plastic Recycling ERP Endpoints (Phase 3 Sales, Dispatch & Finance)
+app.use("/api/plastic-erp/sales", salesOrderRoutes);
+app.use("/api/plastic-erp/dispatch", dispatchRoutes);
+app.use("/api/plastic-erp/transport", transportRoutes);
+app.use("/api/plastic-erp/payments", paymentRoutes);
+app.use("/api/plastic-erp/receivables", receivablesRoutes);
+app.use("/api/plastic-erp/ledger", customerLedgerRoutes);
+app.use("/api/plastic-erp/returns", salesReturnRoutes);
+app.use("/api/plastic-erp/credit-notes", creditNoteRoutes);
+app.use("/api/plastic-erp/debit-notes", debitNoteRoutes);
+app.use("/api/plastic-erp/phase3-reports", phase3ReportsRoutes);
+
 
 
 // Debug endpoints enabled only in development/testing environments

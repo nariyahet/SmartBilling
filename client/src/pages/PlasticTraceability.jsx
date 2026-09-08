@@ -387,6 +387,62 @@ function PlasticTraceability() {
                     )}
                   </div>
                 </div>
+
+                {/* Phase 3: Downstream Sales Orders, Dispatches & Customer Invoices */}
+                <div className="downstream-sales-section mt-4" style={{ marginTop: "20px", borderTop: "1px dashed #cbd5e1", paddingTop: "14px" }}>
+                  <h4 style={{ margin: "0 0 10px 0", fontSize: "0.95rem", color: "#1e3a8a", fontWeight: 700 }}>
+                    💼 Downstream Customer Deliveries & Invoices
+                  </h4>
+                  {(!traceData.forward?.downstreamSales || traceData.forward.downstreamSales.length === 0) ? (
+                    <p className="empty-state-text" style={{ margin: "4px 0", fontSize: "0.85rem", color: "#64748b" }}>
+                      This batch's finished goods are currently in storage and have not been dispatched to customers yet.
+                    </p>
+                  ) : (
+                    <div className="table-wrapper">
+                      <table className="trace-table">
+                        <thead>
+                          <tr>
+                            <th>Dispatch #</th>
+                            <th>Date</th>
+                            <th>Customer</th>
+                            <th>Sales Order</th>
+                            <th>Challan</th>
+                            <th>Shipped Qty</th>
+                            <th>Invoice #</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {traceData.forward.downstreamSales.map((s, idx) => (
+                            <tr key={idx}>
+                              <td>
+                                <strong className="text-primary">{s.dispatch_no}</strong>
+                              </td>
+                              <td>{s.dispatch_date ? new Date(s.dispatch_date).toLocaleDateString() : "—"}</td>
+                              <td>
+                                <strong>{s.customer_name}</strong>
+                                <div className="meta-sub">{s.customer_mobile}</div>
+                              </td>
+                              <td>{s.sales_order_no || "Direct"}</td>
+                              <td>{s.challan_no || "—"}</td>
+                              <td>
+                                <strong>{Number(s.quantity).toLocaleString()} KG</strong>
+                              </td>
+                              <td>
+                                {s.invoice_no ? (
+                                  <span className="badge-slip" style={{ background: "#ecfdf5", color: "#059669" }}>
+                                    {s.invoice_no} ({s.invoice_payment_status || "UNPAID"})
+                                  </span>
+                                ) : (
+                                  <span className="text-muted">Unbilled</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
