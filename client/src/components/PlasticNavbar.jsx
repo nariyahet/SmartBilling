@@ -306,7 +306,8 @@ function PlasticNavbar() {
               📊 Plant Reports
             </Link>
 
-            <div className="mobile-section-label">PHASE 3: SALES & DISPATCH</div>
+            <div className="mobile-section-label">PHASE 3</div>
+            <div className="mobile-subsection-label">Sales & Dispatch</div>
             <Link to="/plastic-erp/sales-orders" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/sales-orders") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
               📋 Sales Orders
             </Link>
@@ -323,7 +324,7 @@ function PlasticNavbar() {
               🔄 Sales Returns
             </Link>
 
-            <div className="mobile-section-label">PHASE 3: FINANCE & RECEIVABLES</div>
+            <div className="mobile-subsection-label">Finance & Receivables</div>
             <Link to="/plastic-erp/payments" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/payments") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
               💵 Payment Collections
             </Link>
