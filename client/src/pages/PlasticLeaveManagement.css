@@ -1,0 +1,40 @@
+/* Plastic Leave Management Styles */
+
+.leave-type-badge {
+  display: inline-block;
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.filter-form-inline {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn-approve {
+  color: #15803d;
+  border-color: #86efac;
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+
+.btn-approve:hover {
+  background: #dcfce7;
+}
+
+.btn-reject {
+  color: #b91c1c;
+  border-color: #fca5a5;
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+
+.btn-reject:hover {
+  background: #fee2e2;
+}

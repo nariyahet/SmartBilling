@@ -144,6 +144,30 @@ function PlasticNavbar() {
         { path: "/plastic-erp/sales-reports", label: "📊 Sales & Margin Reports" },
       ],
     },
+    {
+      id: "hr_expenses",
+      label: "👥 HR & Expenses",
+      paths: [
+        "/plastic-erp/employees",
+        "/plastic-erp/attendance",
+        "/plastic-erp/leaves",
+        "/plastic-erp/workforce",
+        "/plastic-erp/payroll",
+        "/plastic-erp/advances",
+        "/plastic-erp/expenses",
+        "/plastic-erp/hr-reports",
+      ],
+      items: [
+        { path: "/plastic-erp/employees", label: "👥 Employees Master" },
+        { path: "/plastic-erp/attendance", label: "⏱️ Attendance & Shifts" },
+        { path: "/plastic-erp/leaves", label: "🏖️ Leave Management" },
+        { path: "/plastic-erp/workforce", label: "🏭 Plant Workforce & Labour" },
+        { path: "/plastic-erp/payroll", label: "💰 Payroll & Payslips" },
+        { path: "/plastic-erp/advances", label: "💳 Employee Advances" },
+        { path: "/plastic-erp/expenses", label: "🧾 Plant Expenses" },
+        { path: "/plastic-erp/hr-reports", label: "📊 HR & Expense Reports" },
+      ],
+    },
   ];
 
   const isGroupActive = (group) => {
@@ -342,6 +366,35 @@ function PlasticNavbar() {
             </Link>
             <Link to="/plastic-erp/sales-reports" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/sales-reports") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
               📊 Sales & Margin Reports
+            </Link>
+
+            <div className="mobile-section-label">PHASE 4</div>
+            <div className="mobile-subsection-label">HR & Workforce</div>
+            <Link to="/plastic-erp/employees" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/employees") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
+              👥 Employees Master
+            </Link>
+            <Link to="/plastic-erp/attendance" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/attendance") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
+              ⏱️ Attendance & Shifts
+            </Link>
+            <Link to="/plastic-erp/leaves" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/leaves") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
+              🏖️ Leave Management
+            </Link>
+            <Link to="/plastic-erp/workforce" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/workforce") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
+              🏭 Plant Workforce & Labour
+            </Link>
+
+            <div className="mobile-subsection-label">Payroll & Expenses</div>
+            <Link to="/plastic-erp/payroll" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/payroll") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
+              💰 Payroll & Payslips
+            </Link>
+            <Link to="/plastic-erp/advances" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/advances") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
+              💳 Employee Advances
+            </Link>
+            <Link to="/plastic-erp/expenses" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/expenses") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
+              🧾 Plant Expenses
+            </Link>
+            <Link to="/plastic-erp/hr-reports" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/hr-reports") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
+              📊 HR & Expense Reports
             </Link>
           </div>
 

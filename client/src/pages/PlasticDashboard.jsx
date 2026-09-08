@@ -71,6 +71,7 @@ function PlasticDashboard() {
   };
 
   const [phase3Analytics, setPhase3Analytics] = useState(null);
+  const [phase4Analytics, setPhase4Analytics] = useState(null);
 
   const fetchDashboardData = async (
     period = plasticPeriod,
@@ -91,7 +92,7 @@ function PlasticDashboard() {
         statsUrl += `&from_date=${fromDate}&to_date=${toDate}`;
       }
 
-      const [statsRes, stockRes, inwardsRes, billsRes, suppliersRes, settingsRes, p3Res] =
+      const [statsRes, stockRes, inwardsRes, billsRes, suppliersRes, settingsRes, p3Res, p4Res] =
         await Promise.allSettled([
           API.get(statsUrl),
           API.get("/raw-material-stock"),
@@ -100,6 +101,7 @@ function PlasticDashboard() {
           API.get("/suppliers"),
           API.get("/business-settings"),
           API.get("/dashboard/plastic-phase3-analytics"),
+          API.get("/dashboard/plastic-phase4-analytics"),
         ]);
 
       if (statsRes.status === "fulfilled" && statsRes.value.data?.success && statsRes.value.data?.stats) {
@@ -140,6 +142,10 @@ function PlasticDashboard() {
 
       if (p3Res.status === "fulfilled" && p3Res.value.data?.success) {
         setPhase3Analytics(p3Res.value.data.analytics || p3Res.value.data.phase3 || null);
+      }
+
+      if (p4Res.status === "fulfilled" && p4Res.value.data?.success) {
+        setPhase4Analytics(p4Res.value.data.analytics || null);
       }
     } catch (err) {
       console.error("Failed to load plastic dashboard data:", err);
@@ -600,6 +606,70 @@ function PlasticDashboard() {
       link: "/plastic-erp/sales-reports",
       color: "#0d9488",
     },
+    {
+      title: "Employee Master",
+      icon: "👥",
+      count: `${plasticStats.totalEmployees || 0} Staff`,
+      desc: "Directory of operators, workers, wage profiles & KYC documents",
+      link: "/plastic-erp/employees",
+      color: "#059669",
+    },
+    {
+      title: "Attendance & Shifts",
+      icon: "⏱️",
+      count: `${plasticStats.todayPresentEmployees || 0} Today`,
+      desc: "Daily roll call, shift assignments, biometric sync & overtime hours",
+      link: "/plastic-erp/attendance",
+      color: "#0284c7",
+    },
+    {
+      title: "Leave Management",
+      icon: "🏖️",
+      count: `${plasticStats.pendingLeavesCount || 0} Pending`,
+      desc: "Casual, sick & earned leave applications, approvals & annual quotas",
+      link: "/plastic-erp/leaves",
+      color: "#d97706",
+    },
+    {
+      title: "Workforce & Labour",
+      icon: "🏭",
+      count: "Labour Cost",
+      desc: "Link production operators to HR masters & compute shift labour expenditures",
+      link: "/plastic-erp/workforce",
+      color: "#7c3aed",
+    },
+    {
+      title: "Monthly Payroll",
+      icon: "💰",
+      count: formatCurrency(plasticStats.monthPayrollAmount || 0),
+      desc: "Automated salary computation, deductions, PF, ESIC & printable payslips",
+      link: "/plastic-erp/payroll",
+      color: "#16a34a",
+    },
+    {
+      title: "Employee Advances",
+      icon: "💳",
+      count: formatCurrency(plasticStats.outstandingAdvanceAmount || 0),
+      desc: "Salary advances, recovery schedules & outstanding loan ledgers",
+      link: "/plastic-erp/advances",
+      color: "#ea580c",
+    },
+    {
+      title: "Plant Expenses",
+      icon: "🧾",
+      count: formatCurrency(plasticStats.monthExpensesAmount || 0),
+      desc: "Power, maintenance, machine spares, transport fuel & factory rent",
+      link: "/plastic-erp/expenses",
+      color: "#e11d48",
+    },
+    {
+      title: "HR & Expense Reports",
+      icon: "📊",
+      count: "Reports",
+      desc: "Salary register, expense analytics, advance status & labour cost/kg",
+      link: "/plastic-erp/hr-reports",
+      color: "#0891b2",
+    },
   ];
 
   return (
@@ -894,6 +964,69 @@ function PlasticDashboard() {
               <span className="kpi-subtext">
                 {plasticStats.salesReturns || 0} returns ({formatCurrency(plasticStats.salesReturnAmount || 0)})
               </span>
+            </div>
+          </div>
+        </section>
+
+        {/* Phase 4: HR, Payroll & Plant Expense Management KPIs */}
+        <div className="section-title-wrap" style={{ marginBottom: "14px", marginTop: "16px" }}>
+          <h2 style={{ fontSize: "16px", color: "#047857" }}>👥 HR, Workforce, Payroll & Expense Intelligence (Phase 4)</h2>
+        </div>
+        <section className="plastic-kpi-grid">
+          <div className="plastic-kpi-card accent-emerald">
+            <div className="kpi-icon-wrap">👥</div>
+            <div className="kpi-details">
+              <span className="kpi-label">Active Plant Staff</span>
+              <strong className="kpi-value">{plasticStats.totalEmployees || 0} Employees</strong>
+              <span className="kpi-subtext">{plasticStats.todayPresentEmployees || 0} clocked in today</span>
+            </div>
+          </div>
+
+          <div className="plastic-kpi-card accent-indigo">
+            <div className="kpi-icon-wrap">💰</div>
+            <div className="kpi-details">
+              <span className="kpi-label">Monthly Payroll Net</span>
+              <strong className="kpi-value">{formatCurrency(plasticStats.monthPayrollAmount || 0)}</strong>
+              <span className="kpi-subtext">Disbursed salary batch</span>
+            </div>
+          </div>
+
+          <div className="plastic-kpi-card accent-rose">
+            <div className="kpi-icon-wrap">🧾</div>
+            <div className="kpi-details">
+              <span className="kpi-label">Month Plant Overheads</span>
+              <strong className="kpi-value">{formatCurrency(plasticStats.monthExpensesAmount || 0)}</strong>
+              <span className="kpi-subtext">Power, spares & fuel vouchers</span>
+            </div>
+          </div>
+
+          <div className="plastic-kpi-card accent-amber">
+            <div className="kpi-icon-wrap">💳</div>
+            <div className="kpi-details">
+              <span className="kpi-label">Staff Advances Balance</span>
+              <strong className="kpi-value">{formatCurrency(plasticStats.outstandingAdvanceAmount || 0)}</strong>
+              <span className="kpi-subtext">{plasticStats.activeAdvances || 0} active loans ongoing</span>
+            </div>
+          </div>
+
+          <div className="plastic-kpi-card accent-purple">
+            <div className="kpi-icon-wrap">🏖️</div>
+            <div className="kpi-details">
+              <span className="kpi-label">Pending Leave Reviews</span>
+              <strong className="kpi-value">{plasticStats.pendingLeavesCount || 0} Applications</strong>
+              <span className="kpi-subtext">Awaiting manager sanction</span>
+            </div>
+          </div>
+
+          <div className="plastic-kpi-card accent-teal">
+            <div className="kpi-icon-wrap">📊</div>
+            <div className="kpi-details">
+              <span className="kpi-label">HR Quick Actions</span>
+              <div style={{ display: "flex", gap: "6px", marginTop: "4px" }}>
+                <Link to="/plastic-erp/payroll" className="plastic-chip" style={{ textDecoration: "none", cursor: "pointer" }}>Run Payroll</Link>
+                <Link to="/plastic-erp/attendance" className="plastic-chip" style={{ textDecoration: "none", cursor: "pointer" }}>Roll Call</Link>
+              </div>
+              <span className="kpi-subtext" style={{ marginTop: "4px" }}>Manage monthly plant workforce</span>
             </div>
           </div>
         </section>
@@ -1328,6 +1461,39 @@ function PlasticDashboard() {
             {phase3Analytics.alerts.lowStockFg > 0 && (
               <Link to="/plastic-erp/wip-fg" style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: "#fffbeb", color: "#b45309", border: "1px solid #fde68a", padding: "8px 14px", borderRadius: "8px", fontSize: "12px", fontWeight: 600, textDecoration: "none" }}>
                 <span>⚠️ {phase3Analytics.alerts.lowStockFg} Finished Good(s) at Low Stock</span>
+              </Link>
+            )}
+          </div>
+        )}
+
+        {/* ---------------------------------------------------- */}
+        {/* Phase 4 HR, Payroll & Expense Operational Alerts     */}
+        {/* ---------------------------------------------------- */}
+        {phase4Analytics?.alerts && (
+          (phase4Analytics.alerts.pendingLeaves > 0) ||
+          (phase4Analytics.alerts.activeAdvances > 0) ||
+          (phase4Analytics.alerts.draftPayrolls > 0) ||
+          (phase4Analytics.alerts.pendingExpenseBills > 0)
+        ) && (
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "24px" }}>
+            {phase4Analytics.alerts.pendingLeaves > 0 && (
+              <Link to="/plastic-erp/leaves" style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: "#fef3c7", color: "#92400e", border: "1px solid #fcd34d", padding: "8px 14px", borderRadius: "8px", fontSize: "12px", fontWeight: 600, textDecoration: "none" }}>
+                <span>🏖️ {phase4Analytics.alerts.pendingLeaves} Leave Application(s) Pending Approval</span>
+              </Link>
+            )}
+            {phase4Analytics.alerts.draftPayrolls > 0 && (
+              <Link to="/plastic-erp/payroll" style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe", padding: "8px 14px", borderRadius: "8px", fontSize: "12px", fontWeight: 600, textDecoration: "none" }}>
+                <span>💰 {phase4Analytics.alerts.draftPayrolls} Draft Payroll Batch(es) Ready for Review</span>
+              </Link>
+            )}
+            {phase4Analytics.alerts.pendingExpenseBills > 0 && (
+              <Link to="/plastic-erp/expenses" style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: "#fee2e2", color: "#b91c1c", border: "1px solid #fca5a5", padding: "8px 14px", borderRadius: "8px", fontSize: "12px", fontWeight: 600, textDecoration: "none" }}>
+                <span>🧾 {phase4Analytics.alerts.pendingExpenseBills} Plant Expense Voucher(s) Unpaid</span>
+              </Link>
+            )}
+            {phase4Analytics.alerts.activeAdvances > 0 && (
+              <Link to="/plastic-erp/advances" style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: "#f0fdf4", color: "#166534", border: "1px solid #bbf7d0", padding: "8px 14px", borderRadius: "8px", fontSize: "12px", fontWeight: 600, textDecoration: "none" }}>
+                <span>💳 {phase4Analytics.alerts.activeAdvances} Active Employee Advance(s) in Recovery</span>
               </Link>
             )}
           </div>

@@ -39,6 +39,14 @@ import PlasticSalesReturns from "./pages/PlasticSalesReturns";
 import PlasticCreditNotes from "./pages/PlasticCreditNotes";
 import PlasticDebitNotes from "./pages/PlasticDebitNotes";
 import PlasticSalesReports from "./pages/PlasticSalesReports";
+import PlasticEmployees from "./pages/PlasticEmployees";
+import PlasticAttendance from "./pages/PlasticAttendance";
+import PlasticLeaveManagement from "./pages/PlasticLeaveManagement";
+import PlasticWorkforce from "./pages/PlasticWorkforce";
+import PlasticPayroll from "./pages/PlasticPayroll";
+import PlasticEmployeeAdvances from "./pages/PlasticEmployeeAdvances";
+import PlasticExpenses from "./pages/PlasticExpenses";
+import PlasticHrReports from "./pages/PlasticHrReports";
 
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem("token");
@@ -444,6 +452,72 @@ function App() {
           element={
             <ProtectedRoute>
               <PlasticSalesReports />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Phase 4: HR, Payroll & Expense Management */}
+        <Route
+          path="/plastic-erp/employees"
+          element={
+            <ProtectedRoute>
+              <PlasticEmployees />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plastic-erp/attendance"
+          element={
+            <ProtectedRoute>
+              <PlasticAttendance />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plastic-erp/leaves"
+          element={
+            <ProtectedRoute>
+              <PlasticLeaveManagement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plastic-erp/workforce"
+          element={
+            <ProtectedRoute>
+              <PlasticWorkforce />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plastic-erp/payroll"
+          element={
+            <ProtectedRoute>
+              <PlasticPayroll />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plastic-erp/advances"
+          element={
+            <ProtectedRoute>
+              <PlasticEmployeeAdvances />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plastic-erp/expenses"
+          element={
+            <ProtectedRoute>
+              <PlasticExpenses />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plastic-erp/hr-reports"
+          element={
+            <ProtectedRoute>
+              <PlasticHrReports />
             </ProtectedRoute>
           }
         />

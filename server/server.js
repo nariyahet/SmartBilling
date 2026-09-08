@@ -60,6 +60,16 @@ const creditNoteRoutes = require("./routes/creditNoteRoutes");
 const debitNoteRoutes = require("./routes/debitNoteRoutes");
 const phase3ReportsRoutes = require("./routes/phase3ReportsRoutes");
 
+// Plastic Recycling ERP Routes (Phase 4 HR, Payroll & Expenses)
+const employeeRoutes = require("./routes/employeeRoutes");
+const attendanceRoutes = require("./routes/attendanceRoutes");
+const leaveRoutes = require("./routes/leaveRoutes");
+const workforceRoutes = require("./routes/workforceRoutes");
+const payrollRoutes = require("./routes/payrollRoutes");
+const advanceRoutes = require("./routes/advanceRoutes");
+const expenseRoutes = require("./routes/expenseRoutes");
+const hrReportsRoutes = require("./routes/hrReportsRoutes");
+
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/customers", customerRoutes);
@@ -96,6 +106,16 @@ app.use("/api/plastic-erp/returns", salesReturnRoutes);
 app.use("/api/plastic-erp/credit-notes", creditNoteRoutes);
 app.use("/api/plastic-erp/debit-notes", debitNoteRoutes);
 app.use("/api/plastic-erp/phase3-reports", phase3ReportsRoutes);
+
+// Plastic Recycling ERP Endpoints (Phase 4 HR, Payroll & Expenses)
+app.use("/api/plastic-erp/employees", employeeRoutes);
+app.use("/api/plastic-erp/attendance", attendanceRoutes);
+app.use("/api/plastic-erp/leaves", leaveRoutes);
+app.use("/api/plastic-erp/workforce", workforceRoutes);
+app.use("/api/plastic-erp/payrolls", payrollRoutes);
+app.use("/api/plastic-erp/advances", advanceRoutes);
+app.use("/api/plastic-erp/expenses", expenseRoutes);
+app.use("/api/plastic-erp/hr-reports", hrReportsRoutes);
 
 
 

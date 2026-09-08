@@ -416,6 +416,19 @@ exports.getPlasticDashboardStats = async (req, res) => {
     const grossProfit = dRev > 0 ? dRev - dCost : 0;
     const grossMarginPercent = dRev > 0 ? Number(((grossProfit / dRev) * 100).toFixed(1)) : 0;
 
+    // Phase 4 HR, Payroll & Expenses metrics
+    const [hrMetrics] = await db.promise().query(
+      `SELECT
+        (SELECT COUNT(id) FROM plastic_employees WHERE company_id = ? AND status = 'ACTIVE') AS totalEmployees,
+        (SELECT COUNT(id) FROM plastic_attendance WHERE company_id = ? AND attendance_date = CURDATE() AND status IN ('PRESENT', 'HALF_DAY')) AS todayPresentEmployees,
+        (SELECT COUNT(id) FROM plastic_employee_advances WHERE company_id = ? AND status = 'ACTIVE') AS activeAdvances,
+        (SELECT COALESCE(SUM(outstanding_amount), 0) FROM plastic_employee_advances WHERE company_id = ? AND status = 'ACTIVE') AS outstandingAdvanceAmount,
+        (SELECT COALESCE(SUM(amount), 0) FROM plastic_expenses WHERE company_id = ? AND DATE_FORMAT(expense_date, '%Y-%m') = DATE_FORMAT(CURDATE(), '%Y-%m')) AS monthExpensesAmount,
+        (SELECT COALESCE(SUM(total_net_salary), 0) FROM plastic_payrolls WHERE company_id = ? AND month = MONTH(CURDATE()) AND year = YEAR(CURDATE())) AS monthPayrollAmount,
+        (SELECT COUNT(id) FROM plastic_leave_requests WHERE company_id = ? AND status = 'PENDING') AS pendingLeavesCount`,
+      [companyId, companyId, companyId, companyId, companyId, companyId, companyId]
+    );
+
     res.status(200).json({
       success: true,
       period,
@@ -462,6 +475,14 @@ exports.getPlasticDashboardStats = async (req, res) => {
         salesReturnAmount: Number(returnsRows[0]?.totalReturnAmount) || 0,
         grossProfit,
         grossMarginPercent,
+        // Phase 4 HR, Payroll & Expense KPIs
+        totalEmployees: Number(hrMetrics[0]?.totalEmployees) || 0,
+        todayPresentEmployees: Number(hrMetrics[0]?.todayPresentEmployees) || 0,
+        activeAdvances: Number(hrMetrics[0]?.activeAdvances) || 0,
+        outstandingAdvanceAmount: Number(hrMetrics[0]?.outstandingAdvanceAmount) || 0,
+        monthExpensesAmount: Number(hrMetrics[0]?.monthExpensesAmount) || 0,
+        monthPayrollAmount: Number(hrMetrics[0]?.monthPayrollAmount) || 0,
+        pendingLeavesCount: Number(hrMetrics[0]?.pendingLeavesCount) || 0,
       },
     });
   } catch (error) {
@@ -686,6 +707,115 @@ exports.getPlasticPhase3Analytics = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to load plastic sales analytics",
+    });
+  }
+};
+
+exports.getPlasticPhase4Analytics = async (req, res) => {
+  try {
+    const companyId = req.user.company_id;
+
+    // 1. Department workforce distribution
+    const [deptDistribution] = await db.promise().query(
+      `SELECT
+        department,
+        COUNT(id) AS employee_count
+       FROM plastic_employees
+       WHERE company_id = ? AND status = 'ACTIVE'
+       GROUP BY department
+       ORDER BY employee_count DESC`,
+      [companyId]
+    );
+
+    // 2. Monthly expense breakdown by category (Current Month)
+    const [expenseBreakdown] = await db.promise().query(
+      `SELECT
+        c.name AS category_name,
+        c.code AS category_code,
+        COALESCE(SUM(e.amount), 0) AS total_amount,
+        COUNT(e.id) AS count
+       FROM plastic_expense_categories c
+       JOIN plastic_expenses e ON c.id = e.category_id AND c.company_id = e.company_id
+       WHERE c.company_id = ? AND DATE_FORMAT(e.expense_date, '%Y-%m') = DATE_FORMAT(CURDATE(), '%Y-%m')
+       GROUP BY c.id
+       ORDER BY total_amount DESC
+       LIMIT 6`,
+      [companyId]
+    );
+
+    // 3. Attendance trend over last 7 days
+    const [attendanceTrend] = await db.promise().query(
+      `SELECT
+        attendance_date,
+        COUNT(CASE WHEN status = 'PRESENT' THEN 1 END) AS present_count,
+        COUNT(CASE WHEN status = 'ABSENT' THEN 1 END) AS absent_count,
+        COUNT(CASE WHEN status = 'HALF_DAY' THEN 1 END) AS half_day_count,
+        COUNT(CASE WHEN status = 'LEAVE' THEN 1 END) AS leave_count
+       FROM plastic_attendance
+       WHERE company_id = ? AND attendance_date >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+       GROUP BY attendance_date
+       ORDER BY attendance_date ASC`,
+      [companyId]
+    );
+
+    // 4. Recent Payroll Runs
+    const [recentPayrolls] = await db.promise().query(
+      `SELECT
+        id,
+        payroll_batch_no,
+        month,
+        year,
+        total_employees,
+        total_gross_salary,
+        total_deductions,
+        total_net_salary,
+        status,
+        created_at
+       FROM plastic_payrolls
+       WHERE company_id = ?
+       ORDER BY id DESC
+       LIMIT 5`,
+      [companyId]
+    );
+
+    // 5. Phase 4 Operational Alerts
+    const [pendingLeaves] = await db.promise().query(
+      `SELECT COUNT(id) AS cnt FROM plastic_leave_requests WHERE company_id = ? AND status = 'PENDING'`,
+      [companyId]
+    );
+    const [activeAdvances] = await db.promise().query(
+      `SELECT COUNT(id) AS cnt FROM plastic_employee_advances WHERE company_id = ? AND status = 'ACTIVE'`,
+      [companyId]
+    );
+    const [draftPayrolls] = await db.promise().query(
+      `SELECT COUNT(id) AS cnt FROM plastic_payrolls WHERE company_id = ? AND status = 'DRAFT'`,
+      [companyId]
+    );
+    const [pendingExpenseBills] = await db.promise().query(
+      `SELECT COUNT(id) AS cnt FROM plastic_expenses WHERE company_id = ? AND payment_status = 'PENDING'`,
+      [companyId]
+    );
+
+    res.status(200).json({
+      success: true,
+      analytics: {
+        deptDistribution,
+        expenseBreakdown,
+        attendanceTrend,
+        recentPayrolls,
+        alerts: {
+          pendingLeaves: pendingLeaves[0]?.cnt || 0,
+          activeAdvances: activeAdvances[0]?.cnt || 0,
+          draftPayrolls: draftPayrolls[0]?.cnt || 0,
+          pendingExpenseBills: pendingExpenseBills[0]?.cnt || 0,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Plastic Phase 4 Analytics Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to load plastic HR & Expense analytics",
     });
   }
 };

@@ -1,0 +1,7 @@
+/* Plastic Employee Advances Styles */
+
+.advances-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
