@@ -26,6 +26,37 @@ function PlasticNavbar() {
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
+  // Lock body scroll when mobile drawer is open to prevent background scrolling & double scrollbars
+  useEffect(() => {
+    if (mobileOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [mobileOpen]);
+
+  // Close drawer and dropdowns automatically when location pathname changes
+  const [prevPath, setPrevPath] = useState(location.pathname);
+  if (prevPath !== location.pathname) {
+    setPrevPath(location.pathname);
+    if (mobileOpen) setMobileOpen(false);
+    if (activeDropdown) setActiveDropdown(null);
+  }
+
+  // Close on Escape key press
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        setMobileOpen(false);
+        setActiveDropdown(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   const navGroups = [
     {
       id: "procurement",
@@ -215,92 +246,100 @@ function PlasticNavbar() {
 
           {/* Mobile Drawer Complete Module List (shown only on mobile) */}
           <div className="plastic-mobile-only-modules">
+            <Link
+              to="/plastic-erp"
+              className={`plastic-nav-link ${location.pathname === "/plastic-erp" ? "active" : ""}`}
+              onClick={() => setMobileOpen(false)}
+            >
+              📊 ERP Dashboard
+            </Link>
+
             <div className="mobile-section-label">PHASE 1: PROCUREMENT</div>
-            <Link to="/plastic-erp/suppliers" className="plastic-nav-link" onClick={() => setMobileOpen(false)}>
+            <Link to="/plastic-erp/suppliers" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/suppliers") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
               🏢 Scrap Suppliers
             </Link>
-            <Link to="/plastic-erp/raw-materials" className="plastic-nav-link" onClick={() => setMobileOpen(false)}>
+            <Link to="/plastic-erp/raw-materials" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/raw-materials") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
               ♻️ Raw Material Catalog
             </Link>
-            <Link to="/plastic-erp/truck-inward" className="plastic-nav-link" onClick={() => setMobileOpen(false)}>
+            <Link to="/plastic-erp/truck-inward" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/truck-inward") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
               🚚 Truck Inward
             </Link>
-            <Link to="/plastic-erp/weighment" className="plastic-nav-link" onClick={() => setMobileOpen(false)}>
+            <Link to="/plastic-erp/weighment" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/weighment") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
               ⚖️ Weighment Slips
             </Link>
-            <Link to="/plastic-erp/purchase-bills" className="plastic-nav-link" onClick={() => setMobileOpen(false)}>
+            <Link to="/plastic-erp/purchase-bills" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/purchase-bills") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
               📑 Purchase Bills
             </Link>
-            <Link to="/plastic-erp/stock" className="plastic-nav-link" onClick={() => setMobileOpen(false)}>
+            <Link to="/plastic-erp/stock" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/stock") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
               📦 Raw Material Stock
             </Link>
 
             <div className="mobile-section-label">PHASE 2: PRODUCTION</div>
-            <Link to="/plastic-erp/production" className="plastic-nav-link" onClick={() => setMobileOpen(false)}>
+            <Link to="/plastic-erp/production" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/production") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
               🏭 Orders & Planning
             </Link>
-            <Link to="/plastic-erp/recipes" className="plastic-nav-link" onClick={() => setMobileOpen(false)}>
+            <Link to="/plastic-erp/recipes" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/recipes") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
               🧪 BOM & Recipes
             </Link>
-            <Link to="/plastic-erp/wip-fg" className="plastic-nav-link" onClick={() => setMobileOpen(false)}>
+            <Link to="/plastic-erp/wip-fg" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/wip-fg") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
               📦 WIP & Finished Goods
             </Link>
-            <Link to="/plastic-erp/quality" className="plastic-nav-link" onClick={() => setMobileOpen(false)}>
+            <Link to="/plastic-erp/quality" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/quality") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
               🔬 Quality Control
             </Link>
-            <Link to="/plastic-erp/scrap-regrind" className="plastic-nav-link" onClick={() => setMobileOpen(false)}>
+            <Link to="/plastic-erp/scrap-regrind" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/scrap-regrind") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
               ♻️ Scrap & Regrind
             </Link>
-            <Link to="/plastic-erp/machines" className="plastic-nav-link" onClick={() => setMobileOpen(false)}>
+            <Link to="/plastic-erp/machines" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/machines") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
               ⚙️ Machines & Downtime
             </Link>
-            <Link to="/plastic-erp/operations" className="plastic-nav-link" onClick={() => setMobileOpen(false)}>
+            <Link to="/plastic-erp/operations" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/operations") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
               👥 Shifts & Operators
             </Link>
-            <Link to="/plastic-erp/traceability" className="plastic-nav-link" onClick={() => setMobileOpen(false)}>
+            <Link to="/plastic-erp/traceability" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/traceability") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
               🔍 Batch Traceability
             </Link>
-            <Link to="/plastic-erp/costing" className="plastic-nav-link" onClick={() => setMobileOpen(false)}>
+            <Link to="/plastic-erp/costing" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/costing") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
               💰 Production Costing
             </Link>
-            <Link to="/plastic-erp/reports" className="plastic-nav-link" onClick={() => setMobileOpen(false)}>
+            <Link to="/plastic-erp/reports" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/reports") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
               📊 Plant Reports
             </Link>
 
             <div className="mobile-section-label">PHASE 3: SALES & DISPATCH</div>
-            <Link to="/plastic-erp/sales-orders" className="plastic-nav-link" onClick={() => setMobileOpen(false)}>
+            <Link to="/plastic-erp/sales-orders" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/sales-orders") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
               📋 Sales Orders
             </Link>
-            <Link to="/plastic-erp/dispatch" className="plastic-nav-link" onClick={() => setMobileOpen(false)}>
+            <Link to="/plastic-erp/dispatch" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/dispatch") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
               🚚 Dispatch Management
             </Link>
-            <Link to="/plastic-erp/delivery-challans" className="plastic-nav-link" onClick={() => setMobileOpen(false)}>
+            <Link to="/plastic-erp/delivery-challans" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/delivery-challans") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
               📄 Delivery Challans
             </Link>
-            <Link to="/plastic-erp/transport" className="plastic-nav-link" onClick={() => setMobileOpen(false)}>
+            <Link to="/plastic-erp/transport" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/transport") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
               🚛 Transport & Vehicles
             </Link>
-            <Link to="/plastic-erp/sales-returns" className="plastic-nav-link" onClick={() => setMobileOpen(false)}>
+            <Link to="/plastic-erp/sales-returns" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/sales-returns") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
               🔄 Sales Returns
             </Link>
 
             <div className="mobile-section-label">PHASE 3: FINANCE & RECEIVABLES</div>
-            <Link to="/plastic-erp/payments" className="plastic-nav-link" onClick={() => setMobileOpen(false)}>
+            <Link to="/plastic-erp/payments" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/payments") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
               💵 Payment Collections
             </Link>
-            <Link to="/plastic-erp/receivables" className="plastic-nav-link" onClick={() => setMobileOpen(false)}>
+            <Link to="/plastic-erp/receivables" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/receivables") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
               ⏳ Receivables & Aging
             </Link>
-            <Link to="/plastic-erp/customer-ledger" className="plastic-nav-link" onClick={() => setMobileOpen(false)}>
+            <Link to="/plastic-erp/customer-ledger" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/customer-ledger") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
               📑 Customer Ledger
             </Link>
-            <Link to="/plastic-erp/credit-notes" className="plastic-nav-link" onClick={() => setMobileOpen(false)}>
+            <Link to="/plastic-erp/credit-notes" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/credit-notes") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
               📉 Credit Notes
             </Link>
-            <Link to="/plastic-erp/debit-notes" className="plastic-nav-link" onClick={() => setMobileOpen(false)}>
+            <Link to="/plastic-erp/debit-notes" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/debit-notes") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
               📈 Debit Notes
             </Link>
-            <Link to="/plastic-erp/sales-reports" className="plastic-nav-link" onClick={() => setMobileOpen(false)}>
+            <Link to="/plastic-erp/sales-reports" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/sales-reports") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
               📊 Sales & Margin Reports
             </Link>
           </div>
