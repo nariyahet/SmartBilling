@@ -1,0 +1,66 @@
+/* ==========================================================================
+   SMARTBILLING 2.0 — PAGE HEADER COMPONENT STYLES
+   ========================================================================== */
+
+.sb-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.sb-page-header-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sb-page-header-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(8, 121, 209, 0.08);
+  color: var(--sb-primary, #0879D1);
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 6px;
+  width: fit-content;
+  letter-spacing: 0.02em;
+}
+
+.sb-page-header-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--sb-navy, #063B66);
+  letter-spacing: -0.02em;
+}
+
+.sb-page-header-subtitle {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--sb-text-muted, #718096);
+}
+
+.sb-page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 767px) {
+  .sb-page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .sb-page-header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}

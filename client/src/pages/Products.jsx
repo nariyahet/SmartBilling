@@ -112,6 +112,10 @@ function Products() {
       await loadProducts();
     } catch (error) {
       console.error("Product delete error:", error);
+      if (error.response?.status === 409) {
+        alert(error.response?.data?.message || "This product cannot be deleted because invoices are linked to this product.");
+        return;
+      }
       alert(error.response?.data?.message || "Unable to delete product");
     }
   };
@@ -235,11 +239,11 @@ function Products() {
           </div>
         </div>
 
-        <div className="prod-kpi-card accent-pink">
+        <div className="prod-kpi-card accent-red">
           <div className="kpi-icon-box">❌</div>
           <div className="kpi-info">
             <span className="kpi-label">Out of Stock</span>
-            <strong className="kpi-val text-pink">{outOfStockCount}</strong>
+            <strong className="kpi-val text-red">{outOfStockCount}</strong>
             <span className="kpi-sub">Zero stock remaining</span>
           </div>
         </div>

@@ -15,8 +15,8 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #2563EB;
-  background: #EFF6FF;
+  color: var(--sb-primary, #0879D1);
+  background: rgba(8, 121, 209, 0.1);
   padding: 3px 8px;
   border-radius: 4px;
   display: inline-block;
@@ -27,14 +27,14 @@
   margin: 0 0 4px 0;
   font-size: 24px;
   font-weight: 800;
-  color: #172033;
+  color: var(--sb-navy, #063B66);
   letter-spacing: -0.02em;
 }
 
 .prod-subtitle {
   margin: 0;
   font-size: 13.5px;
-  color: #667085;
+  color: var(--sb-text-muted, #718096);
 }
 
 .prod-header-actions {
@@ -45,19 +45,19 @@
 
 .sb-btn-refresh-sm {
   background: #FFFFFF;
-  border: 1px solid #E7EAF0;
+  border: 1px solid var(--sb-border, #E3EBF2);
   padding: 8px 14px;
-  border-radius: 8px;
+  border-radius: var(--sb-radius-md, 8px);
   font-size: 13px;
   font-weight: 600;
-  color: #172033;
+  color: var(--sb-navy, #063B66);
   cursor: pointer;
-  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
-  transition: all 0.15s;
+  box-shadow: var(--sb-shadow-sm, 0 1px 2px rgba(16, 24, 40, 0.04));
+  transition: all var(--sb-transition, 0.18s);
 }
 
 .sb-btn-refresh-sm:hover {
-  background: #F8FAFC;
+  background: var(--sb-bg, #F4F8FB);
   border-color: #CBD5E1;
 }
 
@@ -65,21 +65,22 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: linear-gradient(135deg, #4F46E5 0%, #4338CA 100%);
+  background: linear-gradient(135deg, var(--sb-primary, #0879D1) 0%, var(--sb-navy, #063B66) 100%);
   color: #FFFFFF;
   border: none;
   padding: 9px 18px;
-  border-radius: 8px;
+  border-radius: var(--sb-radius-md, 8px);
   font-size: 13.5px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 2px 4px rgba(79, 70, 229, 0.25);
-  transition: all 0.15s;
+  box-shadow: 0 2px 6px rgba(8, 121, 209, 0.28);
+  transition: all var(--sb-transition, 0.18s);
 }
 
 .sb-btn-primary:hover {
   opacity: 0.95;
   transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(8, 121, 209, 0.35);
 }
 
 /* KPI Grid */
@@ -119,7 +120,8 @@
 .prod-kpi-card.accent-blue .kpi-icon-box { background: #EAF2FF; }
 .prod-kpi-card.accent-mint .kpi-icon-box { background: #E8FBF3; }
 .prod-kpi-card.accent-orange .kpi-icon-box { background: #FFF3DF; }
-.prod-kpi-card.accent-pink .kpi-icon-box { background: #FFECEF; }
+.prod-kpi-card.accent-red .kpi-icon-box,
+.prod-kpi-card.accent-pink .kpi-icon-box { background: #FDEDED; }
 
 .kpi-info {
   display: flex;
@@ -148,7 +150,7 @@
 
 .text-mint { color: #059669; }
 .text-orange { color: #D97706; }
-.text-pink { color: #E11D48; }
+.text-red, .text-pink { color: #E05252; }
 
 /* Main Card */
 .prod-main-card {
@@ -354,14 +356,14 @@
 }
 
 .btn-action-edit:hover {
-  background: #EAF2FF;
-  color: #2563EB;
-  border-color: #BFDBFE;
+  background: rgba(8, 121, 209, 0.08);
+  color: var(--sb-primary, #0879D1);
+  border-color: rgba(8, 121, 209, 0.25);
 }
 
 .btn-action-delete:hover {
   background: #FEE2E2;
-  color: #B91C1C;
+  color: var(--sb-danger, #E05252);
   border-color: #FECACA;
 }
 
@@ -486,8 +488,8 @@
 }
 
 .form-group input:focus {
-  border-color: #4F46E5;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  border-color: var(--sb-primary, #0879D1);
+  box-shadow: 0 0 0 3px rgba(8, 121, 209, 0.15);
 }
 
 .prod-modal-footer {
@@ -496,27 +498,41 @@
   gap: 10px;
   margin-top: 8px;
   padding-top: 16px;
-  border-top: 1px solid #E7EAF0;
+  border-top: 1px solid var(--sb-border, #E3EBF2);
 }
 
 .btn-modal-cancel {
-  background: #F1F5F9;
-  border: none;
+  background: var(--sb-bg, #F4F8FB);
+  border: 1px solid var(--sb-border, #E3EBF2);
   padding: 9px 16px;
-  border-radius: 8px;
+  border-radius: var(--sb-radius-md, 8px);
   font-size: 13px;
   font-weight: 600;
-  color: #475569;
+  color: var(--sb-text-muted, #718096);
   cursor: pointer;
+  transition: all var(--sb-transition, 0.18s);
+}
+
+.btn-modal-cancel:hover {
+  background: #E2E8F0;
+  color: var(--sb-text, #102A43);
 }
 
 .btn-modal-save {
-  background: linear-gradient(135deg, #4F46E5 0%, #4338CA 100%);
+  background: linear-gradient(135deg, var(--sb-primary, #0879D1) 0%, var(--sb-navy, #063B66) 100%);
   border: none;
   padding: 9px 20px;
-  border-radius: 8px;
+  border-radius: var(--sb-radius-md, 8px);
   font-size: 13px;
   font-weight: 600;
   color: #FFFFFF;
   cursor: pointer;
+  box-shadow: 0 2px 6px rgba(8, 121, 209, 0.28);
+  transition: all var(--sb-transition, 0.18s);
+}
+
+.btn-modal-save:hover {
+  opacity: 0.95;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(8, 121, 209, 0.35);
 }

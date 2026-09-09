@@ -202,11 +202,11 @@ function Customers() {
 
       {/* Top 4 KPI Summary Cards */}
       <div className="cust-kpi-grid">
-        <div className="cust-kpi-card accent-orange">
+        <div className="cust-kpi-card accent-navy">
           <div className="kpi-icon-box">👥</div>
           <div className="kpi-info">
             <span className="kpi-label">Total Customers</span>
-            <strong className="kpi-val">{totalCustomers}</strong>
+            <strong className="kpi-val text-navy">{totalCustomers}</strong>
             <span className="kpi-sub">Registered client base</span>
           </div>
         </div>
@@ -220,20 +220,20 @@ function Customers() {
           </div>
         </div>
 
-        <div className="cust-kpi-card accent-purple">
+        <div className="cust-kpi-card accent-teal">
           <div className="kpi-icon-box">✉️</div>
           <div className="kpi-info">
             <span className="kpi-label">Email Contacts</span>
-            <strong className="kpi-val text-purple">{withEmailCount}</strong>
+            <strong className="kpi-val text-teal">{withEmailCount}</strong>
             <span className="kpi-sub">Registered email accounts</span>
           </div>
         </div>
 
-        <div className="cust-kpi-card accent-mint">
+        <div className="cust-kpi-card accent-green">
           <div className="kpi-icon-box">📍</div>
           <div className="kpi-info">
             <span className="kpi-label">Billing Address</span>
-            <strong className="kpi-val text-mint">{withAddressCount}</strong>
+            <strong className="kpi-val text-green">{withAddressCount}</strong>
             <span className="kpi-sub">Verified delivery locations</span>
           </div>
         </div>

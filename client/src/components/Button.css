@@ -1,0 +1,198 @@
+/* ==========================================================================
+   SMARTBILLING 2.0 — BUTTON COMPONENT STYLES
+   ========================================================================== */
+
+.sb-ui-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: inherit;
+  font-weight: 600;
+  border-radius: var(--sb-radius-md, 8px);
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  user-select: none;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
+}
+
+.sb-ui-btn:focus-visible {
+  outline: 2px solid var(--sb-primary, #0879D1);
+  outline-offset: 2px;
+}
+
+.sb-ui-btn:disabled,
+.sb-ui-btn.is-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* --- Sizes --- */
+.sb-ui-btn.size-sm {
+  height: 32px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  gap: 6px;
+}
+
+.sb-ui-btn.size-md {
+  height: 40px;
+  padding: 0 16px;
+  font-size: 13.5px;
+}
+
+.sb-ui-btn.size-lg {
+  height: 46px;
+  padding: 0 22px;
+  font-size: 15px;
+  gap: 10px;
+}
+
+.sb-ui-btn.is-full-width {
+  width: 100%;
+}
+
+/* --- Semantic Variants --- */
+/* 1. Primary: Ocean Blue */
+.sb-ui-btn.variant-primary {
+  background: var(--sb-primary, #0879D1);
+  color: #FFFFFF;
+  border-color: var(--sb-primary, #0879D1);
+  box-shadow: 0 2px 5px rgba(8, 121, 209, 0.25);
+}
+
+.sb-ui-btn.variant-primary:hover:not(:disabled) {
+  background: #0769B7;
+  border-color: #0769B7;
+  box-shadow: 0 4px 10px rgba(8, 121, 209, 0.35);
+  transform: translateY(-1px);
+}
+
+.sb-ui-btn.variant-primary:active:not(:disabled) {
+  background: #06599C;
+  transform: translateY(0);
+}
+
+/* 2. Secondary: White/Surface with Border */
+.sb-ui-btn.variant-secondary {
+  background: #FFFFFF;
+  color: var(--sb-text, #102A43);
+  border-color: var(--sb-border, #E3EBF2);
+  box-shadow: 0 1px 2px rgba(6, 59, 102, 0.04);
+}
+
+.sb-ui-btn.variant-secondary:hover:not(:disabled) {
+  background: var(--sb-bg, #F4F8FB);
+  border-color: var(--sb-primary, #0879D1);
+  color: var(--sb-primary, #0879D1);
+}
+
+.sb-ui-btn.variant-secondary:active:not(:disabled) {
+  background: #EBF4FC;
+}
+
+/* 3. Teal: Plastic Sustainability Action */
+.sb-ui-btn.variant-teal {
+  background: var(--sb-teal, #159A9C);
+  color: #FFFFFF;
+  border-color: var(--sb-teal, #159A9C);
+  box-shadow: 0 2px 5px rgba(21, 154, 156, 0.25);
+}
+
+.sb-ui-btn.variant-teal:hover:not(:disabled) {
+  background: #128789;
+  border-color: #128789;
+  box-shadow: 0 4px 10px rgba(21, 154, 156, 0.35);
+  transform: translateY(-1px);
+}
+
+/* 4. Success: Green */
+.sb-ui-btn.variant-success {
+  background: var(--sb-success, #18A673);
+  color: #FFFFFF;
+  border-color: var(--sb-success, #18A673);
+  box-shadow: 0 2px 5px rgba(24, 166, 115, 0.25);
+}
+
+.sb-ui-btn.variant-success:hover:not(:disabled) {
+  background: #148C61;
+  border-color: #148C61;
+  transform: translateY(-1px);
+}
+
+/* 5. Warning: Amber */
+.sb-ui-btn.variant-warning {
+  background: var(--sb-warning, #F2A93B);
+  color: #FFFFFF;
+  border-color: var(--sb-warning, #F2A93B);
+  box-shadow: 0 2px 5px rgba(242, 169, 59, 0.25);
+}
+
+.sb-ui-btn.variant-warning:hover:not(:disabled) {
+  background: #DC9326;
+  border-color: #DC9326;
+  transform: translateY(-1px);
+}
+
+/* 6. Danger: Red */
+.sb-ui-btn.variant-danger {
+  background: var(--sb-danger, #E05252);
+  color: #FFFFFF;
+  border-color: var(--sb-danger, #E05252);
+  box-shadow: 0 2px 5px rgba(224, 82, 82, 0.25);
+}
+
+.sb-ui-btn.variant-danger:hover:not(:disabled) {
+  background: #C73E3E;
+  border-color: #C73E3E;
+  transform: translateY(-1px);
+}
+
+/* 7. Ghost: Transparent Minimal */
+.sb-ui-btn.variant-ghost {
+  background: transparent;
+  color: var(--sb-text, #102A43);
+  border-color: transparent;
+}
+
+.sb-ui-btn.variant-ghost:hover:not(:disabled) {
+  background: rgba(6, 59, 102, 0.06);
+  color: var(--sb-primary, #0879D1);
+}
+
+/* --- Inline Spinner --- */
+.sb-btn-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #FFFFFF;
+  border-radius: 50%;
+  animation: sb-btn-spin 0.7s linear infinite;
+  display: inline-block;
+}
+
+.sb-ui-btn.variant-secondary .sb-btn-spinner,
+.sb-ui-btn.variant-ghost .sb-btn-spinner {
+  border-color: rgba(16, 42, 67, 0.2);
+  border-top-color: var(--sb-primary, #0879D1);
+}
+
+@keyframes sb-btn-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.sb-btn-icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1em;
+  line-height: 1;
+}

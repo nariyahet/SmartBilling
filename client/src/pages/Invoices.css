@@ -15,8 +15,8 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #4F46E5;
-  background: #EEF2FF;
+  color: var(--sb-primary, #0879D1);
+  background: rgba(8, 121, 209, 0.1);
   padding: 3px 8px;
   border-radius: 4px;
   display: inline-block;
@@ -27,14 +27,14 @@
   margin: 0 0 4px 0;
   font-size: 24px;
   font-weight: 800;
-  color: #172033;
+  color: var(--sb-navy, #063B66);
   letter-spacing: -0.02em;
 }
 
 .inv-subtitle {
   margin: 0;
   font-size: 13.5px;
-  color: #667085;
+  color: var(--sb-text-muted, #718096);
 }
 
 .inv-meta-badges {
@@ -121,7 +121,7 @@
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #4F46E5 0%, #4338CA 100%);
+  background: linear-gradient(135deg, var(--sb-primary, #0879D1) 0%, var(--sb-navy, #063B66) 100%);
   color: #FFFFFF;
   font-size: 13px;
   font-weight: 700;
@@ -135,12 +135,12 @@
   margin: 0;
   font-size: 16px;
   font-weight: 750;
-  color: #172033;
+  color: var(--sb-navy, #063B66);
 }
 
 .inv-card-sub {
   font-size: 12px;
-  color: #667085;
+  color: var(--sb-text-muted, #718096);
 }
 
 .inv-item-count-badge {
@@ -157,26 +157,26 @@
   width: 100%;
   padding: 10px 14px;
   border: 1px solid #CBD5E1;
-  border-radius: 8px;
+  border-radius: var(--sb-radius-md, 8px);
   font-size: 13.5px;
-  color: #172033;
+  color: var(--sb-text, #102A43);
   background: #F8FAFC;
   outline: none;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--sb-transition, 0.18s);
 }
 
 .inv-select:focus {
-  border-color: #4F46E5;
+  border-color: var(--sb-primary, #0879D1);
   background: #FFFFFF;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  box-shadow: 0 0 0 3px rgba(8, 121, 209, 0.15);
 }
 
 .inv-customer-preview-box {
   margin-top: 14px;
   padding: 12px 16px;
   background: #F8FAFC;
-  border: 1px solid #E2E8F0;
+  border: 1px solid var(--sb-border, #E3EBF2);
   border-radius: 10px;
   display: flex;
   align-items: center;
@@ -187,8 +187,8 @@
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  background: #EEF2FF;
-  color: #4F46E5;
+  background: rgba(8, 121, 209, 0.1);
+  color: var(--sb-primary, #0879D1);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -494,7 +494,8 @@
 }
 
 .adj-input:focus {
-  border-color: #4F46E5;
+  border-color: var(--sb-primary, #0879D1);
+  box-shadow: 0 0 0 2px rgba(8, 121, 209, 0.15);
 }
 
 .adj-calculated {
@@ -505,25 +506,25 @@
 }
 
 .tax-disabled-notice {
-  background: #F1F5F9;
-  border: 1px dashed #CBD5E1;
-  border-radius: 8px;
+  background: var(--sb-bg, #F4F8FB);
+  border: 1px dashed var(--sb-border, #CBD5E1);
+  border-radius: var(--sb-radius-md, 8px);
   padding: 10px 12px;
   font-size: 12px;
-  color: #64748B;
+  color: var(--sb-text-muted, #718096);
   line-height: 1.4;
 }
 
 .summary-divider {
   height: 1px;
-  background: #E7EAF0;
+  background: var(--sb-border, #E3EBF2);
   margin: 4px 0;
 }
 
 .grand-total-box {
-  background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
-  border: 1px solid #C7D2FE;
-  border-radius: 12px;
+  background: linear-gradient(135deg, #EAF4FB 0%, #D8ECF8 100%);
+  border: 1px solid #BFDBFE;
+  border-radius: var(--sb-radius-lg, 12px);
   padding: 16px;
   display: flex;
   align-items: center;
@@ -534,20 +535,20 @@
   display: block;
   font-size: 13px;
   font-weight: 800;
-  color: #3730A3;
+  color: var(--sb-navy, #063B66);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .grand-sub {
   font-size: 11px;
-  color: #6366F1;
+  color: var(--sb-primary, #0879D1);
 }
 
 .grand-amount {
   font-size: 22px;
   font-weight: 850;
-  color: #312E81;
+  color: var(--sb-navy, #063B66);
 }
 
 .summary-actions {
@@ -558,22 +559,23 @@
 }
 
 .btn-generate-invoice {
-  background: linear-gradient(135deg, #4F46E5 0%, #4338CA 100%);
+  background: linear-gradient(135deg, var(--sb-primary, #0879D1) 0%, var(--sb-navy, #063B66) 100%);
   color: #FFFFFF;
   border: none;
   padding: 13px;
-  border-radius: 10px;
+  border-radius: var(--sb-radius-md, 8px);
   font-size: 14px;
   font-weight: 750;
   cursor: pointer;
-  box-shadow: 0 4px 8px rgba(79, 70, 229, 0.25);
-  transition: all 0.15s;
+  box-shadow: 0 4px 12px rgba(8, 121, 209, 0.28);
+  transition: all var(--sb-transition, 0.18s);
   width: 100%;
 }
 
 .btn-generate-invoice:hover:not(:disabled) {
   opacity: 0.95;
   transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(8, 121, 209, 0.35);
 }
 
 .btn-generate-invoice:disabled {

@@ -15,8 +15,8 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #059669;
-  background: #ECFDF5;
+  color: var(--sb-primary, #0879D1);
+  background: rgba(8, 121, 209, 0.1);
   padding: 3px 8px;
   border-radius: 4px;
   display: inline-block;
@@ -27,14 +27,14 @@
   margin: 0 0 4px 0;
   font-size: 24px;
   font-weight: 800;
-  color: #172033;
+  color: var(--sb-navy, #063B66);
   letter-spacing: -0.02em;
 }
 
 .invh-subtitle {
   margin: 0;
   font-size: 13.5px;
-  color: #667085;
+  color: var(--sb-text-muted, #718096);
 }
 
 .invh-header-actions {
@@ -52,7 +52,7 @@
 
 .invh-kpi-card {
   background: #FFFFFF;
-  border: 1px solid #E7EAF0;
+  border: 1px solid var(--sb-border, #E3EBF2);
   border-radius: 14px;
   padding: 18px 20px;
   display: flex;
@@ -67,10 +67,15 @@
   box-shadow: 0 4px 6px -1px rgba(16, 24, 40, 0.08);
 }
 
-.invh-kpi-card.accent-blue .kpi-icon-box { background: #EAF2FF; }
-.invh-kpi-card.accent-mint .kpi-icon-box { background: #E8FBF3; }
-.invh-kpi-card.accent-purple .kpi-icon-box { background: #F3E8FF; }
-.invh-kpi-card.accent-orange .kpi-icon-box { background: #FFF3DF; }
+.invh-kpi-card.accent-blue .kpi-icon-box { background: rgba(8, 121, 209, 0.1); color: var(--sb-primary, #0879D1); }
+.invh-kpi-card.accent-mint .kpi-icon-box { background: #ECFDF5; color: var(--sb-success, #18A673); }
+.invh-kpi-card.accent-teal .kpi-icon-box { background: rgba(21, 154, 156, 0.1); color: var(--sb-teal, #159A9C); }
+.invh-kpi-card.accent-orange .kpi-icon-box { background: #FFFBEB; color: var(--sb-warning, #F2A93B); }
+
+.text-blue { color: var(--sb-primary, #0879D1); }
+.text-mint { color: var(--sb-success, #18A673); }
+.text-teal { color: var(--sb-teal, #159A9C); }
+.text-orange { color: var(--sb-warning, #F2A93B); }
 
 /* Main Card */
 .invh-main-card {
@@ -147,23 +152,25 @@
 }
 
 .invh-search-input:focus {
-  border-color: #4F46E5;
+  border-color: var(--sb-primary, #0879D1);
   background: #FFFFFF;
+  box-shadow: 0 0 0 3px rgba(8, 121, 209, 0.15);
 }
 
 .invh-date-input {
   padding: 8px 28px 8px 30px;
-  border: 1px solid #E7EAF0;
-  border-radius: 8px;
+  border: 1px solid var(--sb-border, #E3EBF2);
+  border-radius: var(--sb-radius-md, 8px);
   font-size: 13px;
-  color: #172033;
+  color: var(--sb-text, #102A43);
   outline: none;
   background: #F8FAFC;
 }
 
 .invh-date-input:focus {
-  border-color: #4F46E5;
+  border-color: var(--sb-primary, #0879D1);
   background: #FFFFFF;
+  box-shadow: 0 0 0 3px rgba(8, 121, 209, 0.15);
 }
 
 .date-clear-btn {
@@ -210,13 +217,14 @@
 
 .inv-no-badge {
   display: inline-block;
-  background: #EFF6FF;
-  color: #1D4ED8;
+  background: rgba(8, 121, 209, 0.08);
+  color: var(--sb-navy, #063B66);
   font-family: monospace;
   font-size: 12.5px;
   padding: 3px 8px;
   border-radius: 6px;
-  border: 1px solid #DBEAFE;
+  border: 1px solid rgba(8, 121, 209, 0.2);
+  font-weight: 700;
 }
 
 .invh-cust-cell {
@@ -272,22 +280,22 @@
 }
 
 .btn-view-invoice {
-  background: #EEF2FF;
-  border: 1px solid #C7D2FE;
-  color: #4338CA;
+  background: rgba(8, 121, 209, 0.08);
+  border: 1px solid rgba(8, 121, 209, 0.25);
+  color: var(--sb-primary, #0879D1);
   padding: 6px 12px;
   border-radius: 6px;
   font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--sb-transition, 0.18s);
   white-space: nowrap;
 }
 
 .btn-view-invoice:hover {
-  background: #4F46E5;
+  background: var(--sb-primary, #0879D1);
   color: #FFFFFF;
-  border-color: #4F46E5;
+  border-color: var(--sb-primary, #0879D1);
 }
 
 /* Empty State */

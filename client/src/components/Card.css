@@ -1,0 +1,68 @@
+/* ==========================================================================
+   SMARTBILLING 2.0 — CARD COMPONENT STYLES
+   ========================================================================== */
+
+.sb-ui-card {
+  background: #FFFFFF;
+  border: 1px solid var(--sb-border, #E3EBF2);
+  border-radius: var(--sb-radius-lg, 12px);
+  box-shadow: var(--sb-shadow-card, 0 1px 3px rgba(6, 59, 102, 0.04));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.sb-ui-card-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--sb-border, #E3EBF2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sb-ui-card-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sb-ui-card-title {
+  margin: 0;
+  font-size: 15.5px;
+  font-weight: 700;
+  color: var(--sb-navy, #063B66);
+  letter-spacing: -0.01em;
+}
+
+.sb-ui-card-subtitle {
+  font-size: 12px;
+  color: var(--sb-text-muted, #718096);
+}
+
+.sb-ui-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sb-ui-card-body {
+  padding: 20px;
+  flex: 1;
+}
+
+.sb-ui-card-body.no-padding {
+  padding: 0;
+}
+
+.sb-ui-card-footer {
+  padding: 14px 20px;
+  border-top: 1px solid var(--sb-border, #E3EBF2);
+  background: var(--sb-bg, #F4F8FB);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}

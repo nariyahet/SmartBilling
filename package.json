@@ -1,0 +1,27 @@
+{
+  "name": "smartbilling",
+  "version": "1.0.0",
+  "description": "SmartBilling is a full-stack billing and invoice management system designed to help businesses manage products, customers, invoices, stock, and sales through a modern web application.",
+  "main": "index.js",
+  "scripts": {
+    "test": "playwright test",
+    "lint": "npm --prefix client run lint",
+    "build": "npm --prefix client run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nariyahet/SmartBilling.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/nariyahet/SmartBilling/issues"
+  },
+  "homepage": "https://github.com/nariyahet/SmartBilling#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^26.5.0"
+  }
+}

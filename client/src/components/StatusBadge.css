@@ -1,0 +1,89 @@
+/* ==========================================================================
+   SMARTBILLING 2.0 — STATUS BADGE COMPONENT STYLES
+   ========================================================================== */
+
+.sb-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: var(--sb-radius-sm, 6px);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  box-sizing: border-box;
+}
+
+.sb-status-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* --- Variants --- */
+/* 1. Success: Green */
+.sb-status-badge.variant-success {
+  background: #ECFDF5;
+  color: #065F46;
+  border-color: #D1FAE5;
+}
+.sb-status-badge.variant-success .sb-status-badge-dot {
+  background: var(--sb-success, #18A673);
+}
+
+/* 2. Warning: Amber */
+.sb-status-badge.variant-warning {
+  background: #FFFBEB;
+  color: #92400E;
+  border-color: #FDE68A;
+}
+.sb-status-badge.variant-warning .sb-status-badge-dot {
+  background: var(--sb-warning, #F2A93B);
+}
+
+/* 3. Danger: Red */
+.sb-status-badge.variant-danger {
+  background: #FEF2F2;
+  color: #991B1B;
+  border-color: #FECACA;
+}
+.sb-status-badge.variant-danger .sb-status-badge-dot {
+  background: var(--sb-danger, #E05252);
+}
+
+/* 4. Info / Primary: Ocean Blue */
+.sb-status-badge.variant-info,
+.sb-status-badge.variant-primary {
+  background: rgba(8, 121, 209, 0.08);
+  color: #075985;
+  border-color: rgba(8, 121, 209, 0.2);
+}
+.sb-status-badge.variant-info .sb-status-badge-dot,
+.sb-status-badge.variant-primary .sb-status-badge-dot {
+  background: var(--sb-primary, #0879D1);
+}
+
+/* 5. Teal: Recycling / Processing */
+.sb-status-badge.variant-teal {
+  background: #E6F6F6;
+  color: #0E6B6C;
+  border-color: rgba(21, 154, 156, 0.25);
+}
+.sb-status-badge.variant-teal .sb-status-badge-dot {
+  background: var(--sb-teal, #159A9C);
+}
+
+/* 6. Neutral: Slate / Gray */
+.sb-status-badge.variant-neutral {
+  background: #F1F5F9;
+  color: #475569;
+  border-color: #E2E8F0;
+}
+.sb-status-badge.variant-neutral .sb-status-badge-dot {
+  background: #94A3B8;
+}

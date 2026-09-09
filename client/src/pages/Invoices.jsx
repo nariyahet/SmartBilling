@@ -299,7 +299,7 @@ function Invoices() {
         <button
           type="button"
           className="sb-btn-refresh-sm"
-          onClick={() => navigate("/invoices-history")}
+          onClick={() => navigate("/invoices/history")}
         >
           📜 Invoice History
         </button>
@@ -636,7 +636,7 @@ function Invoices() {
                 className="btn-cancel-invoice"
                 onClick={() => {
                   if (items.length > 0 && !window.confirm("Discard current invoice items?")) return;
-                  navigate("/invoices-history");
+                  navigate("/invoices/history");
                 }}
               >
                 Cancel / Discard

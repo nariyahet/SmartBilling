@@ -1,39 +1,314 @@
-import { useState } from "react";
+import { useState, useEffect, createContext, useContext } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import "./AppShell.css";
 
+export const AppShellContext = createContext(false);
+
+// Navigation group configuration matching approved SmartBilling 2.0 structure
+const NAV_GROUPS = [
+  {
+    id: "dashboard",
+    label: "Dashboard",
+    icon: "🏠",
+    isDirectLink: true,
+    path: "/dashboard",
+  },
+  {
+    id: "procurement",
+    label: "Procurement",
+    icon: "📦",
+    paths: [
+      "/plastic-erp/suppliers",
+      "/plastic-erp/raw-materials",
+      "/plastic-erp/purchase-requisitions",
+      "/plastic-erp/supplier-quotations",
+      "/plastic-erp/purchase-comparison",
+      "/plastic-erp/purchase-orders",
+      "/plastic-erp/purchase-deliveries",
+      "/plastic-erp/supplier-performance",
+      "/plastic-erp/procurement-dashboard",
+      "/plastic-erp/procurement-reports",
+      "/plastic-erp/truck-inward",
+      "/plastic-erp/weighment",
+      "/plastic-erp/purchase-bills",
+      "/plastic-erp/stock",
+    ],
+    items: [
+      { path: "/plastic-erp/suppliers", label: "Scrap Suppliers Master", icon: "🏢" },
+      { path: "/plastic-erp/raw-materials", label: "Raw Materials", icon: "♻️" },
+      { path: "/plastic-erp/purchase-requisitions", label: "Purchase Requisitions", icon: "📋" },
+      { path: "/plastic-erp/supplier-quotations", label: "Supplier Quotations", icon: "🏷️" },
+      { path: "/plastic-erp/purchase-comparison", label: "Purchase Comparison", icon: "⚖️" },
+      { path: "/plastic-erp/purchase-orders", label: "Purchase Orders", icon: "📦" },
+      { path: "/plastic-erp/purchase-deliveries", label: "Purchase Deliveries", icon: "🚚" },
+      { path: "/plastic-erp/supplier-performance", label: "Supplier Performance", icon: "⭐" },
+      { path: "/plastic-erp/procurement-dashboard", label: "Procurement Dashboard", icon: "📈" },
+      { path: "/plastic-erp/procurement-reports", label: "Procurement Reports", icon: "📊" },
+    ],
+  },
+  {
+    id: "production",
+    label: "Production",
+    icon: "🏭",
+    paths: [
+      "/plastic-erp/production",
+      "/plastic-erp/recipes",
+      "/plastic-erp/wip-fg",
+      "/plastic-erp/quality",
+      "/plastic-erp/scrap-regrind",
+      "/plastic-erp/machines",
+      "/plastic-erp/operations",
+      "/plastic-erp/traceability",
+      "/plastic-erp/costing",
+      "/plastic-erp/reports",
+    ],
+    items: [
+      { path: "/plastic-erp/production", label: "Production Management", icon: "🏭" },
+      { path: "/plastic-erp/recipes", label: "Recipes / BOM", icon: "🧪" },
+      { path: "/plastic-erp/wip-fg", label: "WIP & Finished Goods", icon: "📦" },
+      { path: "/plastic-erp/quality", label: "Quality Control", icon: "🔬" },
+      { path: "/plastic-erp/scrap-regrind", label: "Scrap & Regrind", icon: "♻️" },
+      { path: "/plastic-erp/machines", label: "Machines", icon: "⚙️" },
+      { path: "/plastic-erp/operations", label: "Operations", icon: "👥" },
+      { path: "/plastic-erp/traceability", label: "Batch Traceability", icon: "🔍" },
+      { path: "/plastic-erp/costing", label: "Production Costing", icon: "💰" },
+      { path: "/plastic-erp/reports", label: "Production Reports", icon: "📊" },
+    ],
+  },
+  {
+    id: "sales",
+    label: "Sales & Dispatch",
+    icon: "🚚",
+    paths: [
+      "/customers",
+      "/products",
+      "/plastic-erp/sales-orders",
+      "/plastic-erp/dispatch",
+      "/plastic-erp/delivery-challans",
+      "/plastic-erp/transport",
+      "/invoices/create",
+      "/invoices/history",
+      "/plastic-erp/payments",
+      "/plastic-erp/sales-returns",
+      "/plastic-erp/credit-notes",
+      "/plastic-erp/debit-notes",
+    ],
+    items: [
+      { path: "/customers", label: "Customers", icon: "👥" },
+      { path: "/products", label: "Products / Finished Goods", icon: "📦" },
+      { path: "/plastic-erp/sales-orders", label: "Sales Orders", icon: "📋" },
+      { path: "/plastic-erp/dispatch", label: "Dispatch", icon: "🚚" },
+      { path: "/plastic-erp/delivery-challans", label: "Delivery Challans", icon: "📄" },
+      { path: "/plastic-erp/transport", label: "Transport", icon: "🚛" },
+      { path: "/invoices/create", label: "Invoice", icon: "🧾" },
+      { path: "/invoices/history", label: "Invoice History", icon: "📋" },
+      { path: "/plastic-erp/payments", label: "Payments", icon: "💵" },
+      { path: "/plastic-erp/sales-returns", label: "Sales Returns", icon: "🔄" },
+      { path: "/plastic-erp/credit-notes", label: "Credit Notes", icon: "📉" },
+      { path: "/plastic-erp/debit-notes", label: "Debit Notes", icon: "📈" },
+    ],
+  },
+  {
+    id: "hr",
+    label: "HR & Workforce",
+    icon: "👥",
+    paths: [
+      "/plastic-erp/employees",
+      "/plastic-erp/attendance",
+      "/plastic-erp/leaves",
+      "/plastic-erp/workforce",
+      "/plastic-erp/payroll",
+      "/plastic-erp/advances",
+      "/plastic-erp/expenses",
+      "/plastic-erp/hr-reports",
+    ],
+    items: [
+      { path: "/plastic-erp/employees", label: "Employees", icon: "👥" },
+      { path: "/plastic-erp/attendance", label: "Attendance", icon: "⏱️" },
+      { path: "/plastic-erp/leaves", label: "Leave Management", icon: "🏖️" },
+      { path: "/plastic-erp/workforce", label: "Workforce", icon: "🏭" },
+    ],
+  },
+  {
+    id: "accounting",
+    label: "Accounting & GST",
+    icon: "💰",
+    paths: [
+      "/plastic-erp/chart-of-accounts",
+      "/plastic-erp/journal-entries",
+      "/plastic-erp/cash-bank",
+      "/plastic-erp/bank-reconciliation",
+      "/plastic-erp/supplier-ledger",
+      "/plastic-erp/gst-management",
+      "/plastic-erp/gst-reconciliation",
+      "/plastic-erp/financial-reports",
+      "/plastic-erp/accounting-dashboard",
+    ],
+    items: [
+      { path: "/plastic-erp/chart-of-accounts", label: "Chart of Accounts", icon: "📑" },
+      { path: "/plastic-erp/journal-entries", label: "Journal Entries", icon: "✍️" },
+      { path: "/plastic-erp/cash-bank", label: "Cash & Bank", icon: "💵" },
+      { path: "/plastic-erp/bank-reconciliation", label: "Bank Reconciliation", icon: "🏛️" },
+      { path: "/plastic-erp/supplier-ledger", label: "Supplier Ledger", icon: "🚛" },
+      { path: "/plastic-erp/gst-management", label: "GST Management", icon: "⚖️" },
+      { path: "/plastic-erp/gst-reconciliation", label: "GST Reconciliation", icon: "🔍" },
+      { path: "/plastic-erp/financial-reports", label: "Financial Reports", icon: "📊" },
+      { path: "/plastic-erp/accounting-dashboard", label: "Accounting Dashboard", icon: "📈" },
+    ],
+  },
+  {
+    id: "reports",
+    label: "Reports & Analytics",
+    icon: "📊",
+    paths: [
+      "/plastic-erp/sales-reports",
+      "/sales-report",
+      "/plastic-erp/customer-ledger",
+      "/plastic-erp/receivables",
+      "/plastic-erp/procurement-reports",
+      "/plastic-erp/hr-reports",
+    ],
+    items: [
+      { path: "/plastic-erp/sales-reports", label: "Sales Reports", icon: "📊" },
+      { path: "/plastic-erp/dispatch", label: "Dispatch Reports", icon: "🚚" },
+      { path: "/plastic-erp/payments", label: "Payment Reports", icon: "💵" },
+      { path: "/plastic-erp/customer-ledger", label: "Customer Ledger Reports", icon: "📑" },
+      { path: "/plastic-erp/reports", label: "Production Reports", icon: "🏭" },
+      { path: "/plastic-erp/procurement-reports", label: "Procurement Reports", icon: "📦" },
+      { path: "/plastic-erp/hr-reports", label: "HR & Expense Reports", icon: "👥" },
+      { path: "/plastic-erp/financial-reports", label: "Financial Reports", icon: "📈" },
+      { path: "/dashboard", label: "Executive Analytics", icon: "⚡" },
+    ],
+  },
+  {
+    id: "admin",
+    label: "Administration",
+    icon: "⚙️",
+    paths: ["/settings"],
+    items: [
+      { path: "/settings", label: "Business Settings", icon: "⚙️" },
+      { path: "/settings", label: "User/Profile", icon: "👤" },
+    ],
+  },
+];
+
+function getRouteInfo(pathname) {
+  if (pathname === "/dashboard") {
+    return { module: "Overview", title: "Executive Dashboard" };
+  }
+  for (const group of NAV_GROUPS) {
+    if (group.items) {
+      for (const item of group.items) {
+        if (
+          item.path === pathname ||
+          (item.path !== "/dashboard" &&
+            item.path !== "/settings" &&
+            pathname.startsWith(item.path))
+        ) {
+          return { module: group.label, title: item.label };
+        }
+      }
+    }
+  }
+  if (pathname.startsWith("/settings")) {
+    return { module: "Administration", title: "Business Settings" };
+  }
+  return { module: "ERP", title: "SmartBilling" };
+}
+
+function getUserInitials(name) {
+  if (!name) return "DA";
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
+
 function AppShell({
   children,
-  activePage,
+  headerActions = null,
   searchPlaceholder = "Search products, customers, invoices...",
   searchValue = "",
-  onSearchChange,
-  headerActions = null,
+  onSearchChange = null,
 }) {
-  const navigate = useNavigate();
+  const isNested = useContext(AppShellContext);
   const location = useLocation();
+  const navigate = useNavigate();
 
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  // Tablet collapsed sidebar state
+  const [collapsed, setCollapsed] = useState(false);
+  // Mobile off-canvas drawer state
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  // Profile dropdown menu state
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
 
+  // User and Company Profile info from localStorage
   const [userProfile] = useState(() => {
     try {
       const saved = localStorage.getItem("admin");
-      return saved ? JSON.parse(saved) : { name: "Het Nariya", email: "admin@smartbilling.com" };
+      return saved ? JSON.parse(saved) : { name: "Demo Admin", email: "demo@smartbilling.com" };
     } catch {
-      return { name: "Het Nariya", email: "admin@smartbilling.com" };
+      return { name: "Demo Admin", email: "demo@smartbilling.com" };
     }
   });
 
   const [companyInfo] = useState(() => {
     try {
       const saved = localStorage.getItem("company");
-      return saved ? JSON.parse(saved) : null;
+      return saved ? JSON.parse(saved) : { name: "Demo Company" };
     } catch {
-      return null;
+      return { name: "Demo Company" };
     }
   });
 
+  // Track expanded navigation groups
+  const [expandedGroups, setExpandedGroups] = useState(() => {
+    const currentPath = location.pathname;
+    const initial = {};
+    NAV_GROUPS.forEach((group) => {
+      if (group.paths && group.paths.some((p) => currentPath.startsWith(p))) {
+        initial[group.id] = true;
+      }
+    });
+    return initial;
+  });
+
+  // Auto-expand group when path changes
+  useEffect(() => {
+    const currentPath = location.pathname;
+    NAV_GROUPS.forEach((group) => {
+      if (group.paths && group.paths.some((p) => currentPath.startsWith(p))) {
+        setExpandedGroups((prev) => ({ ...prev, [group.id]: true }));
+      }
+    });
+    setMobileDrawerOpen(false);
+    setProfileDropdownOpen(false);
+  }, [location.pathname]);
+
+  // Lock body scroll when mobile drawer is active
+  useEffect(() => {
+    if (mobileDrawerOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [mobileDrawerOpen]);
+
+  // Close on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        setMobileDrawerOpen(false);
+        setProfileDropdownOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -42,248 +317,283 @@ function AppShell({
     navigate("/");
   };
 
-  const currentPath = location.pathname;
-  const userInitials = userProfile?.name
-    ? userProfile.name
-        .split(" ")
-        .map((p) => p[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
-    : "HN";
-
-  const isNavActive = (pageId, path) => {
-    if (activePage) return activePage === pageId;
-    return currentPath === path;
+  const toggleGroup = (groupId) => {
+    setExpandedGroups((prev) => ({
+      ...prev,
+      [groupId]: !prev[groupId],
+    }));
   };
 
+  const currentRouteInfo = getRouteInfo(location.pathname);
+  const userInitials = getUserInitials(userProfile?.name);
+
+  // If already wrapped in an AppShell, render as inner container to avoid duplicate sidebars
+  if (isNested) {
+    return (
+      <div className="sb-inner-page-canvas">
+        {headerActions && <div className="sb-inner-header-actions">{headerActions}</div>}
+        {children}
+      </div>
+    );
+  }
+
   return (
-    <div className="sb-app-layout">
-      {/* ---------------------------------------------------- */}
-      {/* SIDEBAR (Desktop Fixed/Sticky, Mobile Off-Canvas)    */}
-      {/* ---------------------------------------------------- */}
-      <aside className={`sb-sidebar ${mobileMenuOpen ? "drawer-open" : ""}`}>
-        <div className="sb-sidebar-header">
-          <Link to="/dashboard" className="sb-brand-link">
-            <div className="sb-logo-icon">⚡</div>
-            <div className="sb-brand-text">
-              <span className="sb-brand-name">SmartBilling</span>
-              <span className="sb-brand-tagline">Billing & ERP Suite</span>
-            </div>
-          </Link>
-          {mobileMenuOpen && (
-            <button
-              type="button"
-              className="sb-drawer-close"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              ✕
-            </button>
-          )}
-        </div>
-
-        <nav className="sb-nav-menu">
-          <div className="sb-nav-group-label">MAIN NAVIGATION</div>
-
-          <Link
-            to="/dashboard"
-            className={`sb-nav-item ${isNavActive("dashboard", "/dashboard") ? "active" : ""}`}
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <span className="sb-nav-icon">📊</span>
-            <span className="sb-nav-text">Dashboard</span>
-            {isNavActive("dashboard", "/dashboard") && <span className="sb-nav-indicator"></span>}
-          </Link>
-
-          <Link
-            to="/products"
-            className={`sb-nav-item ${isNavActive("products", "/products") ? "active" : ""}`}
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <span className="sb-nav-icon">📦</span>
-            <span className="sb-nav-text">Products</span>
-            {isNavActive("products", "/products") && <span className="sb-nav-indicator"></span>}
-          </Link>
-
-          <Link
-            to="/customers"
-            className={`sb-nav-item ${isNavActive("customers", "/customers") ? "active" : ""}`}
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <span className="sb-nav-icon">👥</span>
-            <span className="sb-nav-text">Customers</span>
-            {isNavActive("customers", "/customers") && <span className="sb-nav-indicator"></span>}
-          </Link>
-
-          <Link
-            to="/invoices/create"
-            className={`sb-nav-item ${isNavActive("invoices", "/invoices/create") ? "active" : ""}`}
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <span className="sb-nav-icon">🧾</span>
-            <span className="sb-nav-text">New Invoice</span>
-            {isNavActive("invoices", "/invoices/create") && <span className="sb-nav-indicator"></span>}
-          </Link>
-
-          <Link
-            to="/invoices/history"
-            className={`sb-nav-item ${isNavActive("history", "/invoices/history") ? "active" : ""}`}
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <span className="sb-nav-icon">📋</span>
-            <span className="sb-nav-text">Invoice History</span>
-            {isNavActive("history", "/invoices/history") && <span className="sb-nav-indicator"></span>}
-          </Link>
-
-          <Link
-            to="/sales-report"
-            className={`sb-nav-item ${isNavActive("reports", "/sales-report") ? "active" : ""}`}
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <span className="sb-nav-icon">📈</span>
-            <span className="sb-nav-text">Sales Report</span>
-            {isNavActive("reports", "/sales-report") && <span className="sb-nav-indicator"></span>}
-          </Link>
-
-          <Link
-            to="/settings"
-            className={`sb-nav-item ${isNavActive("settings", "/settings") ? "active" : ""}`}
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <span className="sb-nav-icon">⚙️</span>
-            <span className="sb-nav-text">Business Settings</span>
-            {isNavActive("settings", "/settings") && <span className="sb-nav-indicator"></span>}
-          </Link>
-
-          <div className="sb-nav-group-label" style={{ marginTop: "16px" }}>SPECIALIZED MODULES</div>
-
-          <Link
-            to="/plastic-erp"
-            className="sb-nav-item sb-plastic-pill"
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <span className="sb-nav-icon">♻️</span>
-            <span className="sb-nav-text">Plastic ERP</span>
-            <span className="sb-pill-badge">Kim Plant</span>
-          </Link>
-        </nav>
-
-        <div className="sb-sidebar-footer">
-          <div className="sb-user-card">
-            <div className="sb-user-avatar-mini">{userInitials}</div>
-            <div className="sb-user-card-info">
-              <span className="sb-user-card-name">{userProfile.name}</span>
-              <span className="sb-user-card-role">Administrator</span>
-            </div>
-          </div>
-          <button type="button" className="sb-sidebar-logout-btn" onClick={handleLogout}>
-            🚪 Logout
-          </button>
-        </div>
-      </aside>
-
-      {/* Backdrop for mobile drawer */}
-      {mobileMenuOpen && (
-        <div
-          className="sb-drawer-backdrop"
-          onClick={() => setMobileMenuOpen(false)}
-        />
-      )}
-
-      {/* ---------------------------------------------------- */}
-      {/* MAIN WRAPPER & TOP HEADER                            */}
-      {/* ---------------------------------------------------- */}
-      <div className="sb-main-wrapper">
-        <header className="sb-top-header">
-          <div className="sb-header-left">
-            <button
-              type="button"
-              className="sb-hamburger-btn"
-              onClick={() => setMobileMenuOpen(true)}
-              aria-label="Open Navigation"
-            >
-              ☰
-            </button>
-            <div className="sb-search-wrap">
-              <span className="sb-search-icon">🔍</span>
-              <input
-                type="text"
-                className="sb-search-input"
-                placeholder={searchPlaceholder}
-                value={searchValue}
-                onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
-              />
-              {searchValue && (
-                <button
-                  type="button"
-                  className="sb-search-clear"
-                  onClick={() => onSearchChange && onSearchChange("")}
-                >
-                  ✕
-                </button>
+    <AppShellContext.Provider value={true}>
+      <div className={`sb-app-layout ${collapsed ? "sidebar-collapsed" : ""}`}>
+        {/* ------------------------------------------------------------------
+            1. FIXED LEFT SIDEBAR (Desktop Fixed, Tablet Collapsible, Mobile Drawer)
+            ------------------------------------------------------------------ */}
+        <aside
+          className={`sb-sidebar ${mobileDrawerOpen ? "drawer-open" : ""} ${
+            collapsed ? "collapsed" : ""
+          }`}
+          aria-label="Main Navigation"
+        >
+          {/* Brand Header */}
+          <div className="sb-sidebar-header">
+            <Link to="/dashboard" className="sb-brand-link" onClick={() => setMobileDrawerOpen(false)}>
+              <div className="sb-logo-icon">♻️</div>
+              {!collapsed && (
+                <div className="sb-brand-text">
+                  <span className="sb-brand-name">SmartBilling 2.0</span>
+                  <span className="sb-brand-tagline">Plastic Recycling ERP · Billing & ERP Suite</span>
+                </div>
               )}
-            </div>
+            </Link>
+            {mobileDrawerOpen && (
+              <button
+                type="button"
+                className="sb-drawer-close-btn"
+                onClick={() => setMobileDrawerOpen(false)}
+                aria-label="Close navigation drawer"
+              >
+                ✕
+              </button>
+            )}
           </div>
 
-          <div className="sb-header-right">
-            {headerActions}
-
-            <div className="sb-company-badge">
-              <span className="sb-company-icon">🏢</span>
-              <span className="sb-company-name">
-                {companyInfo?.name || "SmartBilling Main"}
-              </span>
-            </div>
-
-            <div className="sb-header-bell" title="System Notifications">
-              <span>🔔</span>
-              <span className="sb-bell-dot"></span>
-            </div>
-
-            <div
-              className="sb-profile-menu-container"
-              onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-            >
-              <div className="sb-avatar-circle">{userInitials}</div>
-              <div className="sb-profile-text">
-                <span className="sb-profile-name">{userProfile.name}</span>
-                <span className="sb-profile-role">Admin</span>
-              </div>
-              <span className="sb-dropdown-arrow">▾</span>
-
-              {profileDropdownOpen && (
-                <div className="sb-profile-dropdown">
-                  <div className="dropdown-user-header">
-                    <strong>{userProfile.name}</strong>
-                    <span>{userProfile.email}</span>
-                  </div>
-                  <hr className="dropdown-divider" />
-                  <Link to="/settings" className="dropdown-item">
-                    ⚙️ Settings
+          {/* Scrollable Navigation Items */}
+          <nav className="sb-nav-menu">
+            {NAV_GROUPS.map((group) => {
+              // Direct Top-level Link (e.g. Dashboard)
+              if (group.isDirectLink) {
+                const isActive = location.pathname === group.path;
+                return (
+                  <Link
+                    key={group.id}
+                    to={group.path}
+                    className={`sb-nav-item ${isActive ? "active" : ""}`}
+                    onClick={() => setMobileDrawerOpen(false)}
+                    title={collapsed ? group.label : undefined}
+                  >
+                    <span className="sb-nav-icon">{group.icon}</span>
+                    {!collapsed && <span className="sb-nav-text">{group.label}</span>}
+                    {isActive && <span className="sb-nav-indicator"></span>}
                   </Link>
-                  <Link to="/plastic-erp" className="dropdown-item">
-                    ♻️ Plastic Recycling ERP
-                  </Link>
-                  <hr className="dropdown-divider" />
+                );
+              }
+
+              // Accordion Group Header
+              const isGroupActive = group.paths.some((p) => location.pathname === p || location.pathname.startsWith(p + "/"));
+              const isExpanded = expandedGroups[group.id];
+
+              return (
+                <div key={group.id} className={`sb-nav-group ${isGroupActive ? "group-active" : ""}`}>
                   <button
                     type="button"
-                    className="dropdown-item text-danger"
-                    onClick={handleLogout}
+                    className={`sb-nav-group-btn ${isGroupActive ? "active-parent" : ""}`}
+                    onClick={() => toggleGroup(group.id)}
+                    title={collapsed ? group.label : undefined}
+                    aria-expanded={isExpanded}
                   >
-                    🚪 Logout
+                    <span className="sb-nav-icon">{group.icon}</span>
+                    {!collapsed && (
+                      <>
+                        <span className="sb-nav-text">{group.label}</span>
+                        <span className="sb-group-arrow">{isExpanded ? "▾" : "▸"}</span>
+                      </>
+                    )}
                   </button>
+
+                  {/* Submenu Items */}
+                  {!collapsed && isExpanded && (
+                    <div className="sb-nav-submenu">
+                      {group.items.map((subitem) => {
+                        const isSubActive =
+                          location.pathname === subitem.path ||
+                          (subitem.path !== "/dashboard" && location.pathname.startsWith(subitem.path));
+                        return (
+                          <Link
+                            key={subitem.label + subitem.path}
+                            to={subitem.path}
+                            className={`sb-nav-subitem ${isSubActive ? "active" : ""}`}
+                            onClick={() => setMobileDrawerOpen(false)}
+                          >
+                            <span className="sb-subitem-bullet"></span>
+                            <span className="sb-nav-subtext">{subitem.label}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </nav>
+
+          {/* Sidebar Footer User Card */}
+          <div className="sb-sidebar-footer">
+            <div className="sb-user-card">
+              <div className="sb-user-avatar-mini">{userInitials}</div>
+              {!collapsed && (
+                <div className="sb-user-card-info">
+                  <span className="sb-user-card-name">{userProfile?.name || "Demo Admin"}</span>
+                  <span className="sb-user-card-role">Administrator</span>
                 </div>
               )}
             </div>
+            <button
+              type="button"
+              className="sb-sidebar-logout-btn"
+              onClick={handleLogout}
+              title={collapsed ? "Logout" : undefined}
+            >
+              <span className="sb-logout-icon">🚪</span>
+              {!collapsed && <span>Logout</span>}
+            </button>
           </div>
-        </header>
+        </aside>
 
-        {/* Page Content */}
-        <main className="sb-page-content-canvas">
-          {children}
-        </main>
+        {/* Backdrop for Mobile Off-Canvas Drawer */}
+        {mobileDrawerOpen && (
+          <div
+            className="sb-drawer-backdrop"
+            onClick={() => setMobileDrawerOpen(false)}
+            aria-hidden="true"
+          />
+        )}
+
+        {/* ------------------------------------------------------------------
+            2. MAIN WRAPPER & TOPBAR (Desktop Offset, Content Canvas)
+            ------------------------------------------------------------------ */}
+        <div className="sb-main-wrapper">
+          {/* Topbar Header */}
+          <header className="sb-top-header">
+            <div className="sb-header-left">
+              <button
+                type="button"
+                className="sb-hamburger-btn sb-sidebar-toggle-btn"
+                onClick={() => {
+                  // If on desktop/tablet toggle collapsed; on mobile toggle drawer
+                  if (window.innerWidth <= 768) {
+                    setMobileDrawerOpen(!mobileDrawerOpen);
+                  } else {
+                    setCollapsed(!collapsed);
+                  }
+                }}
+                aria-label="Toggle Navigation Menu"
+                title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              >
+                ☰
+              </button>
+
+              <div className="sb-header-title-block">
+                <span className="sb-header-module">{currentRouteInfo.module}</span>
+                <span className="sb-header-separator">/</span>
+                <span className="sb-header-page-title">{currentRouteInfo.title}</span>
+              </div>
+
+              <div className="sb-search-wrap">
+                <span className="sb-search-icon">🔍</span>
+                <input
+                  type="text"
+                  className="sb-search-input"
+                  placeholder={searchPlaceholder}
+                  value={searchValue}
+                  onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
+                  aria-label="Search"
+                />
+                {searchValue && (
+                  <button
+                    type="button"
+                    className="sb-search-clear"
+                    onClick={() => onSearchChange && onSearchChange("")}
+                    aria-label="Clear search"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="sb-header-right">
+              {headerActions}
+
+              <div className="sb-company-badge">
+                <span className="sb-company-icon">🏢</span>
+                <span className="sb-company-name">
+                  {companyInfo?.name || "Demo Company"}
+                </span>
+              </div>
+
+              <div className="sb-header-bell" title="System Notifications">
+                <span>🔔</span>
+                <span className="sb-bell-dot"></span>
+              </div>
+
+              <div
+                className="sb-profile-menu-container"
+                onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+              >
+                <div className="sb-avatar-circle">{userInitials}</div>
+                <div className="sb-profile-text">
+                  <span className="sb-profile-name">{userProfile?.name || "Demo Admin"}</span>
+                  <span className="sb-profile-role">Admin</span>
+                </div>
+                <span className="sb-dropdown-arrow">▾</span>
+
+                {profileDropdownOpen && (
+                  <div className="sb-profile-dropdown" onClick={(e) => e.stopPropagation()}>
+                    <div className="dropdown-user-header">
+                      <strong>{userProfile?.name || "Demo Admin"}</strong>
+                      <span>{userProfile?.email || "demo@smartbilling.com"}</span>
+                    </div>
+                    <hr className="dropdown-divider" />
+                    <Link
+                      to="/settings"
+                      className="dropdown-item"
+                      onClick={() => setProfileDropdownOpen(false)}
+                    >
+                      ⚙️ Business Settings
+                    </Link>
+                    <Link
+                      to="/dashboard"
+                      className="dropdown-item"
+                      onClick={() => setProfileDropdownOpen(false)}
+                    >
+                      📊 ERP Dashboard
+                    </Link>
+                    <hr className="dropdown-divider" />
+                    <button
+                      type="button"
+                      className="dropdown-item text-danger"
+                      onClick={handleLogout}
+                    >
+                      🚪 Logout
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </header>
+
+          {/* Page Content Canvas */}
+          <main className="sb-page-content-canvas">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </AppShellContext.Provider>
   );
 }
 

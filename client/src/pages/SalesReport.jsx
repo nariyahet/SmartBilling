@@ -198,11 +198,11 @@ function SalesReport() {
           </div>
         </div>
 
-        <div className="rep-kpi-card accent-purple">
+        <div className="rep-kpi-card accent-teal">
           <div className="kpi-icon-box">🧾</div>
           <div className="kpi-info">
             <span className="kpi-label">Total Invoices</span>
-            <strong className="kpi-val text-purple">{totalInvoicesCount}</strong>
+            <strong className="kpi-val text-teal">{totalInvoicesCount}</strong>
             <span className="kpi-sub">Total bills issued</span>
           </div>
         </div>
@@ -278,7 +278,7 @@ function SalesReport() {
                 <Bar
                   dataKey="total"
                   name="Sales"
-                  fill="#4F46E5"
+                  fill="#0879D1"
                   radius={[6, 6, 0, 0]}
                   maxBarSize={55}
                 />
@@ -292,8 +292,8 @@ function SalesReport() {
               >
                 <defs>
                   <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#4F46E5" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="#4F46E5" stopOpacity={0.0} />
+                    <stop offset="5%" stopColor="#0879D1" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="#0879D1" stopOpacity={0.0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
@@ -316,7 +316,7 @@ function SalesReport() {
                 <Area
                   type="monotone"
                   dataKey="total"
-                  stroke="#4F46E5"
+                  stroke="#0879D1"
                   strokeWidth={2.5}
                   fillOpacity={1}
                   fill="url(#colorSales)"

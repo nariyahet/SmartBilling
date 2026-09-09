@@ -15,8 +15,8 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #7C3AED;
-  background: #F5F3FF;
+  color: var(--sb-primary, #0879D1);
+  background: rgba(8, 121, 209, 0.1);
   padding: 3px 8px;
   border-radius: 4px;
   display: inline-block;
@@ -27,14 +27,14 @@
   margin: 0 0 4px 0;
   font-size: 24px;
   font-weight: 800;
-  color: #172033;
+  color: var(--sb-navy, #063B66);
   letter-spacing: -0.02em;
 }
 
 .rep-subtitle {
   margin: 0;
   font-size: 13.5px;
-  color: #667085;
+  color: var(--sb-text-muted, #718096);
 }
 
 .rep-header-actions {
@@ -74,7 +74,7 @@
 
 .rep-kpi-card {
   background: #FFFFFF;
-  border: 1px solid #E7EAF0;
+  border: 1px solid var(--sb-border, #E3EBF2);
   border-radius: 14px;
   padding: 18px 20px;
   display: flex;
@@ -89,10 +89,15 @@
   box-shadow: 0 4px 6px -1px rgba(16, 24, 40, 0.08);
 }
 
-.rep-kpi-card.accent-mint .kpi-icon-box { background: #E8FBF3; }
-.rep-kpi-card.accent-blue .kpi-icon-box { background: #EAF2FF; }
-.rep-kpi-card.accent-purple .kpi-icon-box { background: #F3E8FF; }
-.rep-kpi-card.accent-orange .kpi-icon-box { background: #FFF3DF; }
+.rep-kpi-card.accent-mint .kpi-icon-box { background: #ECFDF5; color: var(--sb-success, #18A673); }
+.rep-kpi-card.accent-blue .kpi-icon-box { background: rgba(8, 121, 209, 0.1); color: var(--sb-primary, #0879D1); }
+.rep-kpi-card.accent-teal .kpi-icon-box { background: rgba(21, 154, 156, 0.1); color: var(--sb-teal, #159A9C); }
+.rep-kpi-card.accent-orange .kpi-icon-box { background: #FFFBEB; color: var(--sb-warning, #F2A93B); }
+
+.text-mint { color: var(--sb-success, #18A673); }
+.text-blue { color: var(--sb-primary, #0879D1); }
+.text-teal { color: var(--sb-teal, #159A9C); }
+.text-orange { color: var(--sb-warning, #F2A93B); }
 
 /* Main Card */
 .rep-main-card {
@@ -156,8 +161,9 @@
 
 .rep-tab-btn.active {
   background: #FFFFFF;
-  color: #172033;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  color: var(--sb-primary, #0879D1);
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(6, 59, 102, 0.08);
 }
 
 .rep-chart-container {

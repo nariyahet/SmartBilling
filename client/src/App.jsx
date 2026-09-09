@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -66,6 +66,9 @@ import PlasticSupplierPerformance from "./pages/PlasticSupplierPerformance";
 import PlasticProcurementReports from "./pages/PlasticProcurementReports";
 import PlasticProcurementDashboard from "./pages/PlasticProcurementDashboard";
 
+// Unified ERP Application Shell
+import AppShell from "./components/AppShell";
+
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem("token");
 
@@ -76,59 +79,125 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
+// Protected layout wrapping all authenticated ERP routes in the unified AppShell
+function ProtectedAppLayout() {
+  const token = localStorage.getItem("token");
+
+  if (!token) {
+    return <Navigate to="/" replace />;
+  }
+
+  return (
+    <AppShell>
+      <Outlet />
+    </AppShell>
+  );
+}
+
 function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Public Authentication Routes */}
         <Route path="/" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/trial-expired" element={<TrialExpired />} />
 
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
+        {/* Master Authenticated ERP Application Shell Layout */}
+        <Route element={<ProtectedAppLayout />}>
+          {/* Primary Dashboard */}
+          <Route path="/dashboard" element={<Dashboard />} />
 
-        <Route
-          path="/products"
-          element={
-            <ProtectedRoute>
-              <Products />
-            </ProtectedRoute>
-          }
-        />
+          {/* Core Business Modules */}
+          <Route path="/products" element={<Products />} />
+          <Route path="/customers" element={<Customers />} />
+          <Route path="/invoices/create" element={<Invoices />} />
+          <Route path="/invoices/history" element={<InvoicesHistory />} />
+          <Route path="/sales-report" element={<SalesReport />} />
+          <Route path="/settings" element={<BusinessSettings />} />
 
-        <Route
-          path="/customers"
-          element={
-            <ProtectedRoute>
-              <Customers />
-            </ProtectedRoute>
-          }
-        />
+          {/* ---------------------------------------------------- */}
+          {/* Plastic Recycling ERP Routes (Kim, Surat Operations) */}
+          {/* ---------------------------------------------------- */}
+          {/* Compatibility redirect from legacy /plastic-erp to primary /dashboard */}
+          <Route path="/plastic-erp" element={<Navigate to="/dashboard" replace />} />
 
-        <Route
-          path="/invoices/create"
-          element={
-            <ProtectedRoute>
-              <Invoices />
-            </ProtectedRoute>
-          }
-        />
+          {/* Phase 1 & 2: Inward, Inventory, Production & Recipes */}
+          <Route path="/plastic-erp/suppliers" element={<PlasticSuppliers />} />
+          <Route
+            path="/plastic-erp/supplier-ledger"
+            element={<PlasticFinancialReports defaultReport="supplier-ledger" />}
+          />
+          <Route path="/plastic-erp/raw-materials" element={<PlasticRawMaterials />} />
+          <Route path="/plastic-erp/truck-inward" element={<PlasticTruckInward />} />
+          <Route path="/plastic-erp/weighment" element={<PlasticWeighment />} />
+          <Route path="/plastic-erp/purchase-bills" element={<PlasticPurchaseBills />} />
+          <Route path="/plastic-erp/stock" element={<PlasticStock />} />
+          <Route path="/plastic-erp/production" element={<PlasticProduction />} />
+          <Route path="/plastic-erp/recipes" element={<PlasticRecipes />} />
+          <Route path="/plastic-erp/wip-fg" element={<PlasticWipFg />} />
+          <Route path="/plastic-erp/quality" element={<PlasticQuality />} />
+          <Route path="/plastic-erp/scrap-regrind" element={<PlasticScrapRegrind />} />
+          <Route path="/plastic-erp/machines" element={<PlasticMachines />} />
+          <Route path="/plastic-erp/operations" element={<PlasticOperations />} />
+          <Route path="/plastic-erp/traceability" element={<PlasticTraceability />} />
+          <Route path="/plastic-erp/costing" element={<PlasticCosting />} />
+          <Route path="/plastic-erp/reports" element={<PlasticReports />} />
 
-        <Route
-          path="/invoices/history"
-          element={
-            <ProtectedRoute>
-              <InvoicesHistory />
-            </ProtectedRoute>
-          }
-        />
+          {/* Phase 3: Sales, Dispatch & Finance Routes */}
+          <Route path="/plastic-erp/sales-orders" element={<PlasticSalesOrders />} />
+          <Route path="/plastic-erp/sales" element={<PlasticSalesOrders />} />
+          <Route path="/plastic-erp/dispatch" element={<PlasticDispatch />} />
+          <Route path="/plastic-erp/dispatches" element={<PlasticDispatch />} />
+          <Route path="/plastic-erp/delivery-challans" element={<PlasticDeliveryChallan />} />
+          <Route path="/plastic-erp/transport/challans" element={<PlasticDeliveryChallan />} />
+          <Route path="/plastic-erp/transport" element={<PlasticTransport />} />
+          <Route path="/plastic-erp/transport/vehicles" element={<PlasticTransport />} />
+          <Route path="/plastic-erp/sales-returns" element={<PlasticSalesReturns />} />
+          <Route path="/plastic-erp/payments" element={<PlasticPayments />} />
+          <Route path="/plastic-erp/receivables" element={<PlasticReceivables />} />
+          <Route path="/plastic-erp/finance/receivables" element={<PlasticReceivables />} />
+          <Route path="/plastic-erp/customer-ledger" element={<PlasticCustomerLedger />} />
+          <Route path="/plastic-erp/finance/ledger" element={<PlasticCustomerLedger />} />
+          <Route path="/plastic-erp/credit-notes" element={<PlasticCreditNotes />} />
+          <Route path="/plastic-erp/finance/credit-notes" element={<PlasticCreditNotes />} />
+          <Route path="/plastic-erp/debit-notes" element={<PlasticDebitNotes />} />
+          <Route path="/plastic-erp/finance/debit-notes" element={<PlasticDebitNotes />} />
+          <Route path="/plastic-erp/sales-reports" element={<PlasticSalesReports />} />
+          <Route path="/plastic-erp/reports/sales" element={<PlasticSalesReports />} />
 
+          {/* Phase 4: HR, Payroll & Expense Management */}
+          <Route path="/plastic-erp/employees" element={<PlasticEmployees />} />
+          <Route path="/plastic-erp/attendance" element={<PlasticAttendance />} />
+          <Route path="/plastic-erp/leaves" element={<PlasticLeaveManagement />} />
+          <Route path="/plastic-erp/workforce" element={<PlasticWorkforce />} />
+          <Route path="/plastic-erp/payroll" element={<PlasticPayroll />} />
+          <Route path="/plastic-erp/advances" element={<PlasticEmployeeAdvances />} />
+          <Route path="/plastic-erp/expenses" element={<PlasticExpenses />} />
+          <Route path="/plastic-erp/hr-reports" element={<PlasticHrReports />} />
+
+          {/* Phase 5: Accounting, GST & Compliance */}
+          <Route path="/plastic-erp/chart-of-accounts" element={<PlasticChartOfAccounts />} />
+          <Route path="/plastic-erp/journal-entries" element={<PlasticJournalEntries />} />
+          <Route path="/plastic-erp/cash-bank" element={<PlasticCashBank />} />
+          <Route path="/plastic-erp/bank-reconciliation" element={<PlasticBankReconciliation />} />
+          <Route path="/plastic-erp/gst-management" element={<PlasticGstManagement />} />
+          <Route path="/plastic-erp/gst-reconciliation" element={<PlasticGstReconciliation />} />
+          <Route path="/plastic-erp/financial-reports" element={<PlasticFinancialReports />} />
+          <Route path="/plastic-erp/accounting-dashboard" element={<PlasticAccountingDashboard />} />
+
+          {/* Phase 6: Procurement, Vendor & Purchase Intelligence */}
+          <Route path="/plastic-erp/purchase-requisitions" element={<PlasticPurchaseRequisitions />} />
+          <Route path="/plastic-erp/supplier-quotations" element={<PlasticSupplierQuotations />} />
+          <Route path="/plastic-erp/purchase-comparison" element={<PlasticPurchaseComparison />} />
+          <Route path="/plastic-erp/purchase-orders" element={<PlasticPurchaseOrders />} />
+          <Route path="/plastic-erp/purchase-deliveries" element={<PlasticPurchaseDeliveries />} />
+          <Route path="/plastic-erp/supplier-performance" element={<PlasticSupplierPerformance />} />
+          <Route path="/plastic-erp/procurement-reports" element={<PlasticProcurementReports />} />
+          <Route path="/plastic-erp/procurement-dashboard" element={<PlasticProcurementDashboard />} />
+        </Route>
+
+        {/* Dedicated Standalone Printable Invoice View */}
         <Route
           path="/invoice/:id"
           element={
@@ -138,540 +207,7 @@ function App() {
           }
         />
 
-        <Route
-          path="/sales-report"
-          element={
-            <ProtectedRoute>
-              <SalesReport />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/settings"
-          element={
-            <ProtectedRoute>
-              <BusinessSettings />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* ---------------------------------------------------- */}
-        {/* Plastic Recycling ERP Routes (Kim, Surat Operations) */}
-        {/* ---------------------------------------------------- */}
-        <Route
-          path="/plastic-erp"
-          element={
-            <ProtectedRoute>
-              <PlasticDashboard />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/plastic-erp/suppliers"
-          element={
-            <ProtectedRoute>
-              <PlasticSuppliers />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/plastic-erp/raw-materials"
-          element={
-            <ProtectedRoute>
-              <PlasticRawMaterials />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/plastic-erp/truck-inward"
-          element={
-            <ProtectedRoute>
-              <PlasticTruckInward />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/plastic-erp/weighment"
-          element={
-            <ProtectedRoute>
-              <PlasticWeighment />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/plastic-erp/purchase-bills"
-          element={
-            <ProtectedRoute>
-              <PlasticPurchaseBills />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/plastic-erp/stock"
-          element={
-            <ProtectedRoute>
-              <PlasticStock />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/plastic-erp/production"
-          element={
-            <ProtectedRoute>
-              <PlasticProduction />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/plastic-erp/recipes"
-          element={
-            <ProtectedRoute>
-              <PlasticRecipes />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/plastic-erp/wip-fg"
-          element={
-            <ProtectedRoute>
-              <PlasticWipFg />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/plastic-erp/quality"
-          element={
-            <ProtectedRoute>
-              <PlasticQuality />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/plastic-erp/scrap-regrind"
-          element={
-            <ProtectedRoute>
-              <PlasticScrapRegrind />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/plastic-erp/machines"
-          element={
-            <ProtectedRoute>
-              <PlasticMachines />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/plastic-erp/operations"
-          element={
-            <ProtectedRoute>
-              <PlasticOperations />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/plastic-erp/traceability"
-          element={
-            <ProtectedRoute>
-              <PlasticTraceability />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/plastic-erp/costing"
-          element={
-            <ProtectedRoute>
-              <PlasticCosting />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/plastic-erp/reports"
-          element={
-            <ProtectedRoute>
-              <PlasticReports />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Phase 3: Sales, Dispatch & Finance Routes */}
-        <Route
-          path="/plastic-erp/sales-orders"
-          element={
-            <ProtectedRoute>
-              <PlasticSalesOrders />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/plastic-erp/sales"
-          element={
-            <ProtectedRoute>
-              <PlasticSalesOrders />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/plastic-erp/dispatch"
-          element={
-            <ProtectedRoute>
-              <PlasticDispatch />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/plastic-erp/dispatches"
-          element={
-            <ProtectedRoute>
-              <PlasticDispatch />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/plastic-erp/delivery-challans"
-          element={
-            <ProtectedRoute>
-              <PlasticDeliveryChallan />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/plastic-erp/transport/challans"
-          element={
-            <ProtectedRoute>
-              <PlasticDeliveryChallan />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/plastic-erp/transport"
-          element={
-            <ProtectedRoute>
-              <PlasticTransport />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/plastic-erp/transport/vehicles"
-          element={
-            <ProtectedRoute>
-              <PlasticTransport />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/plastic-erp/sales-returns"
-          element={
-            <ProtectedRoute>
-              <PlasticSalesReturns />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/plastic-erp/payments"
-          element={
-            <ProtectedRoute>
-              <PlasticPayments />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/plastic-erp/receivables"
-          element={
-            <ProtectedRoute>
-              <PlasticReceivables />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/plastic-erp/finance/receivables"
-          element={
-            <ProtectedRoute>
-              <PlasticReceivables />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/plastic-erp/customer-ledger"
-          element={
-            <ProtectedRoute>
-              <PlasticCustomerLedger />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/plastic-erp/finance/ledger"
-          element={
-            <ProtectedRoute>
-              <PlasticCustomerLedger />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/plastic-erp/credit-notes"
-          element={
-            <ProtectedRoute>
-              <PlasticCreditNotes />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/plastic-erp/finance/credit-notes"
-          element={
-            <ProtectedRoute>
-              <PlasticCreditNotes />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/plastic-erp/debit-notes"
-          element={
-            <ProtectedRoute>
-              <PlasticDebitNotes />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/plastic-erp/finance/debit-notes"
-          element={
-            <ProtectedRoute>
-              <PlasticDebitNotes />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/plastic-erp/sales-reports"
-          element={
-            <ProtectedRoute>
-              <PlasticSalesReports />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/plastic-erp/reports/sales"
-          element={
-            <ProtectedRoute>
-              <PlasticSalesReports />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Phase 4: HR, Payroll & Expense Management */}
-        <Route
-          path="/plastic-erp/employees"
-          element={
-            <ProtectedRoute>
-              <PlasticEmployees />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/plastic-erp/attendance"
-          element={
-            <ProtectedRoute>
-              <PlasticAttendance />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/plastic-erp/leaves"
-          element={
-            <ProtectedRoute>
-              <PlasticLeaveManagement />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/plastic-erp/workforce"
-          element={
-            <ProtectedRoute>
-              <PlasticWorkforce />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/plastic-erp/payroll"
-          element={
-            <ProtectedRoute>
-              <PlasticPayroll />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/plastic-erp/advances"
-          element={
-            <ProtectedRoute>
-              <PlasticEmployeeAdvances />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/plastic-erp/expenses"
-          element={
-            <ProtectedRoute>
-              <PlasticExpenses />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/plastic-erp/hr-reports"
-          element={
-            <ProtectedRoute>
-              <PlasticHrReports />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Phase 5: Accounting, GST & Compliance */}
-        <Route
-          path="/plastic-erp/chart-of-accounts"
-          element={
-            <ProtectedRoute>
-              <PlasticChartOfAccounts />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/plastic-erp/journal-entries"
-          element={
-            <ProtectedRoute>
-              <PlasticJournalEntries />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/plastic-erp/cash-bank"
-          element={
-            <ProtectedRoute>
-              <PlasticCashBank />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/plastic-erp/bank-reconciliation"
-          element={
-            <ProtectedRoute>
-              <PlasticBankReconciliation />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/plastic-erp/gst-management"
-          element={
-            <ProtectedRoute>
-              <PlasticGstManagement />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/plastic-erp/gst-reconciliation"
-          element={
-            <ProtectedRoute>
-              <PlasticGstReconciliation />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/plastic-erp/financial-reports"
-          element={
-            <ProtectedRoute>
-              <PlasticFinancialReports />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/plastic-erp/accounting-dashboard"
-          element={
-            <ProtectedRoute>
-              <PlasticAccountingDashboard />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Phase 6: Procurement, Vendor & Purchase Intelligence */}
-        <Route
-          path="/plastic-erp/purchase-requisitions"
-          element={
-            <ProtectedRoute>
-              <PlasticPurchaseRequisitions />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/plastic-erp/supplier-quotations"
-          element={
-            <ProtectedRoute>
-              <PlasticSupplierQuotations />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/plastic-erp/purchase-comparison"
-          element={
-            <ProtectedRoute>
-              <PlasticPurchaseComparison />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/plastic-erp/purchase-orders"
-          element={
-            <ProtectedRoute>
-              <PlasticPurchaseOrders />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/plastic-erp/purchase-deliveries"
-          element={
-            <ProtectedRoute>
-              <PlasticPurchaseDeliveries />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/plastic-erp/supplier-performance"
-          element={
-            <ProtectedRoute>
-              <PlasticSupplierPerformance />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/plastic-erp/procurement-reports"
-          element={
-            <ProtectedRoute>
-              <PlasticProcurementReports />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/plastic-erp/procurement-dashboard"
-          element={
-            <ProtectedRoute>
-              <PlasticProcurementDashboard />
-            </ProtectedRoute>
-          }
-        />
-
+        {/* Fallback Catch-All Route */}
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </BrowserRouter>

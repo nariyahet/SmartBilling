@@ -1,26 +1,37 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import API from "../api/axios";
 import LoadingScreen from "../components/LoadingScreen";
 import {
   ResponsiveContainer,
   AreaChart,
   Area,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  PieChart,
-  Pie,
-  Cell,
+  Legend,
 } from "recharts";
 import "./Dashboard.css";
 
+// Semantic color mapping for polymers
+const POLYMER_COLORS = {
+  PET: "#0879D1", // Primary Ocean Blue
+  PP: "#159A9C", // Teal
+  HDPE: "#1597E5", // Secondary Blue
+  LDPE: "#063B66", // Deep Navy
+  OTHER: "#718096", // Slate Muted
+};
+
 function Dashboard() {
   const navigate = useNavigate();
-  const location = useLocation();
 
-  // Core metrics
+  // Core SmartBilling stats
   const [stats, setStats] = useState({
     totalCustomers: 0,
     totalProducts: 0,
@@ -29,12 +40,7 @@ function Dashboard() {
     todaySales: 0,
   });
 
-  const [invoices, setInvoices] = useState([]);
-  const [lowStockProducts, setLowStockProducts] = useState([]);
-  const [dailySales, setDailySales] = useState([]);
-  const [monthlySales, setMonthlySales] = useState([]);
-
-  // Plastic ERP metrics
+  // Plastic ERP Comprehensive KPIs
   const [plasticStats, setPlasticStats] = useState({
     totalPurchasedKg: 0,
     totalPurchaseAmount: 0,
@@ -42,53 +48,91 @@ function Dashboard() {
     currentStockValue: 0,
     totalSuppliers: 0,
     totalTruckInwards: 0,
+    totalInwardWeight: 0,
     totalPurchaseBills: 0,
     lowStockMaterials: [],
     todayProductionKg: 0,
     monthProductionKg: 0,
+    productionTargetKg: 0,
+    productionAchievementPercent: 0,
     activeBatches: 0,
     currentWipKg: 0,
     finishedGoodsStockKg: 0,
-    activeMachines: 0,
-    qcPending: 0,
+    scrapGeneratedKg: 0,
     regrindGeneratedKg: 0,
+    efficiencyPercent: 0,
+    machineUtilizationPercent: 0,
+    activeMachines: 0,
+    maintenanceMachines: 0,
+    qcPending: 0,
+    qcRejected: 0,
+    totalProductionCost: 0,
+    todaySales: 0,
+    monthSales: 0,
+    salesOrders: 0,
+    pendingOrders: 0,
+    todayDispatches: 0,
+    monthDispatches: 0,
+    totalDispatches: 0,
+    finishedGoodsSoldKg: 0,
+    finishedGoodsAvailableKg: 0,
+    outstandingReceivables: 0,
+    paymentsCollected: 0,
+    salesReturns: 0,
+    salesReturnAmount: 0,
+    grossProfit: 0,
+    grossMarginPercent: 0,
+    totalEmployees: 0,
+    todayPresentEmployees: 0,
+    activeAdvances: 0,
+    outstandingAdvanceAmount: 0,
+    monthExpensesAmount: 0,
+    monthPayrollAmount: 0,
+    pendingLeavesCount: 0,
   });
 
-  // UI State
+  // Supporting arrays & data sets
+  const [invoices, setInvoices] = useState([]);
+  const [lowStockProducts, setLowStockProducts] = useState([]);
+  const [dailySales, setDailySales] = useState([]);
+  const [monthlySales, setMonthlySales] = useState([]);
+  const [stockList, setStockList] = useState([]);
+  const [truckInwards, setTruckInwards] = useState([]);
+  const [purchaseBills, setPurchaseBills] = useState([]);
+  const [phase3Analytics, setPhase3Analytics] = useState(null);
+  const [phase4Analytics, setPhase4Analytics] = useState(null);
+
+  // Filter & UI state
+  const [period, setPeriod] = useState("month");
+  const [customFromDate, setCustomFromDate] = useState("");
+  const [customToDate, setCustomToDate] = useState("");
   const [currencySymbol, setCurrencySymbol] = useState("₹");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
-  const [salesPeriod, setSalesPeriod] = useState("month");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [recentTab, setRecentTab] = useState("invoices");
 
-  // User & Company State
-  const [userProfile, setUserProfile] = useState(() => {
-    try {
-      const saved = localStorage.getItem("admin");
-      return saved ? JSON.parse(saved) : { name: "Het Nariya", email: "admin@smartbilling.com" };
-    } catch {
-      return { name: "Het Nariya", email: "admin@smartbilling.com" };
-    }
-  });
-
-  const [trialInfo, setTrialInfo] = useState(() => {
+  // Company and user info
+  const [companyInfo] = useState(() => {
     try {
       const saved = localStorage.getItem("company");
-      return saved ? JSON.parse(saved) : null;
+      return saved ? JSON.parse(saved) : { name: "Kim Plant Operations" };
     } catch {
-      return null;
+      return { name: "Kim Plant Operations" };
     }
   });
 
-  const formatCurrency = (amount) => {
-    return `${currencySymbol}${Number(amount || 0).toLocaleString("en-IN", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
-  };
+  const [businessSettings, setBusinessSettings] = useState(null);
+
+  const formatCurrency = useCallback(
+    (amount) => {
+      return `${currencySymbol}${Number(amount || 0).toLocaleString("en-IN", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`;
+    },
+    [currencySymbol]
+  );
 
   const formatDate = (dateStr) => {
     if (!dateStr) return "-";
@@ -102,1038 +146,1303 @@ function Dashboard() {
         });
   };
 
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return "Good Morning";
-    if (hour < 17) return "Good Afternoon";
-    return "Good Evening";
-  };
-
-  const loadDashboardData = useCallback(async (isRefresh = false) => {
-    try {
-      if (isRefresh) {
-        setRefreshing(true);
-      } else {
-        setLoading(true);
-      }
-      setError("");
-
-      const [
-        statsRes,
-        lowStockRes,
-        settingsRes,
-        meRes,
-        plasticRes,
-        salesRepRes,
-        invoicesRes,
-      ] = await Promise.allSettled([
-        API.get("/dashboard"),
-        API.get("/dashboard/low-stock"),
-        API.get("/business-settings"),
-        API.get("/auth/me"),
-        API.get("/dashboard/plastic-stats?period=month"),
-        API.get("/dashboard/sales-report"),
-        API.get("/invoices"),
-      ]);
-
-      if (statsRes.status === "fulfilled" && statsRes.value.data?.success && statsRes.value.data?.stats) {
-        const s = statsRes.value.data.stats;
-        setStats({
-          totalCustomers: Number(s.totalCustomers) || 0,
-          totalProducts: Number(s.totalProducts) || 0,
-          totalInvoices: Number(s.totalInvoices) || 0,
-          totalSales: Number(s.totalSales) || 0,
-          todaySales: Number(s.todaySales) || 0,
-        });
-      }
-
-      if (lowStockRes.status === "fulfilled" && Array.isArray(lowStockRes.value.data?.products)) {
-        setLowStockProducts(lowStockRes.value.data.products);
-      }
-
-      if (settingsRes.status === "fulfilled" && settingsRes.value.data?.settings?.currency_symbol) {
-        setCurrencySymbol(settingsRes.value.data.settings.currency_symbol);
-      }
-
-      if (meRes.status === "fulfilled" && meRes.value.data?.data) {
-        const { user, company } = meRes.value.data.data;
-        if (user) {
-          setUserProfile(user);
-          localStorage.setItem("admin", JSON.stringify(user));
+  // Main data fetcher
+  const loadDashboardData = useCallback(
+    async (targetPeriod = period, fromDate = customFromDate, toDate = customToDate, isRefresh = false) => {
+      try {
+        if (isRefresh) {
+          setRefreshing(true);
+        } else {
+          setLoading(true);
         }
-        if (company) {
-          setTrialInfo(company);
-          localStorage.setItem("company", JSON.stringify(company));
+        setError("");
+
+        let plasticStatsUrl = `/dashboard/plastic-stats?period=${targetPeriod}`;
+        if (targetPeriod === "custom" && fromDate && toDate) {
+          plasticStatsUrl += `&from_date=${fromDate}&to_date=${toDate}`;
         }
-      }
 
-      if (plasticRes.status === "fulfilled" && plasticRes.value.data?.success && plasticRes.value.data?.stats) {
-        setPlasticStats(plasticRes.value.data.stats);
-      }
+        const [
+          statsRes,
+          lowStockRes,
+          settingsRes,
+          plasticStatsRes,
+          salesRepRes,
+          invoicesRes,
+          p3Res,
+          p4Res,
+          stockRes,
+          inwardsRes,
+          billsRes,
+        ] = await Promise.allSettled([
+          API.get("/dashboard"),
+          API.get("/dashboard/low-stock"),
+          API.get("/business-settings"),
+          API.get(plasticStatsUrl),
+          API.get("/dashboard/sales-report"),
+          API.get("/invoices"),
+          API.get("/dashboard/plastic-phase3-analytics"),
+          API.get("/dashboard/plastic-phase4-analytics"),
+          API.get("/raw-material-stock"),
+          API.get("/truck-inwards"),
+          API.get("/purchase-bills"),
+        ]);
 
-      if (salesRepRes.status === "fulfilled" && salesRepRes.value.data?.report) {
-        const rep = salesRepRes.value.data.report;
-        setDailySales(Array.isArray(rep.dailySales) ? rep.dailySales : []);
-        setMonthlySales(Array.isArray(rep.monthlySales) ? rep.monthlySales : []);
-      }
+        // 1. Core billing stats
+        if (statsRes.status === "fulfilled" && statsRes.value.data?.success && statsRes.value.data?.stats) {
+          const s = statsRes.value.data.stats;
+          setStats({
+            totalCustomers: Number(s.totalCustomers) || 0,
+            totalProducts: Number(s.totalProducts) || 0,
+            totalInvoices: Number(s.totalInvoices) || 0,
+            totalSales: Number(s.totalSales) || 0,
+            todaySales: Number(s.todaySales) || 0,
+          });
+        }
 
-      if (invoicesRes.status === "fulfilled" && Array.isArray(invoicesRes.value.data?.invoices)) {
-        setInvoices(invoicesRes.value.data.invoices);
+        // 2. Low stock products
+        if (lowStockRes.status === "fulfilled" && Array.isArray(lowStockRes.value.data?.products)) {
+          setLowStockProducts(lowStockRes.value.data.products);
+        }
+
+        // 3. Settings
+        if (settingsRes.status === "fulfilled" && settingsRes.value.data?.settings) {
+          setBusinessSettings(settingsRes.value.data.settings);
+          if (settingsRes.value.data.settings.currency_symbol) {
+            setCurrencySymbol(settingsRes.value.data.settings.currency_symbol);
+          }
+        }
+
+        // 4. Plastic ERP Stats
+        if (plasticStatsRes.status === "fulfilled" && plasticStatsRes.value.data?.success && plasticStatsRes.value.data?.stats) {
+          setPlasticStats(plasticStatsRes.value.data.stats);
+        }
+
+        // 5. Sales Report (Daily & Monthly trends)
+        if (salesRepRes.status === "fulfilled" && salesRepRes.value.data?.report) {
+          const rep = salesRepRes.value.data.report;
+          setDailySales(Array.isArray(rep.dailySales) ? rep.dailySales : []);
+          setMonthlySales(Array.isArray(rep.monthlySales) ? rep.monthlySales : []);
+        }
+
+        // 6. Invoices
+        if (invoicesRes.status === "fulfilled" && Array.isArray(invoicesRes.value.data?.invoices)) {
+          setInvoices(invoicesRes.value.data.invoices);
+        }
+
+        // 7. Phase 3 Analytics (Sales, Dispatches, Pipeline)
+        if (p3Res.status === "fulfilled" && p3Res.value.data?.success) {
+          setPhase3Analytics(p3Res.value.data.analytics || null);
+        }
+
+        // 8. Phase 4 Analytics (HR, Workforce, Expenses)
+        if (p4Res.status === "fulfilled" && p4Res.value.data?.success) {
+          setPhase4Analytics(p4Res.value.data.analytics || null);
+        }
+
+        // 9. Stock List (for polymer composition)
+        if (stockRes.status === "fulfilled" && stockRes.value.data?.success) {
+          setStockList(Array.isArray(stockRes.value.data.stock) ? stockRes.value.data.stock : []);
+        }
+
+        // 10. Truck Inwards
+        if (inwardsRes.status === "fulfilled" && inwardsRes.value.data?.success) {
+          setTruckInwards(Array.isArray(inwardsRes.value.data.truck_inwards) ? inwardsRes.value.data.truck_inwards : []);
+        }
+
+        // 11. Purchase Bills
+        if (billsRes.status === "fulfilled" && billsRes.value.data?.success) {
+          setPurchaseBills(Array.isArray(billsRes.value.data.purchase_bills) ? billsRes.value.data.purchase_bills : []);
+        }
+      } catch (err) {
+        console.error("Dashboard loading error:", err);
+        setError("Unable to load latest dashboard metrics. Please check network connection.");
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
       }
-    } catch (err) {
-      console.error("Dashboard loading error:", err);
-      setError("Unable to load latest dashboard data.");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
+    },
+    [period, customFromDate, customToDate]
+  );
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadDashboardData();
-  }, [loadDashboardData]);
+    loadDashboardData(period, customFromDate, customToDate, false);
+  }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("admin");
-    localStorage.removeItem("company");
-    navigate("/");
+  const handlePeriodChange = (newPeriod) => {
+    setPeriod(newPeriod);
+    if (newPeriod !== "custom") {
+      loadDashboardData(newPeriod, customFromDate, customToDate, true);
+    }
   };
 
-  // Aggregated Top Customers from real invoice data
-  const topCustomers = useMemo(() => {
-    if (!Array.isArray(invoices) || invoices.length === 0) return [];
-    const customerMap = {};
-    for (const inv of invoices) {
-      const name = inv.customer_name || "Walk-in Customer";
-      if (!customerMap[name]) {
-        customerMap[name] = {
-          name,
-          mobile: inv.customer_mobile || "",
-          invoicesCount: 0,
-          totalSpend: 0,
-        };
-      }
-      customerMap[name].invoicesCount += 1;
-      customerMap[name].totalSpend += Number(inv.grand_total) || 0;
+  const handleApplyCustomFilter = (e) => {
+    if (e?.preventDefault) e.preventDefault();
+    if (customFromDate && customToDate) {
+      loadDashboardData("custom", customFromDate, customToDate, true);
     }
-    return Object.values(customerMap)
-      .sort((a, b) => b.totalSpend - a.totalSpend)
-      .slice(0, 5);
-  }, [invoices]);
+  };
 
-  // Recent invoices list (filtered if search query is present)
-  const filteredInvoices = useMemo(() => {
-    if (!Array.isArray(invoices)) return [];
-    if (!searchQuery.trim()) return invoices.slice(0, 6);
+  // Polymer Stock Distribution calculation
+  const polymerDistribution = useMemo(() => {
+    const buckets = {
+      PET: { name: "PET", quantityKg: 0, color: POLYMER_COLORS.PET },
+      PP: { name: "PP", quantityKg: 0, color: POLYMER_COLORS.PP },
+      HDPE: { name: "HDPE", quantityKg: 0, color: POLYMER_COLORS.HDPE },
+      LDPE: { name: "LDPE", quantityKg: 0, color: POLYMER_COLORS.LDPE },
+      OTHER: { name: "OTHER", quantityKg: 0, color: POLYMER_COLORS.OTHER },
+    };
 
-    const q = searchQuery.toLowerCase().trim();
-    return invoices
-      .filter(
-        (inv) =>
-          inv.invoice_no?.toLowerCase().includes(q) ||
-          inv.customer_name?.toLowerCase().includes(q) ||
-          String(inv.grand_total).includes(q)
-      )
-      .slice(0, 8);
-  }, [invoices, searchQuery]);
+    let total = 0;
+    stockList.forEach((item) => {
+      const type = (item.plastic_type || "OTHER").toUpperCase();
+      const bucket = buckets[type] || buckets.OTHER;
+      const qtyKg = item.unit === "TON" ? Number(item.current_stock || 0) * 1000 : Number(item.current_stock || 0);
+      bucket.quantityKg += qtyKg;
+      total += qtyKg;
+    });
 
-  // Chart data for Sales Overview Line/Area Chart
-  const chartData = useMemo(() => {
-    if (salesPeriod === "today") {
+    const data = Object.values(buckets).map((b) => ({
+      ...b,
+      percentage: total > 0 ? Number(((b.quantityKg / total) * 100).toFixed(1)) : 0,
+    }));
+
+    return {
+      chartData: data.filter((d) => d.quantityKg > 0),
+      totalStockKg: total,
+    };
+  }, [stockList]);
+
+  // Combined Sales trend chart data
+  const salesChartData = useMemo(() => {
+    if (period === "today") {
       const todayDateStr = new Date().toISOString().split("T")[0];
-      const todayInvoices = invoices.filter((inv) => {
+      const todayInvs = invoices.filter((inv) => {
         if (!inv.created_at) return false;
-        const d = new Date(inv.created_at).toISOString().split("T")[0];
-        return d === todayDateStr;
+        return new Date(inv.created_at).toISOString().split("T")[0] === todayDateStr;
       });
 
-      if (todayInvoices.length > 0) {
-        return todayInvoices.map((inv, idx) => ({
-          label: inv.invoice_no || `Invoice #${idx + 1}`,
+      if (todayInvs.length > 0) {
+        return todayInvs.map((inv, idx) => ({
+          label: inv.invoice_no || `#${idx + 1}`,
           amount: Number(inv.grand_total) || 0,
         }));
       }
 
-      // Default today trend markers
       return [
         { label: "09:00", amount: 0 },
-        { label: "12:00", amount: Number(stats.todaySales) * 0.4 },
-        { label: "15:00", amount: Number(stats.todaySales) * 0.7 },
-        { label: "18:00", amount: Number(stats.todaySales) },
-      ];
-    } else if (salesPeriod === "month") {
-      if (dailySales.length > 0) {
-        return [...dailySales]
-          .reverse()
-          .slice(-10)
-          .map((d) => {
-            const dt = new Date(d.date);
-            const label = isNaN(dt.getTime())
-              ? d.date
-              : dt.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
-            return {
-              label,
-              amount: Number(d.total) || 0,
-            };
-          });
-      }
-      return [
-        { label: "Week 1", amount: Number(stats.totalSales) * 0.2 },
-        { label: "Week 2", amount: Number(stats.totalSales) * 0.45 },
-        { label: "Week 3", amount: Number(stats.totalSales) * 0.75 },
-        { label: "Week 4", amount: Number(stats.totalSales) },
-      ];
-    } else {
-      // year
-      if (monthlySales.length > 0) {
-        return [...monthlySales].reverse().map((m) => {
-          const parts = m.month.split("-");
-          const monthIdx = parseInt(parts[1], 10) - 1;
-          const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-          return {
-            label: monthNames[monthIdx] || m.month,
-            amount: Number(m.total) || 0,
-          };
-        });
-      }
-      return [
-        { label: "Q1", amount: Number(stats.totalSales) * 0.2 },
-        { label: "Q2", amount: Number(stats.totalSales) * 0.5 },
-        { label: "Q3", amount: Number(stats.totalSales) * 0.8 },
-        { label: "Q4", amount: Number(stats.totalSales) },
+        { label: "12:00", amount: Number(plasticStats.todaySales || stats.todaySales) * 0.4 },
+        { label: "15:00", amount: Number(plasticStats.todaySales || stats.todaySales) * 0.7 },
+        { label: "18:00", amount: Number(plasticStats.todaySales || stats.todaySales) },
       ];
     }
-  }, [salesPeriod, invoices, dailySales, monthlySales, stats]);
 
-  // Donut chart status breakdown
-  const pieData = useMemo(() => {
-    const totalCount = stats.totalInvoices || invoices.length || 0;
-    if (totalCount === 0) {
-      return [{ name: "No Invoices", value: 1, color: "#E7EAF0" }];
+    if (period === "year" && monthlySales.length > 0) {
+      return monthlySales.map((m) => ({
+        label: m.month,
+        amount: m.total,
+      }));
     }
-    return [
-      { name: "Paid", value: totalCount, color: "#10B981" },
-      { name: "Pending", value: 0, color: "#F59E0B" },
-      { name: "Overdue", value: 0, color: "#EF4444" },
-    ];
-  }, [stats.totalInvoices, invoices]);
 
-  const firstName = userProfile?.name ? userProfile.name.split(" ")[0] : "Het";
-  const userInitials = userProfile?.name
-    ? userProfile.name
-        .split(" ")
-        .map((p) => p[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
-    : "HN";
+    if (dailySales.length > 0) {
+      return dailySales.map((d) => ({
+        label: d.day,
+        amount: d.total,
+      }));
+    }
+
+    return [];
+  }, [period, invoices, dailySales, monthlySales, plasticStats.todaySales, stats.todaySales]);
+
+  // Operational alerts aggregation
+  const alertsList = useMemo(() => {
+    const list = [];
+
+    // 1. Low Raw Materials
+    if (plasticStats.lowStockMaterials && plasticStats.lowStockMaterials.length > 0) {
+      list.push({
+        id: "low-raw-mat",
+        severity: "warning",
+        icon: "⚠️",
+        title: "Raw Materials Low Stock",
+        message: `${plasticStats.lowStockMaterials.length} material(s) below minimum safety stock`,
+        link: "/plastic-erp/stock",
+        linkText: "Inspect Stock",
+      });
+    }
+
+    // 2. Low Catalog Products
+    if (lowStockProducts.length > 0) {
+      list.push({
+        id: "low-products",
+        severity: "warning",
+        icon: "📦",
+        title: "Catalog Inventory Low",
+        message: `${lowStockProducts.length} finished product(s) have 5 or fewer items remaining`,
+        link: "/products",
+        linkText: "View Products",
+      });
+    }
+
+    // 3. Outstanding Receivables
+    if (plasticStats.outstandingReceivables > 0) {
+      list.push({
+        id: "receivables",
+        severity: "warning",
+        icon: "⚖️",
+        title: "Pending Receivables",
+        message: `${formatCurrency(plasticStats.outstandingReceivables)} awaiting collection`,
+        link: "/plastic-erp/receivables",
+        linkText: "Receivables",
+      });
+    }
+
+    // 4. Overdue Invoices
+    if (phase3Analytics?.alerts?.overdueInvoices > 0) {
+      list.push({
+        id: "overdue-invoices",
+        severity: "critical",
+        icon: "🚨",
+        title: "Overdue Invoices",
+        message: `${phase3Analytics.alerts.overdueInvoices} customer invoices are past due date`,
+        link: "/invoices/history",
+        linkText: "Invoice History",
+      });
+    }
+
+    // 5. Ready for Dispatch
+    if (phase3Analytics?.alerts?.readyDispatches > 0) {
+      list.push({
+        id: "ready-dispatch",
+        severity: "healthy",
+        icon: "🚚",
+        title: "Dispatches Ready",
+        message: `${phase3Analytics.alerts.readyDispatches} finished order(s) staged for dispatch`,
+        link: "/plastic-erp/dispatch",
+        linkText: "View Dispatch",
+      });
+    }
+
+    // 6. Quality Checks Pending
+    if (plasticStats.qcPending > 0) {
+      list.push({
+        id: "qc-pending",
+        severity: "warning",
+        icon: "🔬",
+        title: "Quality Inspection Required",
+        message: `${plasticStats.qcPending} production batch(es) awaiting QC approval`,
+        link: "/plastic-erp/quality",
+        linkText: "Inspect QC",
+      });
+    }
+
+    // 7. Machines in Maintenance
+    if (plasticStats.maintenanceMachines > 0) {
+      list.push({
+        id: "machines-maint",
+        severity: "critical",
+        icon: "⚙️",
+        title: "Machine Maintenance Alert",
+        message: `${plasticStats.maintenanceMachines} machine(s) offline for maintenance / breakdown`,
+        link: "/plastic-erp/machines",
+        linkText: "Check Machines",
+      });
+    }
+
+    return list;
+  }, [plasticStats, lowStockProducts, phase3Analytics, formatCurrency]);
 
   if (loading) {
-    return <LoadingScreen title="Loading SmartBilling Dashboard..." subtitle="Preparing business overview..." />;
+    return <LoadingScreen title="Loading Executive Dashboard..." subtitle="Synchronizing enterprise metrics..." />;
   }
 
   return (
-    <div className="sb-app-layout">
-      {/* ---------------------------------------------------- */}
-      {/* 1. DESKTOP SIDEBAR & MOBILE DRAWER                   */}
-      {/* ---------------------------------------------------- */}
-      <aside className={`sb-sidebar ${mobileMenuOpen ? "drawer-open" : ""}`}>
-        <div className="sb-sidebar-header">
-          <div className="sb-brand-block">
-            <div className="sb-logo-icon">⚡</div>
-            <div className="sb-brand-text">
-              <span className="sb-brand-name">SmartBilling</span>
-              <span className="sb-brand-tagline">Billing & ERP Suite</span>
-            </div>
+    <div className="sb-dashboard-canvas">
+      {/* =========================================================================
+          1. EXECUTIVE HEADER
+          ========================================================================= */}
+      <header className="sb-exec-header">
+        <div className="sb-header-meta">
+          <div className="sb-header-badge-row">
+            <span className="sb-plant-badge">
+              <span className="sb-badge-pulse"></span>
+              {businessSettings?.business_name || companyInfo?.name || "Kim, Surat Plant Operations"}
+            </span>
+            <span className="sb-sys-status">
+              <span className="sb-status-dot"></span> System Live & Operational
+            </span>
           </div>
-          {mobileMenuOpen && (
-            <button
-              type="button"
-              className="sb-drawer-close"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              ✕
-            </button>
-          )}
+          <h1 className="sb-exec-title">Executive Dashboard</h1>
+          <p className="sb-exec-subtitle">Here&apos;s what&apos;s happening with your business today.</p>
         </div>
 
-        <nav className="sb-nav-menu">
-          <div className="sb-nav-group-label">MAIN NAVIGATION</div>
-
-          <Link
-            to="/dashboard"
-            className={`sb-nav-item ${location.pathname === "/dashboard" ? "active" : ""}`}
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <span className="sb-nav-icon">📊</span>
-            <span className="sb-nav-text">Dashboard</span>
-            <span className="sb-nav-indicator"></span>
-          </Link>
-
-          <Link
-            to="/products"
-            className={`sb-nav-item ${location.pathname === "/products" ? "active" : ""}`}
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <span className="sb-nav-icon">📦</span>
-            <span className="sb-nav-text">Products</span>
-          </Link>
-
-          <Link
-            to="/customers"
-            className={`sb-nav-item ${location.pathname === "/customers" ? "active" : ""}`}
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <span className="sb-nav-icon">👥</span>
-            <span className="sb-nav-text">Customers</span>
-          </Link>
-
-          <Link
-            to="/invoices/create"
-            className={`sb-nav-item ${location.pathname === "/invoices/create" ? "active" : ""}`}
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <span className="sb-nav-icon">🧾</span>
-            <span className="sb-nav-text">New Invoice</span>
-          </Link>
-
-          <Link
-            to="/invoices/history"
-            className={`sb-nav-item ${location.pathname === "/invoices/history" ? "active" : ""}`}
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <span className="sb-nav-icon">📋</span>
-            <span className="sb-nav-text">Invoice History</span>
-          </Link>
-
-          <Link
-            to="/sales-report"
-            className={`sb-nav-item ${location.pathname === "/sales-report" ? "active" : ""}`}
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <span className="sb-nav-icon">📈</span>
-            <span className="sb-nav-text">Sales Report</span>
-          </Link>
-
-          <Link
-            to="/settings"
-            className={`sb-nav-item ${location.pathname === "/settings" ? "active" : ""}`}
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <span className="sb-nav-icon">⚙️</span>
-            <span className="sb-nav-text">Business Settings</span>
-          </Link>
-
-          <div className="sb-nav-group-label" style={{ marginTop: "16px" }}>SPECIALIZED MODULES</div>
-
-          <Link
-            to="/plastic-erp"
-            className="sb-nav-item sb-plastic-pill"
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <span className="sb-nav-icon">♻️</span>
-            <span className="sb-nav-text">Plastic ERP</span>
-            <span className="sb-pill-badge">Kim Plant</span>
-          </Link>
-        </nav>
-
-        <div className="sb-sidebar-footer">
-          <div className="sb-user-card">
-            <div className="sb-user-avatar-mini">{userInitials}</div>
-            <div className="sb-user-card-info">
-              <span className="sb-user-card-name">{userProfile.name}</span>
-              <span className="sb-user-card-role">Administrator</span>
-            </div>
+        <div className="sb-exec-controls">
+          {/* Period Selector Tabs */}
+          <div className="sb-period-btn-group" role="group" aria-label="Filter period">
+            <button
+              type="button"
+              className={`sb-period-tab ${period === "today" ? "active" : ""}`}
+              onClick={() => handlePeriodChange("today")}
+            >
+              Today
+            </button>
+            <button
+              type="button"
+              className={`sb-period-tab ${period === "month" ? "active" : ""}`}
+              onClick={() => handlePeriodChange("month")}
+            >
+              This Month
+            </button>
+            <button
+              type="button"
+              className={`sb-period-tab ${period === "year" ? "active" : ""}`}
+              onClick={() => handlePeriodChange("year")}
+            >
+              This Year
+            </button>
+            <button
+              type="button"
+              className={`sb-period-tab ${period === "custom" ? "active" : ""}`}
+              onClick={() => handlePeriodChange("custom")}
+            >
+              Custom Range
+            </button>
           </div>
-          <button type="button" className="sb-sidebar-logout-btn" onClick={handleLogout}>
-            🚪 Logout
+
+          {/* Refresh Action */}
+          <button
+            type="button"
+            className={`sb-btn-refresh ${refreshing ? "spinning" : ""}`}
+            onClick={() => loadDashboardData(period, customFromDate, customToDate, true)}
+            title="Refresh dashboard metrics"
+            disabled={refreshing}
+          >
+            <span className="sb-btn-icon">🔄</span>
+            <span className="sb-btn-text">{refreshing ? "Updating..." : "Refresh"}</span>
           </button>
         </div>
-      </aside>
+      </header>
 
-      {/* Backdrop for mobile drawer */}
-      {mobileMenuOpen && (
-        <div
-          className="sb-drawer-backdrop"
-          onClick={() => setMobileMenuOpen(false)}
-        />
+      {/* Custom Date Range Filter Form (Displayed when Custom is active) */}
+      {period === "custom" && (
+        <form className="sb-custom-filter-bar" onSubmit={handleApplyCustomFilter}>
+          <div className="sb-filter-field">
+            <label htmlFor="custom-from-date">From Date:</label>
+            <input
+              id="custom-from-date"
+              type="date"
+              value={customFromDate}
+              onChange={(e) => setCustomFromDate(e.target.value)}
+              required
+            />
+          </div>
+          <div className="sb-filter-field">
+            <label htmlFor="custom-to-date">To Date:</label>
+            <input
+              id="custom-to-date"
+              type="date"
+              value={customToDate}
+              onChange={(e) => setCustomToDate(e.target.value)}
+              required
+            />
+          </div>
+          <button type="submit" className="sb-btn-apply-filter">
+            Apply Date Filter
+          </button>
+        </form>
       )}
 
-      {/* ---------------------------------------------------- */}
-      {/* 2. MAIN CONTENT AREA & TOP HEADER                     */}
-      {/* ---------------------------------------------------- */}
-      <div className="sb-main-wrapper">
-        {/* Top Header */}
-        <header className="sb-top-header">
-          <div className="sb-header-left">
-            <button
-              type="button"
-              className="sb-hamburger-btn"
-              onClick={() => setMobileMenuOpen(true)}
-              aria-label="Open Navigation"
-            >
-              ☰
-            </button>
-            <div className="sb-search-wrap">
-              <span className="sb-search-icon">🔍</span>
-              <input
-                type="text"
-                className="sb-search-input"
-                placeholder="Search products, customers, invoices..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  className="sb-search-clear"
-                  onClick={() => setSearchQuery("")}
-                >
-                  ✕
-                </button>
-              )}
+      {/* Non-blocking error notification */}
+      {error && (
+        <div className="sb-dashboard-error-banner" role="alert">
+          <span className="sb-error-icon">⚠️</span>
+          <span>{error}</span>
+          <button type="button" onClick={() => setError("")} aria-label="Dismiss">
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* =========================================================================
+          2. HIGH-VISIBILITY ALERT & ACTION CENTER
+          ========================================================================= */}
+      <section className="sb-alert-section" aria-label="Operational Alerts">
+        <div className="sb-section-header">
+          <div className="sb-sec-title-wrap">
+            <span className="sb-sec-icon">🔔</span>
+            <h2 className="sb-sec-title">Operational Alerts &amp; Attention Items</h2>
+          </div>
+          <span className="sb-alert-count-pill">
+            {alertsList.length} Action{alertsList.length !== 1 ? "s" : ""} Required
+          </span>
+        </div>
+
+        {alertsList.length === 0 ? (
+          <div className="sb-alert-empty-box">
+            <span className="sb-empty-icon">✅</span>
+            <div>
+              <strong>All Operations Nominal</strong>
+              <p>Zero critical bottlenecks or low stock warnings detected in current operations.</p>
             </div>
           </div>
+        ) : (
+          <div className="sb-alerts-grid">
+            {alertsList.map((alert) => (
+              <div key={alert.id} className={`sb-alert-card severity-${alert.severity}`}>
+                <div className="sb-alert-icon-wrap">{alert.icon}</div>
+                <div className="sb-alert-content">
+                  <strong className="sb-alert-heading">{alert.title}</strong>
+                  <p className="sb-alert-msg">{alert.message}</p>
+                </div>
+                <Link to={alert.link} className="sb-alert-action-btn">
+                  {alert.linkText} →
+                </Link>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
-          <div className="sb-header-right">
-            <div className="sb-company-badge">
-              <span className="sb-company-icon">🏢</span>
-              <span className="sb-company-name">
-                {trialInfo?.name || "SmartBilling Main"}
+      {/* =========================================================================
+          3. PRIMARY MANAGEMENT KPI GRID (8 Standardized Cards)
+          ========================================================================= */}
+      <section className="sb-primary-kpi-section" aria-label="Management KPIs">
+        <div className="sb-kpi-grid-8">
+          {/* 1. Total Sales / Revenue */}
+          <div className="sb-kpi-card accent-blue">
+            <div className="sb-kpi-top">
+              <span className="sb-kpi-label">Total Revenue</span>
+              <span className="sb-kpi-icon-box">💰</span>
+            </div>
+            <div className="sb-kpi-value-wrap">
+              <strong className="sb-kpi-value">
+                {formatCurrency(plasticStats.monthSales || stats.totalSales)}
+              </strong>
+              <span className="sb-kpi-sub">
+                Today: {formatCurrency(plasticStats.todaySales || stats.todaySales)}
               </span>
             </div>
-
-            <div className="sb-header-bell" title="System Notifications">
-              <span>🔔</span>
-              <span className="sb-bell-dot"></span>
-            </div>
-
-            <div
-              className="sb-profile-menu-container"
-              onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-            >
-              <div className="sb-avatar-circle">{userInitials}</div>
-              <div className="sb-profile-text">
-                <span className="sb-profile-name">{userProfile.name}</span>
-                <span className="sb-profile-role">Admin</span>
-              </div>
-              <span className="sb-dropdown-arrow">▾</span>
-
-              {profileDropdownOpen && (
-                <div className="sb-profile-dropdown">
-                  <div className="dropdown-user-header">
-                    <strong>{userProfile.name}</strong>
-                    <span>{userProfile.email}</span>
-                  </div>
-                  <hr className="dropdown-divider" />
-                  <Link to="/settings" className="dropdown-item">
-                    ⚙️ Settings
-                  </Link>
-                  <Link to="/plastic-erp" className="dropdown-item">
-                    ♻️ Plastic Recycling ERP
-                  </Link>
-                  <hr className="dropdown-divider" />
-                  <button
-                    type="button"
-                    className="dropdown-item text-danger"
-                    onClick={handleLogout}
-                  >
-                    🚪 Logout
-                  </button>
-                </div>
-              )}
-            </div>
+            <Link to="/sales-report" className="sb-kpi-footer-link">
+              Sales Analytics →
+            </Link>
           </div>
-        </header>
 
-        {/* Main Dashboard Canvas */}
-        <main className="sb-dashboard-canvas">
-          {/* Welcome & Action Bar */}
-          <div className="sb-welcome-bar">
+          {/* 2. Total Dispatches */}
+          <div className="sb-kpi-card accent-blue-alt">
+            <div className="sb-kpi-top">
+              <span className="sb-kpi-label">Total Dispatches</span>
+              <span className="sb-kpi-icon-box">🚚</span>
+            </div>
+            <div className="sb-kpi-value-wrap">
+              <strong className="sb-kpi-value">
+                {plasticStats.monthDispatches || plasticStats.totalDispatches || 0}
+              </strong>
+              <span className="sb-kpi-sub">
+                Today: {plasticStats.todayDispatches || 0} dispatches
+              </span>
+            </div>
+            <Link to="/plastic-erp/dispatch" className="sb-kpi-footer-link">
+              Dispatch Register →
+            </Link>
+          </div>
+
+          {/* 3. Sales Orders */}
+          <div className="sb-kpi-card accent-teal">
+            <div className="sb-kpi-top">
+              <span className="sb-kpi-label">Sales Orders</span>
+              <span className="sb-kpi-icon-box">📋</span>
+            </div>
+            <div className="sb-kpi-value-wrap">
+              <strong className="sb-kpi-value">{plasticStats.salesOrders || 0}</strong>
+              <span className="sb-kpi-sub">
+                {plasticStats.pendingOrders || 0} pending processing
+              </span>
+            </div>
+            <Link to="/plastic-erp/sales-orders" className="sb-kpi-footer-link">
+              Order Pipeline →
+            </Link>
+          </div>
+
+          {/* 4. Outstanding Receivables */}
+          <div className="sb-kpi-card accent-amber">
+            <div className="sb-kpi-top">
+              <span className="sb-kpi-label">Outstanding Receivables</span>
+              <span className="sb-kpi-icon-box">⚖️</span>
+            </div>
+            <div className="sb-kpi-value-wrap">
+              <strong className="sb-kpi-value text-amber">
+                {formatCurrency(plasticStats.outstandingReceivables || 0)}
+              </strong>
+              <span className="sb-kpi-sub">
+                Collected: {formatCurrency(plasticStats.paymentsCollected || 0)}
+              </span>
+            </div>
+            <Link to="/plastic-erp/receivables" className="sb-kpi-footer-link">
+              Receivables Aging →
+            </Link>
+          </div>
+
+          {/* 5. Purchase Spend / Value */}
+          <div className="sb-kpi-card accent-blue">
+            <div className="sb-kpi-top">
+              <span className="sb-kpi-label">Purchase Value</span>
+              <span className="sb-kpi-icon-box">📦</span>
+            </div>
+            <div className="sb-kpi-value-wrap">
+              <strong className="sb-kpi-value">
+                {formatCurrency(plasticStats.totalPurchaseAmount || 0)}
+              </strong>
+              <span className="sb-kpi-sub">
+                {(plasticStats.totalPurchasedKg || 0).toLocaleString("en-IN")} KG acquired
+              </span>
+            </div>
+            <Link to="/plastic-erp/purchase-bills" className="sb-kpi-footer-link">
+              Purchase Bills →
+            </Link>
+          </div>
+
+          {/* 6. Production Output */}
+          <div className="sb-kpi-card accent-teal">
+            <div className="sb-kpi-top">
+              <span className="sb-kpi-label">Production Output</span>
+              <span className="sb-kpi-icon-box">🏭</span>
+            </div>
+            <div className="sb-kpi-value-wrap">
+              <strong className="sb-kpi-value">
+                {Number(plasticStats.monthProductionKg || plasticStats.todayProductionKg || 0).toLocaleString("en-IN")} KG
+              </strong>
+              <span className="sb-kpi-sub">
+                Efficiency: {plasticStats.efficiencyPercent || 0}%
+              </span>
+            </div>
+            <Link to="/plastic-erp/production" className="sb-kpi-footer-link">
+              Production Floor →
+            </Link>
+          </div>
+
+          {/* 7. Raw Material Stock */}
+          <div className="sb-kpi-card accent-navy">
+            <div className="sb-kpi-top">
+              <span className="sb-kpi-label">Raw Material Stock</span>
+              <span className="sb-kpi-icon-box">♻️</span>
+            </div>
+            <div className="sb-kpi-value-wrap">
+              <strong className="sb-kpi-value">
+                {Number(plasticStats.currentStockKg || 0).toLocaleString("en-IN")} KG
+              </strong>
+              <span className="sb-kpi-sub">
+                Value: {formatCurrency(plasticStats.currentStockValue || 0)}
+              </span>
+            </div>
+            <Link to="/plastic-erp/stock" className="sb-kpi-footer-link">
+              Inventory Ledger →
+            </Link>
+          </div>
+
+          {/* 8. Finished Goods Stock */}
+          <div className="sb-kpi-card accent-green">
+            <div className="sb-kpi-top">
+              <span className="sb-kpi-label">Finished Goods Stock</span>
+              <span className="sb-kpi-icon-box">✅</span>
+            </div>
+            <div className="sb-kpi-value-wrap">
+              <strong className="sb-kpi-value text-green">
+                {Number(plasticStats.finishedGoodsStockKg || plasticStats.finishedGoodsAvailableKg || 0).toLocaleString("en-IN")} KG
+              </strong>
+              <span className="sb-kpi-sub">
+                Sold: {Number(plasticStats.finishedGoodsSoldKg || 0).toLocaleString("en-IN")} KG
+              </span>
+            </div>
+            <Link to="/plastic-erp/wip-fg" className="sb-kpi-footer-link">
+              Finished Goods →
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* =========================================================================
+          4. SALES & FINANCE SECTION WITH PIPELINE
+          ========================================================================= */}
+      <div className="sb-two-col-grid">
+        {/* Sales Performance Area Chart */}
+        <div className="sb-card-panel">
+          <div className="sb-panel-header">
             <div>
-              <h1 className="sb-welcome-title">
-                {getGreeting()}, {firstName}! 👋
-              </h1>
-              <p className="sb-welcome-subtitle">
-                Here&apos;s what&apos;s happening with your business today.
-              </p>
+              <h3 className="sb-panel-title">Sales Revenue &amp; Billing Trend</h3>
+              <span className="sb-panel-subtitle">Revenue volume over selected period</span>
             </div>
+            <Link to="/sales-report" className="sb-panel-action-link">
+              Detailed Report →
+            </Link>
+          </div>
 
-            <div className="sb-welcome-right">
-              <div className="sb-date-pill">
-                <span>📅</span>
-                <span>
-                  {new Date().toLocaleDateString("en-IN", {
-                    weekday: "short",
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric",
-                  })}
-                </span>
-              </div>
+          <div className="sb-chart-wrapper">
+            {salesChartData.length === 0 ? (
+              <div className="sb-empty-chart-state">No sales transactions found for this timeframe.</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={260}>
+                <AreaChart data={salesChartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#0879D1" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="#159A9C" stopOpacity={0.0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E3EBF2" vertical={false} />
+                  <XAxis dataKey="label" stroke="#718096" fontSize={12} tickLine={false} />
+                  <YAxis
+                    stroke="#718096"
+                    fontSize={12}
+                    tickLine={false}
+                    tickFormatter={(val) => `₹${val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}`}
+                  />
+                  <Tooltip
+                    formatter={(val) => [formatCurrency(val), "Revenue"]}
+                    contentStyle={{
+                      backgroundColor: "#FFFFFF",
+                      borderRadius: "8px",
+                      borderColor: "#E3EBF2",
+                      boxShadow: "0 4px 12px rgba(6, 59, 102, 0.1)",
+                    }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="amount"
+                    stroke="#0879D1"
+                    strokeWidth={2.5}
+                    fillOpacity={1}
+                    fill="url(#salesGrad)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
 
-              <button
-                type="button"
-                className="sb-btn-refresh"
-                onClick={() => loadDashboardData(true)}
-                disabled={refreshing}
-              >
-                <span className={refreshing ? "spin-icon" : ""}>🔄</span>
-                <span>{refreshing ? "Updating..." : "Refresh"}</span>
-              </button>
+        {/* Compact Sales Order Pipeline & Financial Overview */}
+        <div className="sb-card-panel">
+          <div className="sb-panel-header">
+            <div>
+              <h3 className="sb-panel-title">Sales Pipeline &amp; Liquidity</h3>
+              <span className="sb-panel-subtitle">Lifecycle status from order to cash</span>
+            </div>
+            <Link to="/plastic-erp/receivables" className="sb-panel-action-link">
+              Receivables →
+            </Link>
+          </div>
+
+          {/* Step Pipeline Visualization */}
+          <div className="sb-pipeline-stepper">
+            <div className="sb-pipe-step">
+              <span className="sb-pipe-num">{plasticStats.salesOrders || 0}</span>
+              <span className="sb-pipe-label">Orders</span>
+              <span className="sb-pipe-arrow">→</span>
+            </div>
+            <div className="sb-pipe-step">
+              <span className="sb-pipe-num">{plasticStats.pendingOrders || 0}</span>
+              <span className="sb-pipe-label">Pending</span>
+              <span className="sb-pipe-arrow">→</span>
+            </div>
+            <div className="sb-pipe-step">
+              <span className="sb-pipe-num">{plasticStats.monthDispatches || 0}</span>
+              <span className="sb-pipe-label">Dispatched</span>
+              <span className="sb-pipe-arrow">→</span>
+            </div>
+            <div className="sb-pipe-step">
+              <span className="sb-pipe-num">{stats.totalInvoices || 0}</span>
+              <span className="sb-pipe-label">Invoiced</span>
+              <span className="sb-pipe-arrow">→</span>
+            </div>
+            <div className="sb-pipe-step active">
+              <span className="sb-pipe-num">{formatCurrency(plasticStats.paymentsCollected || 0)}</span>
+              <span className="sb-pipe-label">Collected</span>
             </div>
           </div>
 
-          {/* Error Banner */}
-          {error && (
-            <div className="sb-alert sb-alert-danger">
-              <span>{error}</span>
-              <button type="button" onClick={() => setError("")}>
-                ✕
-              </button>
+          {/* Financial summary KPI pills */}
+          <div className="sb-fin-pills-grid">
+            <div className="sb-fin-pill">
+              <span className="sb-fin-pill-title">Invoiced Revenue</span>
+              <strong className="sb-fin-pill-val">{formatCurrency(stats.totalSales)}</strong>
             </div>
-          )}
-
-          {/* Trial / Demo Banner */}
-          {trialInfo && (trialInfo.is_demo === 1 || trialInfo.id === 1) && (
-            <div className="sb-environment-banner banner-demo">
-              <div className="banner-left">
-                <span className="banner-icon">🚀</span>
-                <div>
-                  <strong>Demo Company Environment</strong>
-                  <span>
-                    You are exploring SmartBilling in a permanent, isolated demonstration account.
-                  </span>
-                </div>
-              </div>
-              <span className="banner-pill pill-demo">Permanent Demo</span>
+            <div className="sb-fin-pill">
+              <span className="sb-fin-pill-title">Cash Collections</span>
+              <strong className="sb-fin-pill-val text-green">
+                {formatCurrency(plasticStats.paymentsCollected || 0)}
+              </strong>
             </div>
-          )}
-
-          {trialInfo &&
-            trialInfo.subscription_status === "trial" &&
-            trialInfo.is_demo !== 1 &&
-            trialInfo.id !== 1 && (
-              <div className="sb-environment-banner banner-trial">
-                <div className="banner-left">
-                  <span className="banner-icon">⚡</span>
-                  <div>
-                    <strong>3-Day Free Trial Active</strong>
-                    <span>
-                      {trialInfo.trial_end_at
-                        ? `Full access expires on ${new Date(trialInfo.trial_end_at).toLocaleDateString("en-IN", {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}`
-                        : "Enjoy unlimited access during your trial period"}
-                    </span>
-                  </div>
-                </div>
-                <span className="banner-pill pill-trial">Trial Mode</span>
-              </div>
-            )}
-
-          {/* ---------------------------------------------------- */}
-          {/* 3. SIX PREMIUM KPI METRIC CARDS                      */}
-          {/* ---------------------------------------------------- */}
-          <section className="sb-kpi-grid">
-            {/* Card 1: Total Sales */}
-            <div className="sb-kpi-card accent-mint">
-              <div className="kpi-top">
-                <span className="kpi-icon-wrap">💰</span>
-                <span className="kpi-tag-pill tag-mint">Revenue</span>
-              </div>
-              <div className="kpi-body">
-                <span className="kpi-label">Total Sales</span>
-                <strong className="kpi-number">{formatCurrency(stats.totalSales)}</strong>
-                <span className="kpi-subtext">Cumulative settled revenue</span>
-              </div>
+            <div className="sb-fin-pill">
+              <span className="sb-fin-pill-title">Uncollected Balance</span>
+              <strong className="sb-fin-pill-val text-amber">
+                {formatCurrency(plasticStats.outstandingReceivables || 0)}
+              </strong>
             </div>
-
-            {/* Card 2: Today's Sales */}
-            <div className="sb-kpi-card accent-blue">
-              <div className="kpi-top">
-                <span className="kpi-icon-wrap">📈</span>
-                <span className="kpi-tag-pill tag-blue">Today</span>
-              </div>
-              <div className="kpi-body">
-                <span className="kpi-label">Today&apos;s Sales</span>
-                <strong className="kpi-number">{formatCurrency(stats.todaySales)}</strong>
-                <span className="kpi-subtext">Earned in today&apos;s billing</span>
-              </div>
+            <div className="sb-fin-pill">
+              <span className="sb-fin-pill-title">Gross Margin</span>
+              <strong className="sb-fin-pill-val text-blue">
+                {plasticStats.grossMarginPercent || 0}%
+              </strong>
             </div>
+          </div>
+        </div>
+      </div>
 
-            {/* Card 3: Invoices */}
-            <div className="sb-kpi-card accent-purple">
-              <div className="kpi-top">
-                <span className="kpi-icon-wrap">🧾</span>
-                <span className="kpi-tag-pill tag-purple">Billed</span>
-              </div>
-              <div className="kpi-body">
-                <span className="kpi-label">Total Invoices</span>
-                <strong className="kpi-number">{stats.totalInvoices}</strong>
-                <span className="kpi-subtext">Generated client invoices</span>
-              </div>
+      {/* =========================================================================
+          5. PROCUREMENT, INWARD & RAW MATERIAL OVERVIEW
+          ========================================================================= */}
+      <div className="sb-two-col-grid">
+        {/* Procurement Summary & Inward Gate */}
+        <div className="sb-card-panel">
+          <div className="sb-panel-header">
+            <div>
+              <h3 className="sb-panel-title">Procurement &amp; Inward Operations</h3>
+              <span className="sb-panel-subtitle">Vendor supply chain &amp; weighment status</span>
             </div>
+            <Link to="/plastic-erp/suppliers" className="sb-panel-action-link">
+              Suppliers Master →
+            </Link>
+          </div>
 
-            {/* Card 4: Customers */}
-            <div className="sb-kpi-card accent-orange">
-              <div className="kpi-top">
-                <span className="kpi-icon-wrap">👥</span>
-                <span className="kpi-tag-pill tag-orange">Clients</span>
-              </div>
-              <div className="kpi-body">
-                <span className="kpi-label">Total Customers</span>
-                <strong className="kpi-number">{stats.totalCustomers}</strong>
-                <span className="kpi-subtext">Registered customer profiles</span>
-              </div>
+          <div className="sb-procure-stats-grid">
+            <div className="sb-metric-box">
+              <span className="sb-metric-box-label">Scrap Vendors</span>
+              <strong className="sb-metric-box-val">{plasticStats.totalSuppliers}</strong>
+              <span className="sb-metric-box-hint">Active vendors</span>
             </div>
-
-            {/* Card 5: Products */}
-            <div className="sb-kpi-card accent-pink">
-              <div className="kpi-top">
-                <span className="kpi-icon-wrap">📦</span>
-                <span className="kpi-tag-pill tag-pink">Inventory</span>
-              </div>
-              <div className="kpi-body">
-                <span className="kpi-label">Total Products</span>
-                <strong className="kpi-number">{stats.totalProducts}</strong>
-                <span className="kpi-subtext">Active catalog items</span>
-              </div>
+            <div className="sb-metric-box">
+              <span className="sb-metric-box-label">Truck Inwards</span>
+              <strong className="sb-metric-box-val">{plasticStats.totalTruckInwards}</strong>
+              <span className="sb-metric-box-hint">
+                {(plasticStats.totalInwardWeight || 0).toLocaleString()} KG net
+              </span>
             </div>
-
-            {/* Card 6: Outstanding */}
-            <div className="sb-kpi-card accent-teal">
-              <div className="kpi-top">
-                <span className="kpi-icon-wrap">⏳</span>
-                <span className="kpi-tag-pill tag-teal">Settlement</span>
-              </div>
-              <div className="kpi-body">
-                <span className="kpi-label">Outstanding</span>
-                <strong className="kpi-number">{formatCurrency(0)}</strong>
-                <span className="kpi-subtext">All client bills up to date</span>
-              </div>
+            <div className="sb-metric-box">
+              <span className="sb-metric-box-label">Purchase Bills</span>
+              <strong className="sb-metric-box-val">{plasticStats.totalPurchaseBills}</strong>
+              <span className="sb-metric-box-hint">Bills processed</span>
             </div>
-          </section>
-
-          {/* ---------------------------------------------------- */}
-          {/* 4. SALES ANALYTICS (Overview Chart + Donut Summary)  */}
-          {/* ---------------------------------------------------- */}
-          <section className="sb-analytics-row">
-            {/* Sales Overview Chart */}
-            <div className="sb-card sb-chart-card">
-              <div className="sb-card-header">
-                <div>
-                  <h2 className="sb-card-title">📈 Sales Overview</h2>
-                  <p className="sb-card-subtitle">
-                    {salesPeriod === "today"
-                      ? "Hourly revenue trajectory for today"
-                      : salesPeriod === "month"
-                      ? "Daily billed sales for this month"
-                      : "Monthly sales revenue trend for this year"}
-                  </p>
-                </div>
-                <div className="sb-period-tabs">
-                  <button
-                    type="button"
-                    className={`sb-tab-btn ${salesPeriod === "today" ? "active" : ""}`}
-                    onClick={() => setSalesPeriod("today")}
-                  >
-                    Today
-                  </button>
-                  <button
-                    type="button"
-                    className={`sb-tab-btn ${salesPeriod === "month" ? "active" : ""}`}
-                    onClick={() => setSalesPeriod("month")}
-                  >
-                    This Month
-                  </button>
-                  <button
-                    type="button"
-                    className={`sb-tab-btn ${salesPeriod === "year" ? "active" : ""}`}
-                    onClick={() => setSalesPeriod("year")}
-                  >
-                    This Year
-                  </button>
-                </div>
-              </div>
-
-              <div className="sb-chart-area">
-                <ResponsiveContainer width="100%" height={280}>
-                  <AreaChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 5 }}>
-                    <defs>
-                      <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#4F46E5" stopOpacity={0.25} />
-                        <stop offset="95%" stopColor="#4F46E5" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
-                    <XAxis
-                      dataKey="label"
-                      tick={{ fontSize: 12, fill: "#64748B" }}
-                      axisLine={{ stroke: "#E2E8F0" }}
-                      tickLine={false}
-                    />
-                    <YAxis
-                      tick={{ fontSize: 11, fill: "#64748B" }}
-                      axisLine={false}
-                      tickLine={false}
-                      tickFormatter={(v) => `₹${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
-                    />
-                    <Tooltip
-                      formatter={(val) => [formatCurrency(val), "Sales Revenue"]}
-                      contentStyle={{
-                        background: "#FFFFFF",
-                        border: "1px solid #E2E8F0",
-                        borderRadius: "8px",
-                        boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-                        fontSize: "13px",
-                      }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="amount"
-                      stroke="#4F46E5"
-                      strokeWidth={2.5}
-                      fillOpacity={1}
-                      fill="url(#salesGrad)"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
+            <div className="sb-metric-box">
+              <span className="sb-metric-box-label">Purchase Value</span>
+              <strong className="sb-metric-box-val text-blue">
+                {formatCurrency(plasticStats.totalPurchaseAmount)}
+              </strong>
+              <span className="sb-metric-box-hint">Materials spend</span>
             </div>
+          </div>
 
-            {/* Sales Summary Donut */}
-            <div className="sb-card sb-donut-card">
-              <div className="sb-card-header">
-                <div>
-                  <h2 className="sb-card-title">🍩 Sales Summary</h2>
-                  <p className="sb-card-subtitle">Settlement and collection breakdown</p>
-                </div>
-              </div>
+          {/* Quick links to procurement workflow */}
+          <div className="sb-quick-links-row">
+            <Link to="/plastic-erp/truck-inward" className="sb-pill-action">
+              🚛 Gate Truck Inward
+            </Link>
+            <Link to="/plastic-erp/weighment" className="sb-pill-action">
+              ⚖️ Gross/Tare Weighment
+            </Link>
+            <Link to="/plastic-erp/purchase-bills" className="sb-pill-action">
+              📄 Purchase Bills
+            </Link>
+            <Link to="/plastic-erp/purchase-orders" className="sb-pill-action">
+              📦 Purchase Orders
+            </Link>
+          </div>
+        </div>
 
-              <div className="sb-donut-wrapper">
-                <ResponsiveContainer width="100%" height={170}>
-                  <PieChart>
-                    <Pie
-                      data={pieData}
-                      innerRadius={50}
-                      outerRadius={75}
-                      paddingAngle={4}
-                      dataKey="value"
-                    >
-                      {pieData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(val, name) => [`${val} invoices`, name]} />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="donut-center-text">
-                  <span className="donut-center-num">{stats.totalInvoices}</span>
-                  <span className="donut-center-sub">Invoices</span>
-                </div>
-              </div>
-
-              <div className="sb-donut-legend">
-                <div className="legend-row">
-                  <div className="legend-label">
-                    <span className="legend-dot dot-paid"></span>
-                    <span>Paid</span>
-                  </div>
-                  <strong>{stats.totalInvoices} (100%)</strong>
-                </div>
-                <div className="legend-row">
-                  <div className="legend-label">
-                    <span className="legend-dot dot-pending"></span>
-                    <span>Pending</span>
-                  </div>
-                  <strong className="text-muted">0 (0%)</strong>
-                </div>
-                <div className="legend-row">
-                  <div className="legend-label">
-                    <span className="legend-dot dot-overdue"></span>
-                    <span>Overdue</span>
-                  </div>
-                  <strong className="text-muted">0 (0%)</strong>
-                </div>
-              </div>
+        {/* Low Stock Raw Materials Monitor */}
+        <div className="sb-card-panel">
+          <div className="sb-panel-header">
+            <div>
+              <h3 className="sb-panel-title">Low Stock Raw Materials</h3>
+              <span className="sb-panel-subtitle">Materials below reorder threshold</span>
             </div>
-          </section>
+            <Link to="/plastic-erp/stock" className="sb-panel-action-link">
+              Full Stock →
+            </Link>
+          </div>
 
-          {/* ---------------------------------------------------- */}
-          {/* 5. RECENT INVOICES SECTION                           */}
-          {/* ---------------------------------------------------- */}
-          <section className="sb-card sb-table-card">
-            <div className="sb-card-header">
-              <div>
-                <h2 className="sb-card-title">🧾 Recent Invoices</h2>
-                <p className="sb-card-subtitle">
-                  {searchQuery ? `Showing matching invoices for "${searchQuery}"` : "Latest generated client invoices"}
-                </p>
-              </div>
-              <Link to="/invoices/history" className="sb-view-all-link">
-                View All →
-              </Link>
+          {plasticStats.lowStockMaterials.length === 0 ? (
+            <div className="sb-empty-table-state">
+              <span className="sb-empty-icon">✅</span>
+              <p>All raw material inventory levels are healthy and above minimum thresholds.</p>
             </div>
-
+          ) : (
             <div className="sb-table-responsive">
-              <table className="sb-table">
+              <table className="sb-mini-table">
                 <thead>
                   <tr>
-                    <th>Invoice</th>
-                    <th>Customer</th>
-                    <th>Date</th>
-                    <th style={{ textAlign: "right" }}>Amount</th>
-                    <th>Status</th>
-                    <th style={{ textAlign: "center" }}>Action</th>
+                    <th>Material</th>
+                    <th>Polymer</th>
+                    <th>Current Stock</th>
+                    <th>Min Threshold</th>
+                    <th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredInvoices.length === 0 ? (
-                    <tr>
-                      <td colSpan="6" className="text-center py-5 text-muted">
-                        No invoices found. Click &quot;+ New Invoice&quot; to generate an invoice.
+                  {plasticStats.lowStockMaterials.slice(0, 5).map((mat) => (
+                    <tr key={mat.id}>
+                      <td>
+                        <strong>{mat.material_name}</strong>
+                      </td>
+                      <td>
+                        <span className="sb-polymer-tag">{mat.plastic_type || "N/A"}</span>
+                      </td>
+                      <td>
+                        <span className="sb-stock-danger">
+                          {Number(mat.current_stock || 0).toLocaleString()} {mat.unit || "KG"}
+                        </span>
+                      </td>
+                      <td>
+                        {Number(mat.minimum_stock || 0).toLocaleString()} {mat.unit || "KG"}
+                      </td>
+                      <td>
+                        <Link to="/plastic-erp/purchase-requisitions" className="sb-table-link">
+                          Requisition →
+                        </Link>
                       </td>
                     </tr>
-                  ) : (
-                    filteredInvoices.map((inv) => (
-                      <tr key={inv.id}>
-                        <td>
-                          <Link to={`/invoice/${inv.id}`} className="inv-code-link">
-                            <code>{inv.invoice_no}</code>
-                          </Link>
-                        </td>
-                        <td>
-                          <div className="cell-primary">{inv.customer_name || "Walk-in Customer"}</div>
-                          {inv.customer_mobile && (
-                            <div className="cell-secondary">{inv.customer_mobile}</div>
-                          )}
-                        </td>
-                        <td className="cell-secondary">{formatDate(inv.created_at)}</td>
-                        <td style={{ textAlign: "right", fontWeight: 700 }}>
-                          {formatCurrency(inv.grand_total)}
-                        </td>
-                        <td>
-                          <span className="sb-status-pill status-paid">Paid</span>
-                        </td>
-                        <td style={{ textAlign: "center" }}>
-                          <Link to={`/invoice/${inv.id}`} className="btn-preview-sm">
-                            Preview →
-                          </Link>
-                        </td>
-                      </tr>
-                    ))
-                  )}
+                  ))}
                 </tbody>
               </table>
             </div>
-          </section>
+          )}
+        </div>
+      </div>
 
-          {/* ---------------------------------------------------- */}
-          {/* 6. LOWER DUAL GRID: LOW STOCK & TOP CUSTOMERS        */}
-          {/* ---------------------------------------------------- */}
-          <section className="sb-dual-grid">
-            {/* Low Stock Products Card */}
-            <div className="sb-card">
-              <div className="sb-card-header">
-                <div>
-                  <h2 className="sb-card-title">⚠️ Low Stock Products</h2>
-                  <p className="sb-card-subtitle">Products with stock of 5 or less</p>
+      {/* =========================================================================
+          6. PRODUCTION, QUALITY & PLANT OPERATIONS
+          ========================================================================= */}
+      <div className="sb-two-col-grid">
+        {/* Plant Production & Efficiency Metrics */}
+        <div className="sb-card-panel">
+          <div className="sb-panel-header">
+            <div>
+              <h3 className="sb-panel-title">Plant Production &amp; Machine Status</h3>
+              <span className="sb-panel-subtitle">Extrusion, washing &amp; pelletizing output</span>
+            </div>
+            <Link to="/plastic-erp/production" className="sb-panel-action-link">
+              Production Batches →
+            </Link>
+          </div>
+
+          <div className="sb-procure-stats-grid">
+            <div className="sb-metric-box">
+              <span className="sb-metric-box-label">Batch Efficiency</span>
+              <strong className="sb-metric-box-val text-teal">
+                {plasticStats.efficiencyPercent || 0}%
+              </strong>
+              <span className="sb-metric-box-hint">Avg output ratio</span>
+            </div>
+            <div className="sb-metric-box">
+              <span className="sb-metric-box-label">Active Machines</span>
+              <strong className="sb-metric-box-val text-blue">
+                {plasticStats.activeMachines}
+              </strong>
+              <span className="sb-metric-box-hint">
+                {plasticStats.machineUtilizationPercent || 0}% utilization
+              </span>
+            </div>
+            <div className="sb-metric-box">
+              <span className="sb-metric-box-label">WIP Inventory</span>
+              <strong className="sb-metric-box-val">
+                {Number(plasticStats.currentWipKg || 0).toLocaleString()} KG
+              </strong>
+              <span className="sb-metric-box-hint">Flakes &amp; Agglo</span>
+            </div>
+            <div className="sb-metric-box">
+              <span className="sb-metric-box-label">Regrind Produced</span>
+              <strong className="sb-metric-box-val text-green">
+                {Number(plasticStats.regrindGeneratedKg || 0).toLocaleString()} KG
+              </strong>
+              <span className="sb-metric-box-hint">
+                Process loss: {Number(plasticStats.scrapGeneratedKg || 0).toLocaleString()} KG
+              </span>
+            </div>
+          </div>
+
+          {/* Machine and maintenance badges */}
+          <div className="sb-status-pills-row">
+            <span className="sb-status-pill green">
+              ● {plasticStats.activeMachines} Machines Running
+            </span>
+            <span className={`sb-status-pill ${plasticStats.maintenanceMachines > 0 ? "red" : "gray"}`}>
+              ● {plasticStats.maintenanceMachines} Maintenance / Downtime
+            </span>
+            <span className="sb-status-pill blue">
+              ● {plasticStats.activeBatches} Live Production Batches
+            </span>
+          </div>
+        </div>
+
+        {/* Quality Control & Polymer Stock Distribution */}
+        <div className="sb-card-panel">
+          <div className="sb-panel-header">
+            <div>
+              <h3 className="sb-panel-title">Polymer Stock &amp; Quality Control</h3>
+              <span className="sb-panel-subtitle">Polymer distribution (PET, PP, HDPE, LDPE)</span>
+            </div>
+            <Link to="/plastic-erp/quality" className="sb-panel-action-link">
+              Quality Register →
+            </Link>
+          </div>
+
+          <div className="sb-polymer-flex-wrap">
+            <div className="sb-donut-wrapper">
+              {polymerDistribution.chartData.length === 0 ? (
+                <div className="sb-empty-chart-state">No polymer stock recorded.</div>
+              ) : (
+                <ResponsiveContainer width="100%" height={190}>
+                  <PieChart>
+                    <Pie
+                      data={polymerDistribution.chartData}
+                      dataKey="quantityKg"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={55}
+                      outerRadius={80}
+                      paddingAngle={4}
+                    >
+                      {polymerDistribution.chartData.map((entry) => (
+                        <Cell key={`cell-${entry.name}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(val, name) => [`${Number(val).toLocaleString()} KG`, name]}
+                      contentStyle={{
+                        backgroundColor: "#FFFFFF",
+                        borderRadius: "8px",
+                        borderColor: "#E3EBF2",
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+
+            <div className="sb-polymer-legend-list">
+              {polymerDistribution.chartData.map((poly) => (
+                <div key={poly.name} className="sb-poly-legend-item">
+                  <span className="sb-poly-dot" style={{ backgroundColor: poly.color }}></span>
+                  <span className="sb-poly-name">{poly.name}</span>
+                  <strong className="sb-poly-qty">
+                    {poly.quantityKg.toLocaleString()} KG
+                  </strong>
+                  <span className="sb-poly-pct">({poly.percentage}%)</span>
                 </div>
-                <span className="sb-count-badge">
-                  {Array.isArray(lowStockProducts) ? lowStockProducts.length : 0}
-                </span>
-              </div>
+              ))}
+            </div>
+          </div>
 
-              <div className="sb-card-list">
-                {Array.isArray(lowStockProducts) && lowStockProducts.length > 0 ? (
-                  lowStockProducts.map((prod) => (
-                    <div className="sb-list-item" key={prod.id}>
-                      <div className="list-item-left">
-                        <div className="item-icon-box">📦</div>
-                        <div>
-                          <h4 className="item-title">{prod.name || "Unnamed Product"}</h4>
-                          <span className="item-sub">Price: {formatCurrency(prod.price)}</span>
-                        </div>
-                      </div>
-                      <div className="list-item-right">
-                        <span
-                          className={`stock-badge ${
-                            Number(prod.stock) <= 2 ? "badge-danger" : "badge-warning"
-                          }`}
-                        >
-                          {Number(prod.stock) || 0} left
+          {/* Quality summary bar */}
+          <div className="sb-qc-summary-bar">
+            <div className="sb-qc-stat-item">
+              <span className="sb-qc-title">QC Pending:</span>
+              <strong className={plasticStats.qcPending > 0 ? "text-amber" : ""}>
+                {plasticStats.qcPending} Batches
+              </strong>
+            </div>
+            <div className="sb-qc-stat-item">
+              <span className="sb-qc-title">QC Rejected:</span>
+              <strong className={plasticStats.qcRejected > 0 ? "text-danger" : ""}>
+                {plasticStats.qcRejected} Batches
+              </strong>
+            </div>
+            <div className="sb-qc-stat-item">
+              <span className="sb-qc-title">Quality Rating:</span>
+              <strong className="text-green">
+                {plasticStats.qcRejected === 0 ? "100% Pass" : "Controlled"}
+              </strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* =========================================================================
+          7. WORKFORCE, PAYROLL & EXPENSES (Phase 4 Integration)
+          ========================================================================= */}
+      <section className="sb-card-panel sb-workforce-section" aria-label="Workforce & Expenses">
+        <div className="sb-panel-header">
+          <div>
+            <h3 className="sb-panel-title">Workforce, Payroll &amp; Plant Expenses</h3>
+            <span className="sb-panel-subtitle">Human capital and operating cost monitoring</span>
+          </div>
+          <Link to="/plastic-erp/employees" className="sb-panel-action-link">
+            HR Management →
+          </Link>
+        </div>
+
+        <div className="sb-workforce-grid">
+          <div className="sb-wf-card">
+            <div className="sb-wf-icon">👥</div>
+            <div className="sb-wf-info">
+              <span className="sb-wf-label">Active Workforce</span>
+              <strong className="sb-wf-val">{plasticStats.totalEmployees || 0} Staff</strong>
+              <span className="sb-wf-sub">
+                {plasticStats.todayPresentEmployees || 0} present on shift today
+              </span>
+            </div>
+          </div>
+
+          <div className="sb-wf-card">
+            <div className="sb-wf-icon">⏱️</div>
+            <div className="sb-wf-info">
+              <span className="sb-wf-label">Attendance Rate</span>
+              <strong className="sb-wf-val text-green">
+                {plasticStats.totalEmployees > 0
+                  ? Math.round((plasticStats.todayPresentEmployees / plasticStats.totalEmployees) * 100)
+                  : 100}
+                %
+              </strong>
+              <span className="sb-wf-sub">
+                {plasticStats.pendingLeavesCount || 0} pending leave request(s)
+              </span>
+            </div>
+          </div>
+
+          <div className="sb-wf-card">
+            <div className="sb-wf-icon">💵</div>
+            <div className="sb-wf-info">
+              <span className="sb-wf-label">Monthly Payroll</span>
+              <strong className="sb-wf-val">
+                {formatCurrency(plasticStats.monthPayrollAmount || 0)}
+              </strong>
+              <span className="sb-wf-sub">Disbursed salary obligations</span>
+            </div>
+          </div>
+
+          <div className="sb-wf-card">
+            <div className="sb-wf-icon">📉</div>
+            <div className="sb-wf-info">
+              <span className="sb-wf-label">Operating Expenses</span>
+              <strong className="sb-wf-val text-amber">
+                {formatCurrency(plasticStats.monthExpensesAmount || 0)}
+              </strong>
+              <span className="sb-wf-sub">Power, consumables &amp; transport</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* =========================================================================
+          8. RECENT ACTIVITY & BUSINESS INTELLIGENCE
+          ========================================================================= */}
+      <div className="sb-two-col-grid">
+        {/* Recent Operational Activity Log */}
+        <div className="sb-card-panel">
+          <div className="sb-panel-header">
+            <div>
+              <h3 className="sb-panel-title">Recent Operational Activity</h3>
+              <span className="sb-panel-subtitle">Real-time enterprise transactions</span>
+            </div>
+
+            <div className="sb-tab-toggle-group">
+              <button
+                type="button"
+                className={`sb-tab-toggle ${recentTab === "invoices" ? "active" : ""}`}
+                onClick={() => setRecentTab("invoices")}
+              >
+                Invoices
+              </button>
+              <button
+                type="button"
+                className={`sb-tab-toggle ${recentTab === "dispatches" ? "active" : ""}`}
+                onClick={() => setRecentTab("dispatches")}
+              >
+                Dispatches
+              </button>
+              <button
+                type="button"
+                className={`sb-tab-toggle ${recentTab === "inwards" ? "active" : ""}`}
+                onClick={() => setRecentTab("inwards")}
+              >
+                Trucks
+              </button>
+            </div>
+          </div>
+
+          <div className="sb-activity-feed">
+            {recentTab === "invoices" && (
+              <>
+                {invoices.length === 0 ? (
+                  <div className="sb-empty-table-state">No invoices generated yet.</div>
+                ) : (
+                  <div className="sb-table-responsive">
+                    <table className="sb-mini-table">
+                      <thead>
+                        <tr>
+                          <th>Invoice #</th>
+                          <th>Customer</th>
+                          <th>Date</th>
+                          <th>Amount</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {invoices.slice(0, 5).map((inv) => (
+                          <tr key={inv.id}>
+                            <td>
+                              <Link to={`/invoice/${inv.id}`} className="sb-table-link">
+                                {inv.invoice_no}
+                              </Link>
+                            </td>
+                            <td>{inv.customer_name || "Walk-in"}</td>
+                            <td>{formatDate(inv.created_at)}</td>
+                            <td>
+                              <strong>{formatCurrency(inv.grand_total)}</strong>
+                            </td>
+                            <td>
+                              <span
+                                className={`sb-status-badge ${
+                                  inv.payment_status === "PAID"
+                                    ? "badge-success"
+                                    : inv.payment_status === "PARTIAL"
+                                    ? "badge-warning"
+                                    : "badge-danger"
+                                }`}
+                              >
+                                {inv.payment_status || "PENDING"}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </>
+            )}
+
+            {recentTab === "dispatches" && (
+              <>
+                {phase3Analytics?.recentDispatches?.length === 0 ? (
+                  <div className="sb-empty-table-state">No recent dispatch records.</div>
+                ) : (
+                  <div className="sb-table-responsive">
+                    <table className="sb-mini-table">
+                      <thead>
+                        <tr>
+                          <th>Dispatch #</th>
+                          <th>Customer</th>
+                          <th>Date</th>
+                          <th>Volume</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(phase3Analytics?.recentDispatches || []).slice(0, 5).map((d) => (
+                          <tr key={d.id}>
+                            <td>
+                              <strong>{d.dispatch_no}</strong>
+                            </td>
+                            <td>{d.customer_name || "Client"}</td>
+                            <td>{formatDate(d.dispatch_date)}</td>
+                            <td>{Number(d.total_kg || 0).toLocaleString()} KG</td>
+                            <td>
+                              <span className="sb-status-badge badge-success">
+                                {d.status || "DISPATCHED"}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </>
+            )}
+
+            {recentTab === "inwards" && (
+              <>
+                {truckInwards.length === 0 ? (
+                  <div className="sb-empty-table-state">No truck inward records found.</div>
+                ) : (
+                  <div className="sb-table-responsive">
+                    <table className="sb-mini-table">
+                      <thead>
+                        <tr>
+                          <th>Inward #</th>
+                          <th>Supplier</th>
+                          <th>Vehicle #</th>
+                          <th>Net Weight</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {truckInwards.slice(0, 5).map((tr) => (
+                          <tr key={tr.id}>
+                            <td>
+                              <strong>{tr.inward_no}</strong>
+                            </td>
+                            <td>{tr.supplier_name || "Scrap Vendor"}</td>
+                            <td>{tr.vehicle_number}</td>
+                            <td>{Number(tr.net_weight || 0).toLocaleString()} KG</td>
+                            <td>
+                              <span className="sb-status-badge badge-info">
+                                {tr.status || "INWARDED"}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Top Business Clients / Finished Goods */}
+        <div className="sb-card-panel">
+          <div className="sb-panel-header">
+            <div>
+              <h3 className="sb-panel-title">Top Revenue Clients</h3>
+              <span className="sb-panel-subtitle">Leading customer accounts by volume</span>
+            </div>
+            <Link to="/customers" className="sb-panel-action-link">
+              All Customers →
+            </Link>
+          </div>
+
+          {(phase3Analytics?.topCustomers || []).length === 0 ? (
+            <div className="sb-empty-table-state">
+              <span className="sb-empty-icon">👥</span>
+              <p>Top customer data will populate as invoices and dispatches are registered.</p>
+            </div>
+          ) : (
+            <div className="sb-table-responsive">
+              <table className="sb-mini-table">
+                <thead>
+                  <tr>
+                    <th>Customer Name</th>
+                    <th>Invoices</th>
+                    <th>Total Revenue</th>
+                    <th>Outstanding</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(phase3Analytics?.topCustomers || []).slice(0, 5).map((cust) => (
+                    <tr key={cust.id}>
+                      <td>
+                        <strong>{cust.name}</strong>
+                      </td>
+                      <td>{cust.invoices_count || 0}</td>
+                      <td>
+                        <strong className="text-blue">
+                          {formatCurrency(cust.total_revenue || 0)}
+                        </strong>
+                      </td>
+                      <td>
+                        <span className={Number(cust.outstanding || 0) > 0 ? "text-amber" : "text-green"}>
+                          {formatCurrency(cust.outstanding || 0)}
                         </span>
-                        <Link to="/products" className="item-link">
-                          Adjust →
-                        </Link>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="sb-empty-state">
-                    <span className="empty-state-icon">✅</span>
-                    <h4>All products have sufficient stock.</h4>
-                    <p>No inventory items are currently below minimum safety thresholds.</p>
-                  </div>
-                )}
-              </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-
-            {/* Top Customers Card */}
-            <div className="sb-card">
-              <div className="sb-card-header">
-                <div>
-                  <h2 className="sb-card-title">👥 Top Customers</h2>
-                  <p className="sb-card-subtitle">Key client volume and billing spend</p>
-                </div>
-                <Link to="/customers" className="sb-view-all-link">
-                  View All →
-                </Link>
-              </div>
-
-              <div className="sb-card-list">
-                {topCustomers.length > 0 ? (
-                  topCustomers.map((cust, idx) => (
-                    <div className="sb-list-item" key={cust.name}>
-                      <div className="list-item-left">
-                        <span className={`rank-badge rank-${idx + 1}`}>#{idx + 1}</span>
-                        <div>
-                          <h4 className="item-title">{cust.name}</h4>
-                          <span className="item-sub">
-                            {cust.invoicesCount} {cust.invoicesCount === 1 ? "Invoice" : "Invoices"}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="list-item-right">
-                        <strong className="item-spend">{formatCurrency(cust.totalSpend)}</strong>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="sb-empty-state">
-                    <span className="empty-state-icon">👥</span>
-                    <h4>No Customers Registered</h4>
-                    <p>Add customers to track repeat orders and cumulative spending.</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </section>
-
-          {/* ---------------------------------------------------- */}
-          {/* 7. QUICK ACTIONS                                     */}
-          {/* ---------------------------------------------------- */}
-          <section className="sb-quick-actions-card">
-            <div className="quick-actions-header">
-              <h3>⚡ Quick Actions</h3>
-              <p>Jump directly into frequent billing and management workflows</p>
-            </div>
-            <div className="quick-actions-buttons">
-              <Link to="/invoices/create" className="btn-qa btn-qa-primary">
-                <span>+</span> New Invoice
-              </Link>
-              <Link to="/customers" className="btn-qa btn-qa-pastel">
-                <span>👥</span> Add Customer
-              </Link>
-              <Link to="/products" className="btn-qa btn-qa-pastel">
-                <span>📦</span> Add Product
-              </Link>
-              <Link to="/sales-report" className="btn-qa btn-qa-pastel">
-                <span>📊</span> View Reports
-              </Link>
-              <Link to="/plastic-erp" className="btn-qa btn-qa-emerald">
-                <span>♻️</span> Open Plastic ERP
-              </Link>
-            </div>
-          </section>
-
-          {/* ---------------------------------------------------- */}
-          {/* 8. COMPACT PLASTIC RECYCLING ERP CARD                */}
-          {/* ---------------------------------------------------- */}
-          <section className="sb-card sb-plastic-card">
-            <div className="plastic-card-top">
-              <div className="plastic-title-wrap">
-                <div className="plastic-meta-tag">♻️ PLASTIC RECYCLING ERP</div>
-                <h2 className="plastic-headline">Plastic Recycling ERP</h2>
-                <p className="plastic-subheadline">
-                  Manage your plastic recycling operations (Kim, Surat Plant)
-                </p>
-              </div>
-              <Link to="/plastic-erp" className="btn-plastic-cta">
-                Open Plastic ERP →
-              </Link>
-            </div>
-
-            <div className="plastic-compact-grid">
-              <div className="plastic-metric-box">
-                <span className="p-label">Raw Material Stock</span>
-                <strong className="p-val">
-                  {Number(plasticStats.currentStockKg || 0).toLocaleString("en-IN")} KG
-                </strong>
-                <span className="p-sub">Val: {formatCurrency(plasticStats.currentStockValue)}</span>
-              </div>
-
-              <div className="plastic-metric-box">
-                <span className="p-label">Finished Goods</span>
-                <strong className="p-val text-indigo">
-                  {Number(plasticStats.finishedGoodsStockKg || 0).toLocaleString("en-IN")} KG
-                </strong>
-                <span className="p-sub">Pellets in warehouse</span>
-              </div>
-
-              <div className="plastic-metric-box">
-                <span className="p-label">WIP Inventory</span>
-                <strong className="p-val text-cyan">
-                  {Number(plasticStats.currentWipKg || 0).toLocaleString("en-IN")} KG
-                </strong>
-                <span className="p-sub">Flakes in process</span>
-              </div>
-
-              <div className="plastic-metric-box">
-                <span className="p-label">Active Batches</span>
-                <strong className="p-val text-green">
-                  {plasticStats.activeBatches || 0} Running
-                </strong>
-                <span className="p-sub">Shop floor extrusion</span>
-              </div>
-
-              <div className="plastic-metric-box">
-                <span className="p-label">Plant Machines</span>
-                <strong className="p-val text-purple">
-                  {plasticStats.activeMachines || 0} Lines
-                </strong>
-                <span className="p-sub">Active crushers & lines</span>
-              </div>
-
-              <div className="plastic-metric-box">
-                <span className="p-label">Quality Status</span>
-                <strong className="p-val text-pink">
-                  {plasticStats.qcPending || 0} Pending
-                </strong>
-                <span className="p-sub">Lab testing & checks</span>
-              </div>
-            </div>
-          </section>
-
-          {/* ---------------------------------------------------- */}
-          {/* 9. CLEAN FOOTER                                      */}
-          {/* ---------------------------------------------------- */}
-          <footer className="sb-footer">
-            <span className="footer-copyright">
-              © 2026 SmartBilling. All rights reserved.
-            </span>
-            <span className="footer-tagline">
-              Simple Billing. Big Possibilities. 🚀
-            </span>
-          </footer>
-        </main>
+          )}
+        </div>
       </div>
     </div>
   );

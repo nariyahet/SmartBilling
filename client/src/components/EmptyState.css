@@ -1,0 +1,41 @@
+/* ==========================================================================
+   SMARTBILLING 2.0 — EMPTY STATE COMPONENT STYLES
+   ========================================================================== */
+
+.sb-empty-state {
+  padding: 48px 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--sb-bg, #F4F8FB);
+  border: 1px dashed var(--sb-border, #E3EBF2);
+  border-radius: var(--sb-radius-lg, 12px);
+  box-sizing: border-box;
+}
+
+.sb-empty-state-icon {
+  font-size: 38px;
+  margin-bottom: 12px;
+  line-height: 1;
+}
+
+.sb-empty-state-title {
+  margin: 0 0 6px 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--sb-navy, #063B66);
+}
+
+.sb-empty-state-desc {
+  margin: 0;
+  font-size: 13px;
+  color: var(--sb-text-muted, #718096);
+  max-width: 420px;
+  line-height: 1.4;
+}
+
+.sb-empty-state-action {
+  margin-top: 16px;
+}

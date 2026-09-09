@@ -22,8 +22,13 @@ const REPORT_TABS = [
   { id: "cash-flow", label: "🌊 Cash Flow Statement", desc: "Operating, investing, and financing liquid flow" },
 ];
 
-const PlasticFinancialReports = () => {
-  const [activeReport, setActiveReport] = useState("trial-balance");
+const PlasticFinancialReports = ({ defaultReport = "trial-balance" }) => {
+  const [activeReport, setActiveReport] = useState(() => {
+    if (typeof window !== "undefined" && window.location.pathname.includes("supplier-ledger")) {
+      return "supplier-ledger";
+    }
+    return defaultReport;
+  });
   const [period, setPeriod] = useState("month");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");

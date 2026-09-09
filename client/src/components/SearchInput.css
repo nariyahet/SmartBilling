@@ -1,0 +1,56 @@
+/* ==========================================================================
+   SMARTBILLING 2.0 — SEARCH INPUT COMPONENT STYLES
+   ========================================================================== */
+
+.sb-search-field-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 100%;
+  max-width: 320px;
+}
+
+.sb-search-field-icon {
+  position: absolute;
+  left: 12px;
+  color: var(--sb-text-muted, #718096);
+  font-size: 13.5px;
+  pointer-events: none;
+  line-height: 1;
+}
+
+.sb-search-field-input {
+  width: 100%;
+  height: 38px;
+  padding: 0 32px 0 34px;
+  background: var(--sb-bg, #F4F8FB);
+  border: 1px solid var(--sb-border, #E3EBF2);
+  border-radius: var(--sb-radius-md, 8px);
+  font-size: 13px;
+  color: var(--sb-text, #102A43);
+  outline: none;
+  transition: all 0.16s ease;
+  box-sizing: border-box;
+}
+
+.sb-search-field-input:focus {
+  background: #FFFFFF;
+  border-color: var(--sb-primary, #0879D1);
+  box-shadow: 0 0 0 3px rgba(8, 121, 209, 0.15);
+}
+
+.sb-search-field-clear {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  color: var(--sb-text-muted, #718096);
+  cursor: pointer;
+  padding: 4px;
+  font-size: 12px;
+  border-radius: 4px;
+}
+
+.sb-search-field-clear:hover {
+  color: var(--sb-danger, #E05252);
+}

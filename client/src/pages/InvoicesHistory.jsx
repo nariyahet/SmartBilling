@@ -198,11 +198,11 @@ function InvoicesHistory() {
           </div>
         </div>
 
-        <div className="invh-kpi-card accent-purple">
+        <div className="invh-kpi-card accent-teal">
           <div className="kpi-icon-box">📊</div>
           <div className="kpi-info">
             <span className="kpi-label">Average Bill Value</span>
-            <strong className="kpi-val text-purple">{formatCurrency(avgInvoiceValue)}</strong>
+            <strong className="kpi-val text-teal">{formatCurrency(avgInvoiceValue)}</strong>
             <span className="kpi-sub">Mean invoice amount</span>
           </div>
         </div>
