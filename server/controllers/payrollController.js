@@ -309,6 +309,26 @@ exports.processMonthlyPayroll = async (req, res) => {
       ]
     );
 
+    // Phase 5: Auto-post accounting journal for payroll provision
+    try {
+      const { postPayrollAccounting } = require("../utils/accountingHelper");
+      await postPayrollAccounting(pdb, {
+        companyId,
+        payroll: {
+          id: payrollId,
+          payroll_batch_no: batchNo,
+          end_date: endDate,
+          total_gross_salary: totalGross,
+          total_net_salary: totalNet,
+          total_advances_recovered: totalAdvancesRecovered,
+        },
+        status: "PROCESSED",
+        createdBy: adminId,
+      });
+    } catch (accErr) {
+      console.error("Payroll accounting post error:", accErr);
+    }
+
     await pdb.commit();
 
     res.status(201).json({
@@ -394,6 +414,24 @@ exports.updatePayrollStatus = async (req, res) => {
 
           remainingToDeduct -= deductAmount;
         }
+      }
+
+      // Phase 5: Auto-post accounting journal for payroll bank settlement
+      try {
+        const { postPayrollAccounting } = require("../utils/accountingHelper");
+        await postPayrollAccounting(pdb, {
+          companyId,
+          payroll: {
+            id: payroll.id,
+            payroll_batch_no: payroll.payroll_batch_no,
+            payment_date: payment_date || new Date(),
+            total_net_salary: Number(payroll.total_net_salary || 0),
+          },
+          status: "PAID",
+          createdBy: req.user.id || null,
+        });
+      } catch (accErr) {
+        console.error("Payroll settlement accounting post error:", accErr);
       }
     }
 

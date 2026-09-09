@@ -294,10 +294,28 @@ exports.createExpense = async (req, res) => {
       ]
     );
 
+    const expenseId = result.insertId;
+
+    // Phase 5: Auto-post accounting journal & bank/cash ledger transaction
+    const { postExpenseAccounting } = require("../utils/accountingHelper");
+    await postExpenseAccounting(db.promise(), {
+      companyId,
+      expense: {
+        id: expenseId,
+        expense_no: finalExpenseNo,
+        category_id,
+        title: title.trim(),
+        amount: Number(amount),
+        expense_date,
+        payment_mode: payment_mode || "CASH",
+      },
+      createdBy: adminId,
+    });
+
     res.status(201).json({
       success: true,
       message: "Expense recorded successfully",
-      expenseId: result.insertId,
+      expenseId: expenseId,
       expense_no: finalExpenseNo,
     });
   } catch (error) {

@@ -464,6 +464,24 @@ exports.completeSalesReturn = async (req, res) => {
         [id, companyId]
       );
 
+      // Phase 5: Auto-post accounting journal & GST adjustment for Sales Return Credit Note
+      const { postCreditNoteAccounting } = require("../utils/accountingHelper");
+      await postCreditNoteAccounting(conn, {
+        companyId,
+        creditNote: {
+          id: cnId,
+          credit_note_no: creditNoteNo,
+          customer_id: returnRecord.customer_id,
+          date: returnRecord.return_date,
+          amount: Number(returnRecord.total_amount || 0),
+          tax_percent: 0.00,
+          tax_amount: Number(returnRecord.tax_amount || 0),
+          total: Number(returnRecord.grand_total || 0),
+          reason: `Sales Return ${returnRecord.return_no}: ${returnRecord.reason}`,
+        },
+        createdBy: adminId,
+      });
+
       await conn.commit();
 
       res.status(200).json({

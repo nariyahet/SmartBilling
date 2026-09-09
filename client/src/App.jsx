@@ -47,6 +47,14 @@ import PlasticPayroll from "./pages/PlasticPayroll";
 import PlasticEmployeeAdvances from "./pages/PlasticEmployeeAdvances";
 import PlasticExpenses from "./pages/PlasticExpenses";
 import PlasticHrReports from "./pages/PlasticHrReports";
+import PlasticChartOfAccounts from "./pages/PlasticChartOfAccounts";
+import PlasticJournalEntries from "./pages/PlasticJournalEntries";
+import PlasticCashBank from "./pages/PlasticCashBank";
+import PlasticBankReconciliation from "./pages/PlasticBankReconciliation";
+import PlasticGstManagement from "./pages/PlasticGstManagement";
+import PlasticGstReconciliation from "./pages/PlasticGstReconciliation";
+import PlasticFinancialReports from "./pages/PlasticFinancialReports";
+import PlasticAccountingDashboard from "./pages/PlasticAccountingDashboard";
 
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem("token");
@@ -518,6 +526,72 @@ function App() {
           element={
             <ProtectedRoute>
               <PlasticHrReports />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Phase 5: Accounting, GST & Compliance */}
+        <Route
+          path="/plastic-erp/chart-of-accounts"
+          element={
+            <ProtectedRoute>
+              <PlasticChartOfAccounts />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plastic-erp/journal-entries"
+          element={
+            <ProtectedRoute>
+              <PlasticJournalEntries />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plastic-erp/cash-bank"
+          element={
+            <ProtectedRoute>
+              <PlasticCashBank />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plastic-erp/bank-reconciliation"
+          element={
+            <ProtectedRoute>
+              <PlasticBankReconciliation />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plastic-erp/gst-management"
+          element={
+            <ProtectedRoute>
+              <PlasticGstManagement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plastic-erp/gst-reconciliation"
+          element={
+            <ProtectedRoute>
+              <PlasticGstReconciliation />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plastic-erp/financial-reports"
+          element={
+            <ProtectedRoute>
+              <PlasticFinancialReports />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plastic-erp/accounting-dashboard"
+          element={
+            <ProtectedRoute>
+              <PlasticAccountingDashboard />
             </ProtectedRoute>
           }
         />

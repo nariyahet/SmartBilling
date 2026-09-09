@@ -1,0 +1,50 @@
+/* PlasticJournalEntries.css */
+
+.journal-balance-indicator {
+  padding: 12px 16px;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 14px;
+  font-size: 0.95rem;
+}
+
+.journal-balance-ok {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+}
+
+.journal-balance-err {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+.journal-row-btn-del {
+  background: transparent;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  font-size: 1.1rem;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.journal-row-btn-del:hover {
+  background: #fee2e2;
+}
+
+.journal-lines-table th,
+.journal-lines-table td {
+  padding: 8px 10px;
+}
+
+.journal-lines-table select,
+.journal-lines-table input {
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+}

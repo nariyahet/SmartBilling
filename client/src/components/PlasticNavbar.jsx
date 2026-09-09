@@ -168,6 +168,30 @@ function PlasticNavbar() {
         { path: "/plastic-erp/hr-reports", label: "📊 HR & Expense Reports" },
       ],
     },
+    {
+      id: "accounting",
+      label: "🏛️ Accounting & Compliance",
+      paths: [
+        "/plastic-erp/chart-of-accounts",
+        "/plastic-erp/journal-entries",
+        "/plastic-erp/cash-bank",
+        "/plastic-erp/bank-reconciliation",
+        "/plastic-erp/gst-management",
+        "/plastic-erp/gst-reconciliation",
+        "/plastic-erp/financial-reports",
+        "/plastic-erp/accounting-dashboard",
+      ],
+      items: [
+        { path: "/plastic-erp/chart-of-accounts", label: "📑 Chart of Accounts" },
+        { path: "/plastic-erp/journal-entries", label: "✍️ Journal Entries" },
+        { path: "/plastic-erp/cash-bank", label: "💵 Cash & Bank" },
+        { path: "/plastic-erp/bank-reconciliation", label: "🏛️ Bank Reconciliation" },
+        { path: "/plastic-erp/gst-management", label: "⚖️ GST Management" },
+        { path: "/plastic-erp/gst-reconciliation", label: "🔍 GST Reconciliation" },
+        { path: "/plastic-erp/financial-reports", label: "📊 Financial Reports" },
+        { path: "/plastic-erp/accounting-dashboard", label: "📈 Accounting Dashboard" },
+      ],
+    },
   ];
 
   const isGroupActive = (group) => {
@@ -395,6 +419,35 @@ function PlasticNavbar() {
             </Link>
             <Link to="/plastic-erp/hr-reports" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/hr-reports") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
               📊 HR & Expense Reports
+            </Link>
+
+            <div className="mobile-section-label">PHASE 5</div>
+            <div className="mobile-subsection-label">Accounting</div>
+            <Link to="/plastic-erp/chart-of-accounts" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/chart-of-accounts") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
+              📑 Chart of Accounts
+            </Link>
+            <Link to="/plastic-erp/journal-entries" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/journal-entries") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
+              ✍️ Journal Entries
+            </Link>
+            <Link to="/plastic-erp/cash-bank" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/cash-bank") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
+              💵 Cash & Bank
+            </Link>
+            <Link to="/plastic-erp/bank-reconciliation" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/bank-reconciliation") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
+              🏛️ Bank Reconciliation
+            </Link>
+
+            <div className="mobile-subsection-label">GST & Compliance</div>
+            <Link to="/plastic-erp/gst-management" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/gst-management") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
+              ⚖️ GST Management
+            </Link>
+            <Link to="/plastic-erp/gst-reconciliation" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/gst-reconciliation") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
+              🔍 GST Reconciliation
+            </Link>
+            <Link to="/plastic-erp/financial-reports" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/financial-reports") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
+              📊 Financial Reports
+            </Link>
+            <Link to="/plastic-erp/accounting-dashboard" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/accounting-dashboard") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
+              📈 Accounting Dashboard
             </Link>
           </div>
 

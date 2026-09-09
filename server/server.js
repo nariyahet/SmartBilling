@@ -70,6 +70,16 @@ const advanceRoutes = require("./routes/advanceRoutes");
 const expenseRoutes = require("./routes/expenseRoutes");
 const hrReportsRoutes = require("./routes/hrReportsRoutes");
 
+// Plastic Recycling ERP Routes (Phase 5 Accounting, GST & Compliance)
+const chartOfAccountsRoutes = require("./routes/chartOfAccountsRoutes");
+const journalRoutes = require("./routes/journalRoutes");
+const cashBankRoutes = require("./routes/cashBankRoutes");
+const bankReconciliationRoutes = require("./routes/bankReconciliationRoutes");
+const supplierPaymentRoutes = require("./routes/supplierPaymentRoutes");
+const gstRoutes = require("./routes/gstRoutes");
+const gstReconciliationRoutes = require("./routes/gstReconciliationRoutes");
+const financialReportsRoutes = require("./routes/financialReportsRoutes");
+
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/customers", customerRoutes);
@@ -116,6 +126,16 @@ app.use("/api/plastic-erp/payrolls", payrollRoutes);
 app.use("/api/plastic-erp/advances", advanceRoutes);
 app.use("/api/plastic-erp/expenses", expenseRoutes);
 app.use("/api/plastic-erp/hr-reports", hrReportsRoutes);
+
+// Plastic Recycling ERP Endpoints (Phase 5 Accounting, GST & Compliance)
+app.use("/api/plastic-erp/accounting/accounts", chartOfAccountsRoutes);
+app.use("/api/plastic-erp/accounting/journals", journalRoutes);
+app.use("/api/plastic-erp/accounting/cash-bank", cashBankRoutes);
+app.use("/api/plastic-erp/accounting/bank-recon", bankReconciliationRoutes);
+app.use("/api/plastic-erp/accounting/supplier-payments", supplierPaymentRoutes);
+app.use("/api/plastic-erp/accounting/gst", gstRoutes);
+app.use("/api/plastic-erp/accounting/gst-recon", gstReconciliationRoutes);
+app.use("/api/plastic-erp/accounting/financial-reports", financialReportsRoutes);
 
 
 

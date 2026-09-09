@@ -480,6 +480,25 @@ exports.createPurchaseBill = async (req, res, next) => {
         );
       }
 
+      // Phase 5: Auto-post accounting journal, supplier ledger & Input GST
+      const { postPurchaseBillAccounting } = require("../utils/accountingHelper");
+      await postPurchaseBillAccounting(conn, {
+        companyId,
+        purchaseBill: {
+          id: purchaseBillId,
+          purchase_bill_no: purchaseBillNo,
+          supplier_id,
+          purchase_date: billDate,
+          subtotal,
+          discount_amount: discount,
+          tax_percent: finalTaxPercent,
+          tax_amount: taxAmount,
+          grand_total: grandTotal,
+          payment_status: validatedPayment,
+        },
+        createdBy: adminId,
+      });
+
       await conn.commit();
 
       res.status(201).json({

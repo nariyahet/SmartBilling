@@ -241,6 +241,21 @@ exports.createPayment = async (req, res) => {
         createdBy: adminId,
       });
 
+      // Phase 5: Auto-post accounting journal & bank/cash ledger transaction
+      const { postPaymentReceivedAccounting } = require("../utils/accountingHelper");
+      await postPaymentReceivedAccounting(conn, {
+        companyId,
+        payment: {
+          id: paymentId,
+          payment_no: paymentNo,
+          amount: payAmount,
+          payment_date,
+          payment_method,
+        },
+        customerId: customer_id,
+        createdBy: adminId,
+      });
+
       await conn.commit();
 
       res.status(201).json({

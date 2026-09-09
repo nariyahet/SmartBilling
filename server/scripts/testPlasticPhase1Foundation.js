@@ -414,6 +414,13 @@ const runPlasticPhase1Tests = async () => {
     for (const billId of createdBills) {
       await pdb.query("DELETE FROM raw_material_stock_movements WHERE reference_type = 'PURCHASE_BILL' AND reference_id = ?", [billId]);
       await pdb.query("DELETE FROM purchase_bill_items WHERE purchase_bill_id = ?", [billId]);
+      await pdb.query("DELETE FROM plastic_supplier_ledger WHERE reference_type = 'PURCHASE_BILL' AND reference_id = ?", [billId]);
+      await pdb.query("DELETE FROM plastic_gst_records WHERE reference_type = 'purchase_bills' AND reference_id = ?", [billId]);
+      const [jEntries] = await pdb.query("SELECT id FROM plastic_journal_entries WHERE reference_type = 'purchase_bills' AND reference_id = ?", [billId]);
+      for (const je of jEntries) {
+        await pdb.query("DELETE FROM plastic_journal_items WHERE journal_entry_id = ?", [je.id]);
+        await pdb.query("DELETE FROM plastic_journal_entries WHERE id = ?", [je.id]);
+      }
       await pdb.query("DELETE FROM purchase_bills WHERE id = ?", [billId]);
     }
     for (const wId of createdWeighments) {
@@ -428,6 +435,7 @@ const runPlasticPhase1Tests = async () => {
       await pdb.query("DELETE FROM raw_materials WHERE id = ?", [mId]);
     }
     for (const sId of createdSuppliers) {
+      await pdb.query("DELETE FROM plastic_supplier_ledger WHERE supplier_id = ?", [sId]);
       await pdb.query("DELETE FROM suppliers WHERE id = ?", [sId]);
     }
     console.log("✅ Temporary test entities cleaned up successfully.");

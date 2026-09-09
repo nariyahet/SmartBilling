@@ -1,0 +1,96 @@
+/* PlasticCashBank.css */
+
+.bank-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.bank-card {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.bank-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+}
+
+.bank-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.bank-card-icon {
+  font-size: 1.8rem;
+  background: #f1f5f9;
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bank-card-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+.bank-card-num {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin-top: 2px;
+  font-family: monospace;
+}
+
+.bank-card-balance {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 14px 0 6px 0;
+}
+
+.bank-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 10px;
+  margin-top: 10px;
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.tx-type-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.tx-type-inward {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.tx-type-outward {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.tx-type-transfer {
+  background: #eff6ff;
+  color: #2563eb;
+}

@@ -235,6 +235,24 @@ exports.createCreditNote = async (req, res) => {
         createdBy: adminId,
       });
 
+      // Phase 5: Auto-post accounting journal & GST adjustment
+      const { postCreditNoteAccounting } = require("../utils/accountingHelper");
+      await postCreditNoteAccounting(conn, {
+        companyId,
+        creditNote: {
+          id: cnId,
+          credit_note_no: creditNoteNo,
+          customer_id,
+          date,
+          amount: subtotal,
+          tax_percent: taxP,
+          tax_amount: taxAmount,
+          total: grandTotal,
+          reason,
+        },
+        createdBy: adminId,
+      });
+
       await conn.commit();
 
       res.status(201).json({

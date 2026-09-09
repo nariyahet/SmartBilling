@@ -268,6 +268,24 @@ const createInvoice = async (req, res, next) => {
         createdBy: req.user?.id || null,
       });
 
+      // Phase 5: Auto-post accounting journal & GST record
+      const { postSalesInvoiceAccounting } = require("../utils/accountingHelper");
+      await postSalesInvoiceAccounting(conn, {
+        companyId,
+        invoice: {
+          id: invoiceId,
+          invoice_no: invoiceNo,
+          customer_id,
+          subtotal,
+          discount_amount: discountAmount,
+          tax_percent: finalTaxPercent,
+          tax_amount: taxAmount,
+          grand_total: grandTotal,
+          created_at: new Date(),
+        },
+        createdBy: req.user?.id || null,
+      });
+
       await conn.commit();
 
       return res.status(201).json({
