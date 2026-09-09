@@ -80,6 +80,15 @@ const gstRoutes = require("./routes/gstRoutes");
 const gstReconciliationRoutes = require("./routes/gstReconciliationRoutes");
 const financialReportsRoutes = require("./routes/financialReportsRoutes");
 
+// Plastic Recycling ERP Routes (Phase 6 Procurement, Vendor & Purchase Intelligence)
+const procurementRequisitionRoutes = require("./routes/procurementRequisitionRoutes");
+const supplierQuotationRoutes = require("./routes/supplierQuotationRoutes");
+const purchaseOrderRoutes = require("./routes/purchaseOrderRoutes");
+const purchaseDeliveryRoutes = require("./routes/purchaseDeliveryRoutes");
+const supplierPerformanceRoutes = require("./routes/supplierPerformanceRoutes");
+const procurementAnalyticsRoutes = require("./routes/procurementAnalyticsRoutes");
+const procurementReportsRoutes = require("./routes/procurementReportsRoutes");
+
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/customers", customerRoutes);
@@ -136,6 +145,15 @@ app.use("/api/plastic-erp/accounting/supplier-payments", supplierPaymentRoutes);
 app.use("/api/plastic-erp/accounting/gst", gstRoutes);
 app.use("/api/plastic-erp/accounting/gst-recon", gstReconciliationRoutes);
 app.use("/api/plastic-erp/accounting/financial-reports", financialReportsRoutes);
+
+// Plastic Recycling ERP Endpoints (Phase 6 Procurement, Vendor & Purchase Intelligence)
+app.use("/api/plastic-erp/procurement/requisitions", procurementRequisitionRoutes);
+app.use("/api/plastic-erp/procurement/quotations", supplierQuotationRoutes);
+app.use("/api/plastic-erp/procurement/orders", purchaseOrderRoutes);
+app.use("/api/plastic-erp/procurement/deliveries", purchaseDeliveryRoutes);
+app.use("/api/plastic-erp/procurement/suppliers", supplierPerformanceRoutes);
+app.use("/api/plastic-erp/procurement/analytics", procurementAnalyticsRoutes);
+app.use("/api/plastic-erp/procurement/reports", procurementReportsRoutes);
 
 
 

@@ -56,6 +56,16 @@ import PlasticGstReconciliation from "./pages/PlasticGstReconciliation";
 import PlasticFinancialReports from "./pages/PlasticFinancialReports";
 import PlasticAccountingDashboard from "./pages/PlasticAccountingDashboard";
 
+// Phase 6: Procurement, Vendor & Purchase Intelligence
+import PlasticPurchaseRequisitions from "./pages/PlasticPurchaseRequisitions";
+import PlasticSupplierQuotations from "./pages/PlasticSupplierQuotations";
+import PlasticPurchaseComparison from "./pages/PlasticPurchaseComparison";
+import PlasticPurchaseOrders from "./pages/PlasticPurchaseOrders";
+import PlasticPurchaseDeliveries from "./pages/PlasticPurchaseDeliveries";
+import PlasticSupplierPerformance from "./pages/PlasticSupplierPerformance";
+import PlasticProcurementReports from "./pages/PlasticProcurementReports";
+import PlasticProcurementDashboard from "./pages/PlasticProcurementDashboard";
+
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem("token");
 
@@ -592,6 +602,72 @@ function App() {
           element={
             <ProtectedRoute>
               <PlasticAccountingDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Phase 6: Procurement, Vendor & Purchase Intelligence */}
+        <Route
+          path="/plastic-erp/purchase-requisitions"
+          element={
+            <ProtectedRoute>
+              <PlasticPurchaseRequisitions />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plastic-erp/supplier-quotations"
+          element={
+            <ProtectedRoute>
+              <PlasticSupplierQuotations />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plastic-erp/purchase-comparison"
+          element={
+            <ProtectedRoute>
+              <PlasticPurchaseComparison />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plastic-erp/purchase-orders"
+          element={
+            <ProtectedRoute>
+              <PlasticPurchaseOrders />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plastic-erp/purchase-deliveries"
+          element={
+            <ProtectedRoute>
+              <PlasticPurchaseDeliveries />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plastic-erp/supplier-performance"
+          element={
+            <ProtectedRoute>
+              <PlasticSupplierPerformance />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plastic-erp/procurement-reports"
+          element={
+            <ProtectedRoute>
+              <PlasticProcurementReports />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plastic-erp/procurement-dashboard"
+          element={
+            <ProtectedRoute>
+              <PlasticProcurementDashboard />
             </ProtectedRoute>
           }
         />

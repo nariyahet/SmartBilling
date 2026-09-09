@@ -1,0 +1,33 @@
+/* Supplier Performance Page Specific Styles */
+.score-pill-container {
+  display: flex;
+  align-items: center;
+}
+
+.overall-score-cell {
+  display: flex;
+  align-items: center;
+}
+
+.overall-score-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+
+.overall-score-badge.elite {
+  background: linear-gradient(135deg, #065f46, #047857);
+  color: #34d399;
+  border: 1px solid #10b981;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+}
+
+.overall-score-badge.good {
+  background: linear-gradient(135deg, #1e3a8a, #1d4ed8);
+  color: #93c5fd;
+  border: 1px solid #3b82f6;
+}

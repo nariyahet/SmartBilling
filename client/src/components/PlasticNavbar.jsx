@@ -192,6 +192,30 @@ function PlasticNavbar() {
         { path: "/plastic-erp/accounting-dashboard", label: "📈 Accounting Dashboard" },
       ],
     },
+    {
+      id: "procurement_phase6",
+      label: "📦 Procurement",
+      paths: [
+        "/plastic-erp/purchase-requisitions",
+        "/plastic-erp/supplier-quotations",
+        "/plastic-erp/purchase-comparison",
+        "/plastic-erp/purchase-orders",
+        "/plastic-erp/purchase-deliveries",
+        "/plastic-erp/supplier-performance",
+        "/plastic-erp/procurement-reports",
+        "/plastic-erp/procurement-dashboard",
+      ],
+      items: [
+        { path: "/plastic-erp/purchase-requisitions", label: "📋 Purchase Requisitions" },
+        { path: "/plastic-erp/supplier-quotations", label: "🏷️ Supplier Quotations" },
+        { path: "/plastic-erp/purchase-comparison", label: "⚖️ Purchase Comparison" },
+        { path: "/plastic-erp/purchase-orders", label: "📦 Purchase Orders" },
+        { path: "/plastic-erp/purchase-deliveries", label: "🚚 Purchase Deliveries" },
+        { path: "/plastic-erp/supplier-performance", label: "⭐ Supplier Performance" },
+        { path: "/plastic-erp/procurement-reports", label: "📊 Procurement Reports" },
+        { path: "/plastic-erp/procurement-dashboard", label: "📈 Procurement Dashboard" },
+      ],
+    },
   ];
 
   const isGroupActive = (group) => {
@@ -448,6 +472,33 @@ function PlasticNavbar() {
             </Link>
             <Link to="/plastic-erp/accounting-dashboard" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/accounting-dashboard") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
               📈 Accounting Dashboard
+            </Link>
+
+            <div className="mobile-section-label">PHASE 6</div>
+            <div className="mobile-subsection-label">Procurement</div>
+            <Link to="/plastic-erp/purchase-requisitions" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/purchase-requisitions") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
+              📋 Purchase Requisitions
+            </Link>
+            <Link to="/plastic-erp/supplier-quotations" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/supplier-quotations") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
+              🏷️ Supplier Quotations
+            </Link>
+            <Link to="/plastic-erp/purchase-comparison" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/purchase-comparison") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
+              ⚖️ Purchase Comparison
+            </Link>
+            <Link to="/plastic-erp/purchase-orders" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/purchase-orders") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
+              📦 Purchase Orders
+            </Link>
+            <Link to="/plastic-erp/purchase-deliveries" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/purchase-deliveries") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
+              🚚 Purchase Deliveries
+            </Link>
+            <Link to="/plastic-erp/supplier-performance" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/supplier-performance") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
+              ⭐ Supplier Performance
+            </Link>
+            <Link to="/plastic-erp/procurement-reports" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/procurement-reports") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
+              📊 Procurement Reports
+            </Link>
+            <Link to="/plastic-erp/procurement-dashboard" className={`plastic-nav-link ${location.pathname.startsWith("/plastic-erp/procurement-dashboard") ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
+              📈 Procurement Dashboard
             </Link>
           </div>
 
