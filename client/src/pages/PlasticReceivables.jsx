@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import API from "../api/axios";
 import PlasticNavbar from "../components/PlasticNavbar";
 import LoadingScreen from "../components/LoadingScreen";
+import { PageHeader, Card, KpiCard, Modal, Button } from "../components";
 import "./PlasticReceivables.css";
 
 function PlasticReceivables() {
@@ -36,7 +37,6 @@ function PlasticReceivables() {
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
   }, []);
 
@@ -79,57 +79,54 @@ function PlasticReceivables() {
   return (
     <div className="plastic-page">
       <PlasticNavbar />
-      <div className="plastic-container">
+      <div className="plastic-container sb-page-container">
         {/* Header */}
-        <div className="prec-header">
-          <div>
-            <span className="prec-badge">FINANCIAL HEALTH</span>
-            <h1 className="prec-title">Accounts Receivable & Aging</h1>
-            <p className="prec-subtitle">
-              Monitor total outstanding balances, overdue customer invoices, aging buckets, and collection risk.
-            </p>
-          </div>
-          <div className="prec-header-actions">
-            <Link to="/plastic-erp/finance/ledger" className="prec-btn prec-btn-outline">
-              Customer Ledger
-            </Link>
-            <Link to="/plastic-erp/payments" className="prec-btn prec-btn-primary">
-              + Collect Payment
-            </Link>
-          </div>
-        </div>
+        <PageHeader
+          title="Accounts Receivable & Aging"
+          subtitle="Monitor total outstanding balances, overdue customer invoices, aging buckets, and collection risk."
+          badge="FINANCIAL HEALTH"
+          actions={
+            <div className="prec-header-actions">
+              <Link to="/plastic-erp/finance/ledger" className="sb-link-btn">
+                <Button variant="secondary" size="md">Customer Ledger</Button>
+              </Link>
+              <Link to="/plastic-erp/payments" className="sb-link-btn">
+                <Button variant="primary" size="md">+ Collect Payment</Button>
+              </Link>
+            </div>
+          }
+        />
 
         {/* Top KPI Cards */}
         <div className="prec-kpis">
-          <div className="prec-kpi-card">
-            <div className="prec-kpi-val">
-              ₹{Number(summary?.totalInvoiced || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-            </div>
-            <div className="prec-kpi-lbl">Total Invoiced Volume</div>
-          </div>
-          <div className="prec-kpi-card success">
-            <div className="prec-kpi-val">
-              ₹{Number(summary?.totalCollected || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-            </div>
-            <div className="prec-kpi-lbl">Total Realized Cash</div>
-          </div>
-          <div className="prec-kpi-card warning">
-            <div className="prec-kpi-val">
-              ₹{Number(summary?.totalCreditNotes || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-            </div>
-            <div className="prec-kpi-lbl">Credit Notes Adjusted</div>
-          </div>
-          <div className="prec-kpi-card danger">
-            <div className="prec-kpi-val">
-              ₹{Number(summary?.netOutstanding || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-            </div>
-            <div className="prec-kpi-lbl">Net Outstanding Dues</div>
-          </div>
+          <KpiCard
+            title="Total Invoiced Volume"
+            value={`₹${Number(summary?.totalInvoiced || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+            subtitle="Gross billed amount"
+            variant="default"
+          />
+          <KpiCard
+            title="Total Realized Cash"
+            value={`₹${Number(summary?.totalCollected || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+            subtitle="Cleared receipts"
+            variant="success"
+          />
+          <KpiCard
+            title="Credit Notes Adjusted"
+            value={`₹${Number(summary?.totalCreditNotes || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+            subtitle="Returns & discounts"
+            variant="warning"
+          />
+          <KpiCard
+            title="Net Outstanding Dues"
+            value={`₹${Number(summary?.netOutstanding || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+            subtitle="Receivables balance"
+            variant="danger"
+          />
         </div>
 
         {/* Visual Aging Buckets */}
-        <div className="aging-buckets-container">
-          <div className="aging-buckets-title">Overdue Aging Breakdown</div>
+        <Card className="aging-buckets-container" title="Overdue Aging Breakdown">
           <div className="aging-buckets-grid">
             <div className="bucket-card bucket-current">
               <div className="bucket-label">Current (Not Due)</div>
@@ -171,51 +168,54 @@ function PlasticReceivables() {
               <div className="bucket-sub">Critical / Hold Dispatches</div>
             </div>
           </div>
-        </div>
+        </Card>
 
         {/* Filters */}
-        <div className="prec-filters">
-          <input
-            type="text"
-            className="prec-search"
-            placeholder="Search by Customer Name or Mobile..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+        <Card className="prec-filters-card">
+          <div className="prec-filters">
+            <input
+              type="text"
+              className="sb-input prec-search"
+              placeholder="Search by Customer Name or Mobile..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
 
-          <div className="prec-tabs">
-            <button
-              className={`tab-btn ${agingFilter === "ALL" ? "active" : ""}`}
-              onClick={() => setAgingFilter("ALL")}
-            >
-              All Customers ({customers.length})
-            </button>
-            <button
-              className={`tab-btn ${agingFilter === "OVERDUE_90" ? "active" : ""}`}
-              onClick={() => setAgingFilter("OVERDUE_90")}
-            >
-              90+ Days Critical
-            </button>
-            <button
-              className={`tab-btn ${agingFilter === "OVERDUE_60" ? "active" : ""}`}
-              onClick={() => setAgingFilter("OVERDUE_60")}
-            >
-              61 - 90 Days
-            </button>
-            <button
-              className={`tab-btn ${agingFilter === "OVERDUE_30" ? "active" : ""}`}
-              onClick={() => setAgingFilter("OVERDUE_30")}
-            >
-              31 - 60 Days
-            </button>
+            <div className="prec-tabs">
+              <button
+                type="button"
+                className={`tab-btn ${agingFilter === "ALL" ? "active" : ""}`}
+                onClick={() => setAgingFilter("ALL")}
+              >
+                All Customers ({customers.length})
+              </button>
+              <button
+                type="button"
+                className={`tab-btn ${agingFilter === "OVERDUE_90" ? "active" : ""}`}
+                onClick={() => setAgingFilter("OVERDUE_90")}
+              >
+                90+ Days Critical
+              </button>
+              <button
+                type="button"
+                className={`tab-btn ${agingFilter === "OVERDUE_60" ? "active" : ""}`}
+                onClick={() => setAgingFilter("OVERDUE_60")}
+              >
+                61 - 90 Days
+              </button>
+              <button
+                type="button"
+                className={`tab-btn ${agingFilter === "OVERDUE_30" ? "active" : ""}`}
+                onClick={() => setAgingFilter("OVERDUE_30")}
+              >
+                31 - 60 Days
+              </button>
+            </div>
           </div>
-        </div>
+        </Card>
 
         {/* Customer Outstanding Table */}
-        <div className="prec-card">
-          <div className="prec-card-header">
-            <h3>Customer Outstanding & Aging ({filteredCustomers.length})</h3>
-          </div>
+        <Card title={`Customer Outstanding & Aging (${filteredCustomers.length})`}>
           {filteredCustomers.length === 0 ? (
             <div className="prec-empty">No customers found with outstanding dues.</div>
           ) : (
@@ -266,27 +266,30 @@ function PlasticReceivables() {
                       </td>
                       <td>
                         <div className="prec-action-btns">
-                          <button
-                            className="btn-sm btn-ledger"
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => handleViewLedger(c.id)}
                             title="View Financial Statement"
                           >
                             Ledger
-                          </button>
-                          <button
-                            className="btn-sm btn-pay"
+                          </Button>
+                          <Button
+                            variant="primary"
+                            size="sm"
                             onClick={() => handleRecordPayment(c.id)}
                             title="Record Payment Receipt"
                           >
                             Collect
-                          </button>
-                          <button
-                            className="btn-sm btn-invoices"
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            size="sm"
                             onClick={() => handleViewCustomerInvoices(c)}
                             title="View Unpaid Invoices"
                           >
                             Invoices
-                          </button>
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -295,103 +298,102 @@ function PlasticReceivables() {
               </table>
             </div>
           )}
-        </div>
+        </Card>
       </div>
 
       {/* UNPAID INVOICES MODAL */}
       {invoicesModalOpen && selectedCustomer && (
-        <div className="modal-overlay">
-          <div className="modal-container large">
-            <div className="modal-header">
-              <div>
-                <h2>Unpaid Invoices: {selectedCustomer.name}</h2>
-                <div className="text-muted text-sm">
-                  Total Outstanding: ₹
-                  {Number(selectedCustomer.outstanding_balance || 0).toLocaleString("en-IN", {
-                    minimumFractionDigits: 2,
-                  })}
-                </div>
-              </div>
-              <button className="close-btn" onClick={() => setInvoicesModalOpen(false)}>
-                &times;
-              </button>
-            </div>
+        <Modal
+          isOpen={invoicesModalOpen}
+          onClose={() => setInvoicesModalOpen(false)}
+          title={`Unpaid Invoices: ${selectedCustomer.name}`}
+          size="lg"
+        >
+          <div className="invoices-modal-summary">
+            <span className="text-muted">Total Outstanding: </span>
+            <strong className="text-danger">
+              ₹{Number(selectedCustomer.outstanding_balance || 0).toLocaleString("en-IN", {
+                minimumFractionDigits: 2,
+              })}
+            </strong>
+          </div>
 
-            <div className="invoices-modal-table-wrap">
-              <table className="invoices-modal-table">
-                <thead>
+          <div className="invoices-modal-table-wrap">
+            <table className="invoices-modal-table">
+              <thead>
+                <tr>
+                  <th>Invoice #</th>
+                  <th>Date</th>
+                  <th>Due Date</th>
+                  <th>Days Overdue</th>
+                  <th>Total (₹)</th>
+                  <th>Paid (₹)</th>
+                  <th>Balance Due (₹)</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(selectedCustomer.unpaid_invoices || []).length === 0 ? (
                   <tr>
-                    <th>Invoice #</th>
-                    <th>Date</th>
-                    <th>Due Date</th>
-                    <th>Days Overdue</th>
-                    <th>Total (₹)</th>
-                    <th>Paid (₹)</th>
-                    <th>Balance Due (₹)</th>
-                    <th>Action</th>
+                    <td colSpan="8" className="text-center text-muted">
+                      No outstanding invoices for this customer.
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {(selectedCustomer.unpaid_invoices || []).length === 0 ? (
-                    <tr>
-                      <td colSpan="8" className="text-center text-muted">
-                        No outstanding invoices for this customer.
+                ) : (
+                  selectedCustomer.unpaid_invoices.map((inv) => (
+                    <tr key={inv.id}>
+                      <td>
+                        <Link to={`/invoices/${inv.id}`} className="inv-link">
+                          {inv.invoice_no}
+                        </Link>
+                      </td>
+                      <td>{inv.created_at ? new Date(inv.created_at).toLocaleDateString() : "—"}</td>
+                      <td>{inv.due_date ? new Date(inv.due_date).toLocaleDateString() : "—"}</td>
+                      <td>
+                        {inv.days_overdue > 0 ? (
+                          <span className={`overdue-badge ${inv.days_overdue > 60 ? "crit" : "warn"}`}>
+                            {inv.days_overdue} days
+                          </span>
+                        ) : (
+                          <span className="not-due-badge">Current</span>
+                        )}
+                      </td>
+                      <td>₹{Number(inv.grand_total).toLocaleString("en-IN")}</td>
+                      <td>₹{Number(inv.paid_amount || 0).toLocaleString("en-IN")}</td>
+                      <td className="font-bold text-danger">
+                        ₹{Number(inv.balance_due).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                      </td>
+                      <td>
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={() => {
+                            setInvoicesModalOpen(false);
+                            navigate("/plastic-erp/payments", {
+                              state: { customerId: selectedCustomer.id, invoiceId: inv.id },
+                            });
+                          }}
+                        >
+                          Collect ₹{Number(inv.balance_due).toFixed(0)}
+                        </Button>
                       </td>
                     </tr>
-                  ) : (
-                    selectedCustomer.unpaid_invoices.map((inv) => (
-                      <tr key={inv.id}>
-                        <td>
-                          <Link to={`/invoices/${inv.id}`} className="inv-link">
-                            {inv.invoice_no}
-                          </Link>
-                        </td>
-                        <td>{inv.created_at ? new Date(inv.created_at).toLocaleDateString() : "—"}</td>
-                        <td>{inv.due_date ? new Date(inv.due_date).toLocaleDateString() : "—"}</td>
-                        <td>
-                          {inv.days_overdue > 0 ? (
-                            <span className={`overdue-badge ${inv.days_overdue > 60 ? "crit" : "warn"}`}>
-                              {inv.days_overdue} days
-                            </span>
-                          ) : (
-                            <span className="not-due-badge">Current</span>
-                          )}
-                        </td>
-                        <td>₹{Number(inv.grand_total).toLocaleString("en-IN")}</td>
-                        <td>₹{Number(inv.paid_amount || 0).toLocaleString("en-IN")}</td>
-                        <td className="font-bold text-danger">
-                          ₹{Number(inv.balance_due).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                        </td>
-                        <td>
-                          <button
-                            className="btn-action-collect"
-                            onClick={() => {
-                              setInvoicesModalOpen(false);
-                              navigate("/plastic-erp/payments", {
-                                state: { customerId: selectedCustomer.id, invoiceId: inv.id },
-                              });
-                            }}
-                          >
-                            Collect ₹{Number(inv.balance_due).toFixed(0)}
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="modal-footer">
-              <button
-                className="prec-btn prec-btn-outline"
-                onClick={() => setInvoicesModalOpen(false)}
-              >
-                Close
-              </button>
-            </div>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
-        </div>
+
+          <div className="modal-footer-actions">
+            <Button
+              variant="secondary"
+              size="md"
+              onClick={() => setInvoicesModalOpen(false)}
+            >
+              Close
+            </Button>
+          </div>
+        </Modal>
       )}
     </div>
   );

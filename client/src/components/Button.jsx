@@ -1,4 +1,3 @@
-import PropTypes from "prop-types";
 import "./Button.css";
 
 /**
@@ -56,28 +55,5 @@ function Button({
     </button>
   );
 }
-
-Button.propTypes = {
-  children: PropTypes.node,
-  variant: PropTypes.oneOf([
-    "primary",
-    "secondary",
-    "teal",
-    "success",
-    "warning",
-    "danger",
-    "ghost",
-  ]),
-  size: PropTypes.oneOf(["sm", "md", "lg"]),
-  icon: PropTypes.node,
-  iconRight: PropTypes.node,
-  loading: PropTypes.bool,
-  disabled: PropTypes.bool,
-  fullWidth: PropTypes.bool,
-  type: PropTypes.oneOf(["button", "submit", "reset"]),
-  onClick: PropTypes.func,
-  className: PropTypes.string,
-  title: PropTypes.string,
-};
 
 export default Button;

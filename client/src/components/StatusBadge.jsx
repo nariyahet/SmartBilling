@@ -1,4 +1,3 @@
-import PropTypes from "prop-types";
 import "./StatusBadge.css";
 
 // Automatically map common ERP statuses to approved semantic variants
@@ -68,21 +67,5 @@ function StatusBadge({
     </span>
   );
 }
-
-StatusBadge.propTypes = {
-  status: PropTypes.string,
-  variant: PropTypes.oneOf([
-    "success",
-    "warning",
-    "danger",
-    "info",
-    "primary",
-    "teal",
-    "neutral",
-  ]),
-  showDot: PropTypes.bool,
-  className: PropTypes.string,
-  children: PropTypes.node,
-};
 
 export default StatusBadge;

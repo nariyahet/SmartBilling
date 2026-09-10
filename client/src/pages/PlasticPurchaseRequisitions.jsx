@@ -1,7 +1,16 @@
 import { useState, useEffect, useCallback } from "react";
 import API from "../api/axios";
-import PlasticNavbar from "../components/PlasticNavbar";
 import LoadingScreen from "../components/LoadingScreen";
+import {
+  PageHeader,
+  KpiCard,
+  Card,
+  Button,
+  StatusBadge,
+  DataTable,
+  Modal,
+  SearchInput,
+} from "../components";
 import "./PlasticPurchaseRequisitions.css";
 
 function PlasticPurchaseRequisitions() {
@@ -58,9 +67,9 @@ function PlasticPurchaseRequisitions() {
         API.get("/suppliers"),
       ]);
 
-      setRequisitions(prRes.data.data || []);
-      setRawMaterials(rmRes.data.data || rmRes.data || []);
-      setSuppliers(suppRes.data.data || suppRes.data || []);
+      setRequisitions(prRes.data?.data || []);
+      setRawMaterials(rmRes.data?.data || rmRes.data || []);
+      setSuppliers(suppRes.data?.data || suppRes.data || []);
     } catch (err) {
       console.error("Error loading requisitions:", err);
     } finally {
@@ -95,7 +104,6 @@ function PlasticPurchaseRequisitions() {
       const updated = [...prev.items];
       updated[index][field] = value;
 
-      // Auto-fill rate from material
       if (field === "raw_material_id") {
         const mat = rawMaterials.find((m) => String(m.id) === String(value));
         if (mat) {
@@ -176,7 +184,7 @@ function PlasticPurchaseRequisitions() {
     try {
       setSubmitting(true);
       const res = await API.post(`/plastic-erp/procurement/requisitions/${selectedPR.id}/convert-to-po`, convertForm);
-      alert(res.data.message || "Requisition converted to PO!");
+      alert(res.data?.message || "Requisition converted to PO!");
       setConvertModalOpen(false);
       fetchData();
     } catch (err) {
@@ -192,71 +200,180 @@ function PlasticPurchaseRequisitions() {
   const approvedCount = requisitions.filter((r) => r.status === "APPROVED").length;
   const totalEstValue = requisitions.reduce((sum, r) => sum + Number(r.total_estimated_value || 0), 0);
 
-  if (loading && requisitions.length === 0) return <LoadingScreen />;
+  if (loading && requisitions.length === 0) {
+    return <LoadingScreen title="Loading Requisitions..." subtitle="Fetching purchase requests..." />;
+  }
+
+  const columns = [
+    {
+      key: "pr_no",
+      title: "PR Number",
+      render: (val) => <span className="sb-font-semibold sb-text-primary">{val}</span>,
+    },
+    {
+      key: "request_date",
+      title: "Date",
+      render: (val) => (val ? new Date(val).toLocaleDateString("en-IN") : "-"),
+    },
+    {
+      key: "requester_name",
+      title: "Requester",
+    },
+    {
+      key: "department",
+      title: "Department",
+    },
+    {
+      key: "priority",
+      title: "Priority",
+      render: (val) => {
+        const variant = val === "URGENT" ? "danger" : val === "HIGH" ? "warning" : "neutral";
+        return <StatusBadge status={val} variant={variant} />;
+      },
+    },
+    {
+      key: "items_count",
+      title: "Items",
+      render: (val, row) => (
+        <span>{val} items ({Number(row.total_requested_qty || 0).toLocaleString()} KG)</span>
+      ),
+    },
+    {
+      key: "total_estimated_value",
+      title: "Est. Value",
+      render: (val) => (
+        <span className="sb-font-semibold">
+          ₹{Number(val || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+        </span>
+      ),
+    },
+    {
+      key: "status",
+      title: "Status",
+      render: (val) => <StatusBadge status={val} />,
+    },
+    {
+      key: "actions",
+      title: "Actions",
+      render: (_, pr) => (
+        <div className="sb-action-btn-group">
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => openDetails(pr)}
+            title="View Items"
+          >
+            View
+          </Button>
+          {pr.status === "PENDING_APPROVAL" && (
+            <>
+              <Button
+                size="sm"
+                variant="success"
+                onClick={() => handleStatusChange(pr.id, "APPROVED")}
+                title="Approve PR"
+              >
+                Approve
+              </Button>
+              <Button
+                size="sm"
+                variant="danger"
+                onClick={() => {
+                  const reason = prompt("Enter rejection reason:");
+                  if (reason) handleStatusChange(pr.id, "REJECTED", reason);
+                }}
+                title="Reject PR"
+              >
+                Reject
+              </Button>
+            </>
+          )}
+          {pr.status === "APPROVED" && (
+            <Button
+              size="sm"
+              variant="teal"
+              onClick={() => openConvertModal(pr)}
+              title="Generate Purchase Order"
+            >
+              Convert to PO
+            </Button>
+          )}
+        </div>
+      ),
+    },
+  ];
 
   return (
-    <div className="plastic-page-container">
-      <PlasticNavbar />
-      <div className="procurement-main">
-        {/* Header */}
-        <div className="procurement-header">
-          <div>
-            <h1 className="procurement-title">📋 Purchase Requisitions</h1>
-            <p className="procurement-subtitle">
-              Internal material requisitions, departmental demand requests & multi-level approvals
-            </p>
+    <div className="sb-page-container">
+      <PageHeader
+        title="Purchase Requisitions"
+        subtitle="Internal material requisitions, departmental demand requests & multi-level approvals"
+        badge="PROCUREMENT & SOURCING"
+        actions={
+          <div className="sb-header-actions">
+            <Button variant="secondary" size="md" onClick={fetchData} icon="🔄">
+              Refresh
+            </Button>
+            <Button
+              variant="primary"
+              size="md"
+              icon="+"
+              onClick={() => setCreateModalOpen(true)}
+            >
+              New Requisition
+            </Button>
           </div>
-          <button
-            type="button"
-            className="procurement-btn-primary"
-            onClick={() => setCreateModalOpen(true)}
-          >
-            + New Requisition
-          </button>
-        </div>
+        }
+      />
 
-        {/* KPI Cards */}
-        <div className="procurement-kpi-grid">
-          <div className="procurement-kpi-card">
-            <span className="kpi-label">Total Requisitions</span>
-            <span className="kpi-value">{totalPRCount}</span>
-            <span className="kpi-hint">All time records</span>
-          </div>
-          <div className="procurement-kpi-card warning">
-            <span className="kpi-label">Pending Approval</span>
-            <span className="kpi-value">{pendingCount}</span>
-            <span className="kpi-hint">Requires management action</span>
-          </div>
-          <div className="procurement-kpi-card success">
-            <span className="kpi-label">Approved PRs</span>
-            <span className="kpi-value">{approvedCount}</span>
-            <span className="kpi-hint">Ready for PO conversion</span>
-          </div>
-          <div className="procurement-kpi-card purple">
-            <span className="kpi-label">Total Est. Value</span>
-            <span className="kpi-value">₹{totalEstValue.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</span>
-            <span className="kpi-hint">Combined requisition pipeline</span>
-          </div>
-        </div>
+      {/* KPI Cards Grid */}
+      <div className="sb-kpi-grid">
+        <KpiCard
+          title="Total Requisitions"
+          value={totalPRCount}
+          accent="blue"
+          icon="📋"
+          supportingText="All recorded PRs"
+        />
+        <KpiCard
+          title="Pending Approval"
+          value={pendingCount}
+          accent="amber"
+          icon="⏳"
+          supportingText="Awaiting manager signoff"
+        />
+        <KpiCard
+          title="Approved PRs"
+          value={approvedCount}
+          accent="green"
+          icon="✅"
+          supportingText="Ready for PO conversion"
+        />
+        <KpiCard
+          title="Total Est. Value"
+          value={`₹${totalEstValue.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+          accent="navy"
+          icon="💰"
+          supportingText="Combined PR pipeline"
+        />
+      </div>
 
-        {/* Filter Controls */}
-        <div className="procurement-filters-bar">
-          <div className="filter-group">
-            <label>Search:</label>
-            <input
-              type="text"
-              placeholder="Search by PR #, requester..."
+      {/* Filter Bar */}
+      <Card className="sb-filter-card" noPadding>
+        <div className="sb-filter-row">
+          <div className="sb-filter-item search-grow">
+            <SearchInput
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="procurement-input"
+              placeholder="Search by PR #, requester, department..."
             />
           </div>
-          <div className="filter-group">
-            <label>Status:</label>
+          <div className="sb-filter-item">
+            <label className="sb-filter-label">Status:</label>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="procurement-select"
+              className="sb-select"
             >
               <option value="ALL">All Statuses</option>
               <option value="DRAFT">Draft</option>
@@ -267,12 +384,12 @@ function PlasticPurchaseRequisitions() {
               <option value="CANCELLED">Cancelled</option>
             </select>
           </div>
-          <div className="filter-group">
-            <label>Priority:</label>
+          <div className="sb-filter-item">
+            <label className="sb-filter-label">Priority:</label>
             <select
               value={priorityFilter}
               onChange={(e) => setPriorityFilter(e.target.value)}
-              className="procurement-select"
+              className="sb-select"
             >
               <option value="ALL">All Priorities</option>
               <option value="LOW">Low</option>
@@ -282,335 +399,255 @@ function PlasticPurchaseRequisitions() {
             </select>
           </div>
         </div>
+      </Card>
 
-        {/* Requisitions Table */}
-        <div className="procurement-table-card">
-          <div className="table-responsive">
-            <table className="procurement-table">
+      {/* Main Data Table */}
+      <Card noPadding>
+        <DataTable
+          columns={columns}
+          data={requisitions}
+          loading={loading}
+          emptyMessage="No purchase requisitions found matching criteria."
+        />
+      </Card>
+
+      {/* Create Requisition Modal */}
+      <Modal
+        isOpen={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        title="Create Purchase Requisition"
+        subtitle="Specify required materials, quantities, department, and estimated budget"
+        size="lg"
+        footer={
+          <div className="sb-modal-footer-actions">
+            <Button variant="secondary" onClick={() => setCreateModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleCreateSubmit}
+              loading={submitting}
+              type="submit"
+            >
+              Create Requisition
+            </Button>
+          </div>
+        }
+      >
+        <form onSubmit={handleCreateSubmit}>
+          <div className="sb-form-grid-3">
+            <div className="sb-form-group">
+              <label>Requester Name *</label>
+              <input
+                type="text"
+                required
+                placeholder="e.g. Ramesh Patel"
+                value={formData.requester_name}
+                onChange={(e) => setFormData({ ...formData, requester_name: e.target.value })}
+                className="sb-input"
+              />
+            </div>
+            <div className="sb-form-group">
+              <label>Department</label>
+              <input
+                type="text"
+                value={formData.department}
+                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                className="sb-input"
+              />
+            </div>
+            <div className="sb-form-group">
+              <label>Priority</label>
+              <select
+                value={formData.priority}
+                onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                className="sb-select"
+              >
+                <option value="LOW">Low</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="HIGH">High</option>
+                <option value="URGENT">Urgent</option>
+              </select>
+            </div>
+            <div className="sb-form-group">
+              <label>Request Date</label>
+              <input
+                type="date"
+                value={formData.request_date}
+                onChange={(e) => setFormData({ ...formData, request_date: e.target.value })}
+                className="sb-input"
+              />
+            </div>
+            <div className="sb-form-group">
+              <label>Required Date</label>
+              <input
+                type="date"
+                value={formData.required_date}
+                onChange={(e) => setFormData({ ...formData, required_date: e.target.value })}
+                className="sb-input"
+              />
+            </div>
+            <div className="sb-form-group">
+              <label>Initial Status</label>
+              <select
+                value={formData.status}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                className="sb-select"
+              >
+                <option value="PENDING_APPROVAL">Submit for Approval</option>
+                <option value="DRAFT">Save as Draft</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="sb-form-group">
+            <label>General Notes / Justification</label>
+            <textarea
+              rows="2"
+              placeholder="Provide context or machine line for requirement..."
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              className="sb-textarea"
+            />
+          </div>
+
+          {/* Line Items */}
+          <div className="sb-section-header">
+            <h4 className="sb-section-title">Requisition Line Items</h4>
+            <Button size="sm" variant="secondary" icon="+" onClick={handleAddItem}>
+              Add Material
+            </Button>
+          </div>
+
+          <div className="sb-table-responsive">
+            <table className="sb-table items-table">
               <thead>
                 <tr>
-                  <th>PR Number</th>
-                  <th>Date</th>
-                  <th>Requester</th>
-                  <th>Department</th>
-                  <th>Priority</th>
-                  <th>Items</th>
-                  <th>Est. Value</th>
-                  <th>Status</th>
-                  <th>Actions</th>
+                  <th style={{ width: "32%" }}>Raw Material *</th>
+                  <th style={{ width: "16%" }}>Qty *</th>
+                  <th style={{ width: "10%" }}>Unit</th>
+                  <th style={{ width: "16%" }}>Est. Rate (₹)</th>
+                  <th style={{ width: "14%" }}>Est. Total</th>
+                  <th style={{ width: "12%" }}>Action</th>
                 </tr>
               </thead>
               <tbody>
-                {requisitions.length === 0 ? (
-                  <tr>
-                    <td colSpan="9" className="text-center py-6 text-muted">
-                      No purchase requisitions found matching the criteria.
-                    </td>
-                  </tr>
-                ) : (
-                  requisitions.map((pr) => (
-                    <tr key={pr.id}>
-                      <td className="font-semibold text-primary">{pr.pr_no}</td>
-                      <td>{pr.request_date ? new Date(pr.request_date).toLocaleDateString("en-IN") : "-"}</td>
-                      <td>{pr.requester_name}</td>
-                      <td>{pr.department}</td>
+                {formData.items.map((item, idx) => {
+                  const lineTotal = Number(item.requested_qty || 0) * Number(item.estimated_rate || 0);
+                  return (
+                    <tr key={idx}>
                       <td>
-                        <span className={`priority-badge ${pr.priority.toLowerCase()}`}>
-                          {pr.priority}
-                        </span>
-                      </td>
-                      <td>{pr.items_count} items ({Number(pr.total_requested_qty).toLocaleString()} KG)</td>
-                      <td className="font-semibold">
-                        ₹{Number(pr.total_estimated_value).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                        <select
+                          required
+                          value={item.raw_material_id}
+                          onChange={(e) => handleItemChange(idx, "raw_material_id", e.target.value)}
+                          className="sb-select"
+                        >
+                          <option value="">Select Raw Material</option>
+                          {rawMaterials.map((rm) => (
+                            <option key={rm.id} value={rm.id}>
+                              {rm.material_name} ({rm.plastic_type})
+                            </option>
+                          ))}
+                        </select>
                       </td>
                       <td>
-                        <span className={`status-badge ${pr.status.toLowerCase()}`}>
-                          {pr.status.replace(/_/g, " ")}
-                        </span>
+                        <input
+                          type="number"
+                          required
+                          step="0.01"
+                          min="0.1"
+                          placeholder="1000"
+                          value={item.requested_qty}
+                          onChange={(e) => handleItemChange(idx, "requested_qty", e.target.value)}
+                          className="sb-input"
+                        />
                       </td>
                       <td>
-                        <div className="action-buttons">
-                          <button
-                            type="button"
-                            className="btn-action view"
-                            onClick={() => openDetails(pr)}
-                            title="View Items"
-                          >
-                            👁️ View
-                          </button>
-                          {pr.status === "PENDING_APPROVAL" && (
-                            <>
-                              <button
-                                type="button"
-                                className="btn-action approve"
-                                onClick={() => handleStatusChange(pr.id, "APPROVED")}
-                                title="Approve PR"
-                              >
-                                ✓ Approve
-                              </button>
-                              <button
-                                type="button"
-                                className="btn-action reject"
-                                onClick={() => {
-                                  const reason = prompt("Enter rejection reason:");
-                                  if (reason) handleStatusChange(pr.id, "REJECTED", reason);
-                                }}
-                                title="Reject PR"
-                              >
-                                ✕
-                              </button>
-                            </>
-                          )}
-                          {pr.status === "APPROVED" && (
-                            <button
-                              type="button"
-                              className="btn-action convert"
-                              onClick={() => openConvertModal(pr)}
-                              title="Generate Purchase Order"
-                            >
-                              ➡️ Convert to PO
-                            </button>
-                          )}
-                        </div>
+                        <input
+                          type="text"
+                          value={item.unit}
+                          readOnly
+                          className="sb-input"
+                          style={{ background: "var(--sb-bg)" }}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          step="0.01"
+                          placeholder="45.00"
+                          value={item.estimated_rate}
+                          onChange={(e) => handleItemChange(idx, "estimated_rate", e.target.value)}
+                          className="sb-input"
+                        />
+                      </td>
+                      <td className="sb-font-semibold">₹{lineTotal.toFixed(2)}</td>
+                      <td>
+                        <Button
+                          size="sm"
+                          variant="danger"
+                          onClick={() => handleRemoveItem(idx)}
+                          disabled={formData.items.length <= 1}
+                        >
+                          Remove
+                        </Button>
                       </td>
                     </tr>
-                  ))
-                )}
+                  );
+                })}
               </tbody>
             </table>
           </div>
-        </div>
-      </div>
-
-      {/* Create Requisition Modal */}
-      {createModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-card modal-lg">
-            <div className="modal-header">
-              <h3>Create Purchase Requisition</h3>
-              <button type="button" className="close-btn" onClick={() => setCreateModalOpen(false)}>✕</button>
-            </div>
-            <form onSubmit={handleCreateSubmit}>
-              <div className="modal-body">
-                <div className="form-grid-3">
-                  <div className="form-group">
-                    <label>Requester Name *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Ramesh Patel"
-                      value={formData.requester_name}
-                      onChange={(e) => setFormData({ ...formData, requester_name: e.target.value })}
-                      className="procurement-input"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Department</label>
-                    <input
-                      type="text"
-                      value={formData.department}
-                      onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                      className="procurement-input"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Priority</label>
-                    <select
-                      value={formData.priority}
-                      onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                      className="procurement-select"
-                    >
-                      <option value="LOW">Low</option>
-                      <option value="MEDIUM">Medium</option>
-                      <option value="HIGH">High</option>
-                      <option value="URGENT">Urgent</option>
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label>Request Date</label>
-                    <input
-                      type="date"
-                      value={formData.request_date}
-                      onChange={(e) => setFormData({ ...formData, request_date: e.target.value })}
-                      className="procurement-input"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Required Date</label>
-                    <input
-                      type="date"
-                      value={formData.required_date}
-                      onChange={(e) => setFormData({ ...formData, required_date: e.target.value })}
-                      className="procurement-input"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Initial Status</label>
-                    <select
-                      value={formData.status}
-                      onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                      className="procurement-select"
-                    >
-                      <option value="PENDING_APPROVAL">Submit for Approval</option>
-                      <option value="DRAFT">Save as Draft</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="form-group full-width">
-                  <label>General Notes / Justification</label>
-                  <textarea
-                    rows="2"
-                    placeholder="Provide context for requirement..."
-                    value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    className="procurement-textarea"
-                  />
-                </div>
-
-                {/* Line Items */}
-                <div className="line-items-section">
-                  <div className="items-header">
-                    <h4>Requisition Line Items</h4>
-                    <button type="button" className="btn-add-line" onClick={handleAddItem}>
-                      + Add Material
-                    </button>
-                  </div>
-
-                  <table className="items-entry-table">
-                    <thead>
-                      <tr>
-                        <th>Raw Material *</th>
-                        <th>Qty *</th>
-                        <th>Unit</th>
-                        <th>Est. Rate (₹)</th>
-                        <th>Est. Total</th>
-                        <th>Reason / Usage</th>
-                        <th></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {formData.items.map((item, idx) => {
-                        const lineTotal = (Number(item.requested_qty || 0) * Number(item.estimated_rate || 0));
-                        return (
-                          <tr key={idx}>
-                            <td>
-                              <select
-                                required
-                                value={item.raw_material_id}
-                                onChange={(e) => handleItemChange(idx, "raw_material_id", e.target.value)}
-                                className="procurement-select"
-                              >
-                                <option value="">Select Raw Material</option>
-                                {rawMaterials.map((rm) => (
-                                  <option key={rm.id} value={rm.id}>
-                                    {rm.material_name} ({rm.plastic_type})
-                                  </option>
-                                ))}
-                              </select>
-                            </td>
-                            <td>
-                              <input
-                                type="number"
-                                required
-                                step="0.01"
-                                min="0.1"
-                                placeholder="1000"
-                                value={item.requested_qty}
-                                onChange={(e) => handleItemChange(idx, "requested_qty", e.target.value)}
-                                className="procurement-input qty-input"
-                              />
-                            </td>
-                            <td>
-                              <input
-                                type="text"
-                                value={item.unit}
-                                readOnly
-                                className="procurement-input unit-input"
-                              />
-                            </td>
-                            <td>
-                              <input
-                                type="number"
-                                step="0.01"
-                                placeholder="45.00"
-                                value={item.estimated_rate}
-                                onChange={(e) => handleItemChange(idx, "estimated_rate", e.target.value)}
-                                className="procurement-input rate-input"
-                              />
-                            </td>
-                            <td className="font-semibold">₹{lineTotal.toFixed(2)}</td>
-                            <td>
-                              <input
-                                type="text"
-                                placeholder="Extruder Line 1 production"
-                                value={item.requirement_reason}
-                                onChange={(e) => handleItemChange(idx, "requirement_reason", e.target.value)}
-                                className="procurement-input"
-                              />
-                            </td>
-                            <td>
-                              <button
-                                type="button"
-                                className="btn-del-line"
-                                onClick={() => handleRemoveItem(idx)}
-                                disabled={formData.items.length <= 1}
-                              >
-                                🗑️
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              <div className="modal-footer">
-                <button type="button" className="btn-secondary" onClick={() => setCreateModalOpen(false)}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn-primary" disabled={submitting}>
-                  {submitting ? "Saving..." : "Create Requisition"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+        </form>
+      </Modal>
 
       {/* PR Details View Modal */}
-      {detailsModalOpen && selectedPR && (
-        <div className="modal-overlay">
-          <div className="modal-card modal-lg">
-            <div className="modal-header">
-              <div>
-                <h3>Requisition #{selectedPR.pr_no}</h3>
-                <span className={`status-badge ${selectedPR.status.toLowerCase()}`}>
-                  {selectedPR.status.replace(/_/g, " ")}
-                </span>
-              </div>
-              <button type="button" className="close-btn" onClick={() => setDetailsModalOpen(false)}>✕</button>
+      <Modal
+        isOpen={detailsModalOpen && Boolean(selectedPR)}
+        onClose={() => setDetailsModalOpen(false)}
+        title={`Requisition #${selectedPR?.pr_no || ""}`}
+        subtitle="Departmental request details and raw material item breakdown"
+        size="lg"
+        footer={
+          <div className="sb-modal-footer-actions">
+            {selectedPR?.status === "APPROVED" && (
+              <Button
+                variant="teal"
+                onClick={() => {
+                  setDetailsModalOpen(false);
+                  openConvertModal(selectedPR);
+                }}
+              >
+                Convert to Purchase Order
+              </Button>
+            )}
+            <Button variant="secondary" onClick={() => setDetailsModalOpen(false)}>
+              Close
+            </Button>
+          </div>
+        }
+      >
+        {selectedPR && (
+          <div>
+            <div className="sb-detail-summary-grid">
+              <div><span className="sb-detail-label">Requester:</span> <strong>{selectedPR.requester_name}</strong></div>
+              <div><span className="sb-detail-label">Department:</span> <strong>{selectedPR.department}</strong></div>
+              <div><span className="sb-detail-label">Priority:</span> <StatusBadge status={selectedPR.priority} /></div>
+              <div><span className="sb-detail-label">Request Date:</span> <strong>{selectedPR.request_date ? selectedPR.request_date.slice(0, 10) : "-"}</strong></div>
+              <div><span className="sb-detail-label">Required Date:</span> <strong>{selectedPR.required_date ? selectedPR.required_date.slice(0, 10) : "-"}</strong></div>
+              <div><span className="sb-detail-label">Status:</span> <StatusBadge status={selectedPR.status} /></div>
             </div>
-            <div className="modal-body">
-              <div className="details-summary-grid">
-                <div><strong>Requester:</strong> {selectedPR.requester_name}</div>
-                <div><strong>Department:</strong> {selectedPR.department}</div>
-                <div><strong>Priority:</strong> {selectedPR.priority}</div>
-                <div><strong>Request Date:</strong> {selectedPR.request_date ? selectedPR.request_date.slice(0, 10) : "-"}</div>
-                <div><strong>Required Date:</strong> {selectedPR.required_date ? selectedPR.required_date.slice(0, 10) : "-"}</div>
-                <div><strong>Approved By:</strong> {selectedPR.approved_by_name || "Pending"}</div>
+
+            {selectedPR.notes && (
+              <div className="sb-detail-note">
+                <span className="sb-detail-label">Notes:</span> {selectedPR.notes}
               </div>
+            )}
 
-              {selectedPR.notes && (
-                <div className="details-notes">
-                  <strong>Notes:</strong> {selectedPR.notes}
-                </div>
-              )}
-
-              <h4 className="mt-4 mb-2">Requested Material Items</h4>
-              <table className="procurement-table">
+            <h4 className="sb-section-title" style={{ marginTop: "16px" }}>Requested Material Items</h4>
+            <div className="sb-table-responsive">
+              <table className="sb-table">
                 <thead>
                   <tr>
                     <th>Material</th>
@@ -619,107 +656,94 @@ function PlasticPurchaseRequisitions() {
                     <th>Unit</th>
                     <th>Est. Rate</th>
                     <th>Est. Total</th>
-                    <th>Usage / Reason</th>
+                    <th>Usage Reason</th>
                   </tr>
                 </thead>
                 <tbody>
                   {selectedPR.items?.map((itm) => (
                     <tr key={itm.id}>
-                      <td className="font-semibold">{itm.material_name}</td>
+                      <td className="sb-font-semibold">{itm.material_name}</td>
                       <td>{itm.plastic_type}</td>
                       <td>{Number(itm.requested_qty).toLocaleString()}</td>
                       <td>{itm.unit}</td>
                       <td>₹{Number(itm.estimated_rate).toFixed(2)}</td>
-                      <td className="font-semibold">₹{Number(itm.estimated_total).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
+                      <td className="sb-font-semibold">₹{Number(itm.estimated_total).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
                       <td>{itm.requirement_reason || "-"}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-            <div className="modal-footer">
-              {selectedPR.status === "APPROVED" && (
-                <button
-                  type="button"
-                  className="btn-primary"
-                  onClick={() => {
-                    setDetailsModalOpen(false);
-                    openConvertModal(selectedPR);
-                  }}
-                >
-                  ➡️ Convert to Purchase Order
-                </button>
-              )}
-              <button type="button" className="btn-secondary" onClick={() => setDetailsModalOpen(false)}>
-                Close
-              </button>
-            </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
 
       {/* Convert to PO Modal */}
-      {convertModalOpen && selectedPR && (
-        <div className="modal-overlay">
-          <div className="modal-card">
-            <div className="modal-header">
-              <h3>Convert PR #{selectedPR.pr_no} to PO</h3>
-              <button type="button" className="close-btn" onClick={() => setConvertModalOpen(false)}>✕</button>
-            </div>
-            <form onSubmit={handleConvertSubmit}>
-              <div className="modal-body">
-                <p className="mb-4 text-muted">
-                  Select the supplier to generate a formal Purchase Order. Items, requested quantities, and estimated rates will be copied directly into the new PO.
-                </p>
-                <div className="form-group">
-                  <label>Assign Supplier *</label>
-                  <select
-                    required
-                    value={convertForm.supplier_id}
-                    onChange={(e) => setConvertForm({ ...convertForm, supplier_id: e.target.value })}
-                    className="procurement-select"
-                  >
-                    <option value="">Select Supplier</option>
-                    {suppliers.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.supplier_name} ({s.supplier_code}) - {s.city || "Kim"}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label>Expected Delivery Date</label>
-                  <input
-                    type="date"
-                    value={convertForm.expected_delivery_date}
-                    onChange={(e) => setConvertForm({ ...convertForm, expected_delivery_date: e.target.value })}
-                    className="procurement-input"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Order Notes</label>
-                  <textarea
-                    rows="2"
-                    value={convertForm.notes}
-                    onChange={(e) => setConvertForm({ ...convertForm, notes: e.target.value })}
-                    className="procurement-textarea"
-                  />
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button type="button" className="btn-secondary" onClick={() => setConvertModalOpen(false)}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn-primary" disabled={submitting}>
-                  {submitting ? "Generating..." : "Generate Purchase Order"}
-                </button>
-              </div>
-            </form>
+      <Modal
+        isOpen={convertModalOpen && Boolean(selectedPR)}
+        onClose={() => setConvertModalOpen(false)}
+        title={`Convert PR #${selectedPR?.pr_no || ""} to Purchase Order`}
+        subtitle="Select supplier to automatically generate formal purchase order"
+        size="md"
+        footer={
+          <div className="sb-modal-footer-actions">
+            <Button variant="secondary" onClick={() => setConvertModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleConvertSubmit}
+              loading={submitting}
+            >
+              Generate Purchase Order
+            </Button>
           </div>
-        </div>
-      )}
+        }
+      >
+        {selectedPR && (
+          <form onSubmit={handleConvertSubmit}>
+            <p className="sb-text-muted" style={{ marginBottom: "16px" }}>
+              Select the supplier to generate a formal Purchase Order. Items, requested quantities, and estimated rates will be copied directly into the new PO.
+            </p>
+            <div className="sb-form-group">
+              <label>Assign Supplier *</label>
+              <select
+                required
+                value={convertForm.supplier_id}
+                onChange={(e) => setConvertForm({ ...convertForm, supplier_id: e.target.value })}
+                className="sb-select"
+              >
+                <option value="">Select Supplier</option>
+                {suppliers.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.supplier_name} ({s.supplier_code}) - {s.city || "Kim"}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="sb-form-group">
+              <label>Expected Delivery Date</label>
+              <input
+                type="date"
+                value={convertForm.expected_delivery_date}
+                onChange={(e) => setConvertForm({ ...convertForm, expected_delivery_date: e.target.value })}
+                className="sb-input"
+              />
+            </div>
+
+            <div className="sb-form-group">
+              <label>Order Notes</label>
+              <textarea
+                rows="2"
+                value={convertForm.notes}
+                onChange={(e) => setConvertForm({ ...convertForm, notes: e.target.value })}
+                className="sb-textarea"
+              />
+            </div>
+          </form>
+        )}
+      </Modal>
     </div>
   );
 }

@@ -1,8 +1,15 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import API from "../api/axios";
-import PlasticNavbar from "../components/PlasticNavbar";
 import LoadingScreen from "../components/LoadingScreen";
+import {
+  PageHeader,
+  Card,
+  DataTable,
+  Modal,
+  Button,
+  StatusBadge,
+} from "../components";
 import "./PlasticDeliveryChallan.css";
 
 function PlasticDeliveryChallan() {
@@ -75,7 +82,6 @@ function PlasticDeliveryChallan() {
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
   }, []);
 
@@ -207,425 +213,411 @@ function PlasticDeliveryChallan() {
   if (loading) return <LoadingScreen message="Loading Delivery Challans..." />;
 
   return (
-    <div className="plastic-page">
-      <PlasticNavbar />
-      <div className="plastic-container">
-        {/* Header */}
-        <div className="pchallan-header">
-          <div>
-            <span className="pchallan-badge">TRANSPORT DOCUMENT</span>
-            <h1 className="pchallan-title">Delivery Challans (DC)</h1>
-            <p className="pchallan-subtitle">
-              Issue and print official goods movement challans, E-Way bill references, and gate passes.
-            </p>
+    <div className="sb-page-container">
+      <div className="no-print">
+        <PageHeader
+          title="Delivery Challans (DC)"
+          subtitle="Issue and print official goods movement challans, E-Way bill references, and gate passes."
+          breadcrumbs={[
+            { label: "ERP", to: "/plastic-erp" },
+            { label: "Sales & Dispatch", to: "/plastic-erp/sales-orders" },
+            { label: "Delivery Challans" },
+          ]}
+          actions={
+            <div style={{ display: "flex", gap: "10px" }}>
+              <Link to="/plastic-erp/dispatches">
+                <Button variant="secondary">Outward Dispatches</Button>
+              </Link>
+              <Link to="/plastic-erp/transport/vehicles">
+                <Button variant="secondary">Vehicle Master</Button>
+              </Link>
+              <Button variant="primary" onClick={() => setCreateModalOpen(true)}>
+                + Issue Challan
+              </Button>
+            </div>
+          }
+        />
+      </div>
+
+      {/* Filters Bar */}
+      <Card noPadding style={{ marginBottom: "24px" }} className="no-print">
+        <div style={{ padding: "16px 20px", display: "flex", flexWrap: "wrap", gap: "12px", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ flex: 1, minWidth: "260px" }}>
+            <input
+              type="text"
+              className="sb-input"
+              style={{ height: "38px" }}
+              placeholder="Search by Challan #, Customer, Vehicle, E-Way Bill..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
-          <div className="pchallan-header-actions">
-            <Link to="/plastic-erp/dispatches" className="pchallan-btn pchallan-btn-outline">
-              Outward Dispatches
-            </Link>
-            <Link to="/plastic-erp/transport/vehicles" className="pchallan-btn pchallan-btn-outline">
-              Vehicle Master
-            </Link>
-            <button
-              className="pchallan-btn pchallan-btn-primary"
-              onClick={() => setCreateModalOpen(true)}
+
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "center" }}>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="sb-input"
+              style={{ width: "160px", height: "38px" }}
             >
-              + Issue Challan
-            </button>
+              <option value="">All Statuses</option>
+              <option value="ISSUED">Issued</option>
+              <option value="IN_TRANSIT">In Transit</option>
+              <option value="DELIVERED">Delivered</option>
+              <option value="CANCELLED">Cancelled</option>
+            </select>
+
+            <select
+              value={customerFilter}
+              onChange={(e) => setCustomerFilter(e.target.value)}
+              className="sb-input"
+              style={{ width: "180px", height: "38px" }}
+            >
+              <option value="">All Customers</option>
+              {customers.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+
+            {(statusFilter || customerFilter || searchQuery) && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setStatusFilter("");
+                  setCustomerFilter("");
+                  setSearchQuery("");
+                }}
+              >
+                Reset
+              </Button>
+            )}
           </div>
-        </div>
-
-        {/* Filters */}
-        <div className="pchallan-filters">
-          <input
-            type="text"
-            className="pchallan-search"
-            placeholder="Search by Challan #, Customer, Vehicle, E-Way Bill..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-
-          <select
-            className="pchallan-select"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="">All Statuses</option>
-            <option value="ISSUED">Issued</option>
-            <option value="IN_TRANSIT">In Transit</option>
-            <option value="DELIVERED">Delivered</option>
-            <option value="CANCELLED">Cancelled</option>
-          </select>
-
-          <select
-            className="pchallan-select"
-            value={customerFilter}
-            onChange={(e) => setCustomerFilter(e.target.value)}
-          >
-            <option value="">All Customers</option>
-            {customers.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-
-          {(statusFilter || customerFilter || searchQuery) && (
-            <button
-              className="pchallan-btn-reset"
-              onClick={() => {
-                setStatusFilter("");
-                setCustomerFilter("");
-                setSearchQuery("");
-              }}
-            >
-              Reset
-            </button>
-          )}
         </div>
 
         {/* Challans Table */}
-        <div className="pchallan-card">
-          <div className="pchallan-card-header">
-            <h3>Delivery Challans ({filteredChallans.length})</h3>
-          </div>
+        <DataTable
+          headers={[
+            "Challan #",
+            "Date",
+            "Customer",
+            "Vehicle No",
+            "Transporter",
+            "E-Way Bill #",
+            "Qty (KG)",
+            "Status",
+            "Actions",
+          ]}
+        >
           {filteredChallans.length === 0 ? (
-            <div className="pchallan-empty">No delivery challans found.</div>
+            <tr>
+              <td colSpan="9" style={{ textAlign: "center", padding: "32px", color: "var(--sb-muted)" }}>
+                No delivery challans found.
+              </td>
+            </tr>
           ) : (
-            <div className="pchallan-table-wrap">
-              <table className="pchallan-table">
-                <thead>
-                  <tr>
-                    <th>Challan #</th>
-                    <th>Date</th>
-                    <th>Customer</th>
-                    <th>Vehicle No</th>
-                    <th>Transporter</th>
-                    <th>E-Way Bill #</th>
-                    <th>Qty (KG)</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredChallans.map((c) => (
-                    <tr key={c.id}>
-                      <td className="font-bold text-primary">{c.challan_no}</td>
-                      <td>
-                        {c.challan_date ? new Date(c.challan_date).toLocaleDateString() : "—"}
-                      </td>
-                      <td>
-                        <strong>{c.customer_name}</strong>
-                      </td>
-                      <td>{c.vehicle_number || "—"}</td>
-                      <td>{c.transporter || "—"}</td>
-                      <td>{c.eway_bill_no || "—"}</td>
-                      <td>
-                        <strong>{Number(c.total_quantity || 0).toLocaleString()} KG</strong>
-                      </td>
-                      <td>
-                        <span className={`status-pill ${String(c.status).toLowerCase()}`}>
-                          {c.status}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="btn-group">
-                          <button
-                            className="action-btn print"
-                            onClick={() => handleViewChallan(c.id)}
-                          >
-                            Print / View
-                          </button>
-                          {c.status === "ISSUED" && (
-                            <button
-                              className="action-btn transit"
-                              onClick={() => handleStatusChange(c.id, "IN_TRANSIT")}
-                            >
-                              In Transit
-                            </button>
-                          )}
-                          {c.status === "IN_TRANSIT" && (
-                            <button
-                              className="action-btn delivered"
-                              onClick={() => handleStatusChange(c.id, "DELIVERED")}
-                            >
-                              Delivered
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            filteredChallans.map((c) => (
+              <tr key={c.id}>
+                <td><strong style={{ color: "var(--sb-ocean)" }}>{c.challan_no}</strong></td>
+                <td>{c.challan_date ? new Date(c.challan_date).toLocaleDateString() : "—"}</td>
+                <td><strong>{c.customer_name}</strong></td>
+                <td>{c.vehicle_number || "—"}</td>
+                <td>{c.transporter || "—"}</td>
+                <td>{c.eway_bill_no || "—"}</td>
+                <td><strong>{Number(c.total_quantity || 0).toLocaleString()} KG</strong></td>
+                <td>
+                  <StatusBadge status={c.status} />
+                </td>
+                <td>
+                  <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => handleViewChallan(c.id)}
+                    >
+                      Print / View
+                    </Button>
+                    {c.status === "ISSUED" && (
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        onClick={() => handleStatusChange(c.id, "IN_TRANSIT")}
+                      >
+                        In Transit
+                      </Button>
+                    )}
+                    {c.status === "IN_TRANSIT" && (
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        onClick={() => handleStatusChange(c.id, "DELIVERED")}
+                      >
+                        Delivered
+                      </Button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))
           )}
-        </div>
-      </div>
+        </DataTable>
+      </Card>
 
       {/* CREATE CHALLAN MODAL */}
-      {createModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-container large">
-            <div className="modal-header">
-              <h2>Issue Delivery Challan</h2>
-              <button className="close-btn" onClick={() => setCreateModalOpen(false)}>
-                &times;
-              </button>
+      <Modal
+        isOpen={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        title="Issue Delivery Challan"
+      >
+        <form onSubmit={handleCreateChallan} className="sb-form">
+          <div className="sb-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px" }}>
+            <div className="sb-form-group">
+              <label className="sb-label">Customer *</label>
+              <select
+                className="sb-input"
+                value={formData.customer_id}
+                onChange={(e) => setFormData({ ...formData, customer_id: e.target.value })}
+                required
+              >
+                <option value="">Select Customer</option>
+                {customers.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
             </div>
-            <form onSubmit={handleCreateChallan} className="modal-form">
-              <div className="form-row">
-                <div className="form-col">
-                  <label>Customer *</label>
-                  <select
-                    value={formData.customer_id}
-                    onChange={(e) => setFormData({ ...formData, customer_id: e.target.value })}
-                    required
-                  >
-                    <option value="">Select Customer</option>
-                    {customers.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
 
-                <div className="form-col">
-                  <label>Challan Date *</label>
-                  <input
-                    type="date"
-                    value={formData.challan_date}
-                    onChange={(e) => setFormData({ ...formData, challan_date: e.target.value })}
-                    required
-                  />
-                </div>
+            <div className="sb-form-group">
+              <label className="sb-label">Challan Date *</label>
+              <input
+                type="date"
+                className="sb-input"
+                value={formData.challan_date}
+                onChange={(e) => setFormData({ ...formData, challan_date: e.target.value })}
+                required
+              />
+            </div>
 
-                <div className="form-col">
-                  <label>Dispatch (Optional Link)</label>
-                  <select
-                    value={formData.dispatch_id}
-                    onChange={(e) => setFormData({ ...formData, dispatch_id: e.target.value })}
-                  >
-                    <option value="">Direct Challan (No Dispatch)</option>
-                    {dispatches.map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.dispatch_no} — {d.customer_name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-col">
-                  <label>Vehicle Number</label>
-                  <input
-                    type="text"
-                    list="challan-vehicles-list"
-                    placeholder="e.g. GJ 01 XX 1234"
-                    value={formData.vehicle_number}
-                    onChange={(e) => setFormData({ ...formData, vehicle_number: e.target.value })}
-                  />
-                  <datalist id="challan-vehicles-list">
-                    {vehicles.map((v) => (
-                      <option key={v.id} value={v.vehicle_number}>
-                        {v.vehicle_type ? `(${v.vehicle_type})` : ""} {v.driver_name ? `- ${v.driver_name}` : ""}
-                      </option>
-                    ))}
-                  </datalist>
-                </div>
-
-                <div className="form-col">
-                  <label>Transporter Name</label>
-                  <input
-                    type="text"
-                    placeholder="Transporter"
-                    value={formData.transporter}
-                    onChange={(e) => setFormData({ ...formData, transporter: e.target.value })}
-                  />
-                </div>
-
-                <div className="form-col">
-                  <label>E-Way Bill Number</label>
-                  <input
-                    type="text"
-                    placeholder="12-digit E-Way Bill #"
-                    value={formData.eway_bill_no}
-                    onChange={(e) => setFormData({ ...formData, eway_bill_no: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-col">
-                  <label>Driver Name</label>
-                  <input
-                    type="text"
-                    placeholder="Driver Name"
-                    value={formData.driver_name}
-                    onChange={(e) => setFormData({ ...formData, driver_name: e.target.value })}
-                  />
-                </div>
-                <div className="form-col">
-                  <label>Driver Mobile</label>
-                  <input
-                    type="text"
-                    placeholder="Driver Mobile"
-                    value={formData.driver_mobile}
-                    onChange={(e) => setFormData({ ...formData, driver_mobile: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              {/* Items Section */}
-              <div className="modal-section-title">Challan Items</div>
-              <div className="item-builder">
-                <div className="builder-field flex-2">
-                  <label>Product / Description *</label>
-                  <select
-                    value={newItem.finished_good_id}
-                    onChange={(e) => {
-                      const fgId = e.target.value;
-                      const fg = finishedGoods.find((f) => String(f.id) === String(fgId));
-                      setNewItem({
-                        ...newItem,
-                        finished_good_id: fgId,
-                        description: fg ? `${fg.fg_name} (${fg.fg_code || ""})` : "",
-                      });
-                    }}
-                  >
-                    <option value="">Select Finished Good (or custom below)</option>
-                    {finishedGoods.map((f) => (
-                      <option key={f.id} value={f.id}>
-                        {f.fg_name} ({f.fg_code})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="builder-field">
-                  <label>Lot Number</label>
-                  <input
-                    type="text"
-                    placeholder="Lot #"
-                    value={newItem.lot_number}
-                    onChange={(e) => setNewItem({ ...newItem, lot_number: e.target.value })}
-                  />
-                </div>
-
-                <div className="builder-field">
-                  <label>Bags / Packages</label>
-                  <input
-                    type="number"
-                    placeholder="Bags"
-                    value={newItem.bags_count}
-                    onChange={(e) => setNewItem({ ...newItem, bags_count: e.target.value })}
-                  />
-                </div>
-
-                <div className="builder-field">
-                  <label>Quantity (KG) *</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={newItem.quantity}
-                    onChange={(e) => setNewItem({ ...newItem, quantity: e.target.value })}
-                  />
-                </div>
-
-                <button type="button" className="btn-add-item" onClick={handleAddItem}>
-                  + Add
-                </button>
-              </div>
-
-              <div className="item-table-wrap">
-                <table className="challan-item-table">
-                  <thead>
-                    <tr>
-                      <th>Description</th>
-                      <th>Lot #</th>
-                      <th>Bags</th>
-                      <th>Quantity</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {formData.items.length === 0 ? (
-                      <tr>
-                        <td colSpan="5" className="text-center text-muted">
-                          No items added yet
-                        </td>
-                      </tr>
-                    ) : (
-                      formData.items.map((it, idx) => (
-                        <tr key={idx}>
-                          <td>{it.description}</td>
-                          <td>{it.lot_number || "—"}</td>
-                          <td>{it.bags_count ? `${it.bags_count} Bags` : "—"}</td>
-                          <td>
-                            <strong>{it.quantity} {it.unit}</strong>
-                          </td>
-                          <td>
-                            <button
-                              type="button"
-                              className="btn-del"
-                              onClick={() => handleRemoveItem(idx)}
-                            >
-                              &times;
-                            </button>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="form-col mt-3">
-                <label>Remarks / Gate Pass Instructions</label>
-                <textarea
-                  rows="2"
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                ></textarea>
-              </div>
-
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="pchallan-btn pchallan-btn-outline"
-                  onClick={() => setCreateModalOpen(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="pchallan-btn pchallan-btn-primary"
-                  disabled={submitting}
-                >
-                  {submitting ? "Creating..." : "Generate Challan"}
-                </button>
-              </div>
-            </form>
+            <div className="sb-form-group">
+              <label className="sb-label">Dispatch (Optional Link)</label>
+              <select
+                className="sb-input"
+                value={formData.dispatch_id}
+                onChange={(e) => setFormData({ ...formData, dispatch_id: e.target.value })}
+              >
+                <option value="">Direct Challan (No Dispatch)</option>
+                {dispatches.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.dispatch_no} — {d.customer_name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
-        </div>
-      )}
+
+          <div className="sb-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px" }}>
+            <div className="sb-form-group">
+              <label className="sb-label">Vehicle Number</label>
+              <input
+                type="text"
+                list="challan-vehicles-list"
+                className="sb-input"
+                placeholder="e.g. GJ 01 XX 1234"
+                value={formData.vehicle_number}
+                onChange={(e) => setFormData({ ...formData, vehicle_number: e.target.value })}
+              />
+              <datalist id="challan-vehicles-list">
+                {vehicles.map((v) => (
+                  <option key={v.id} value={v.vehicle_number}>
+                    {v.vehicle_type ? `(${v.vehicle_type})` : ""} {v.driver_name ? `- ${v.driver_name}` : ""}
+                  </option>
+                ))}
+              </datalist>
+            </div>
+
+            <div className="sb-form-group">
+              <label className="sb-label">Transporter Name</label>
+              <input
+                type="text"
+                className="sb-input"
+                placeholder="Transporter"
+                value={formData.transporter}
+                onChange={(e) => setFormData({ ...formData, transporter: e.target.value })}
+              />
+            </div>
+
+            <div className="sb-form-group">
+              <label className="sb-label">E-Way Bill Number</label>
+              <input
+                type="text"
+                className="sb-input"
+                placeholder="12-digit E-Way Bill #"
+                value={formData.eway_bill_no}
+                onChange={(e) => setFormData({ ...formData, eway_bill_no: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div className="sb-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div className="sb-form-group">
+              <label className="sb-label">Driver Name</label>
+              <input
+                type="text"
+                className="sb-input"
+                placeholder="Driver Name"
+                value={formData.driver_name}
+                onChange={(e) => setFormData({ ...formData, driver_name: e.target.value })}
+              />
+            </div>
+            <div className="sb-form-group">
+              <label className="sb-label">Driver Mobile</label>
+              <input
+                type="text"
+                className="sb-input"
+                placeholder="Driver Mobile"
+                value={formData.driver_mobile}
+                onChange={(e) => setFormData({ ...formData, driver_mobile: e.target.value })}
+              />
+            </div>
+          </div>
+
+          {/* Items Section */}
+          <div style={{ marginTop: "16px", borderTop: "1px dashed var(--sb-border)", paddingTop: "14px" }}>
+            <h4 style={{ margin: "0 0 12px 0", fontSize: "14px", color: "var(--sb-navy)", fontWeight: 700 }}>
+              Challan Items
+            </h4>
+
+            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr auto", gap: "10px", alignItems: "flex-end", background: "var(--sb-canvas)", padding: "14px", borderRadius: "8px", marginBottom: "14px" }}>
+              <div className="sb-form-group" style={{ margin: 0 }}>
+                <label className="sb-label">Product / Description *</label>
+                <select
+                  className="sb-input"
+                  value={newItem.finished_good_id}
+                  onChange={(e) => {
+                    const fgId = e.target.value;
+                    const fg = finishedGoods.find((f) => String(f.id) === String(fgId));
+                    setNewItem({
+                      ...newItem,
+                      finished_good_id: fgId,
+                      description: fg ? `${fg.fg_name} (${fg.fg_code || ""})` : "",
+                    });
+                  }}
+                >
+                  <option value="">Select Finished Good</option>
+                  {finishedGoods.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.fg_name} ({f.fg_code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="sb-form-group" style={{ margin: 0 }}>
+                <label className="sb-label">Lot Number</label>
+                <input
+                  type="text"
+                  className="sb-input"
+                  placeholder="Lot #"
+                  value={newItem.lot_number}
+                  onChange={(e) => setNewItem({ ...newItem, lot_number: e.target.value })}
+                />
+              </div>
+
+              <div className="sb-form-group" style={{ margin: 0 }}>
+                <label className="sb-label">Bags / Packages</label>
+                <input
+                  type="number"
+                  className="sb-input"
+                  placeholder="Bags"
+                  value={newItem.bags_count}
+                  onChange={(e) => setNewItem({ ...newItem, bags_count: e.target.value })}
+                />
+              </div>
+
+              <div className="sb-form-group" style={{ margin: 0 }}>
+                <label className="sb-label">Quantity (KG) *</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="sb-input"
+                  value={newItem.quantity}
+                  onChange={(e) => setNewItem({ ...newItem, quantity: e.target.value })}
+                />
+              </div>
+
+              <Button type="button" variant="secondary" onClick={handleAddItem} style={{ height: "38px" }}>
+                + Add
+              </Button>
+            </div>
+
+            <DataTable
+              headers={["Description", "Lot #", "Bags", "Quantity", "Action"]}
+            >
+              {formData.items.length === 0 ? (
+                <tr>
+                  <td colSpan="5" style={{ textAlign: "center", color: "var(--sb-muted)" }}>
+                    No items added yet
+                  </td>
+                </tr>
+              ) : (
+                formData.items.map((it, idx) => (
+                  <tr key={idx}>
+                    <td>{it.description}</td>
+                    <td>{it.lot_number || "—"}</td>
+                    <td>{it.bags_count ? `${it.bags_count} Bags` : "—"}</td>
+                    <td><strong>{it.quantity} {it.unit}</strong></td>
+                    <td>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="danger"
+                        onClick={() => handleRemoveItem(idx)}
+                      >
+                        ✕
+                      </Button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </DataTable>
+          </div>
+
+          <div className="sb-form-group" style={{ marginTop: "16px" }}>
+            <label className="sb-label">Remarks / Gate Pass Instructions</label>
+            <textarea
+              className="sb-input"
+              rows="2"
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+            />
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "24px" }}>
+            <Button type="button" variant="secondary" onClick={() => setCreateModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary" disabled={submitting}>
+              {submitting ? "Creating..." : "Generate Challan"}
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
       {/* PRINTABLE CHALLAN PREVIEW MODAL */}
-      {printModalOpen && selectedChallan && (
-        <div className="modal-overlay">
-          <div className="modal-container print-modal">
-            <div className="no-print modal-header">
-              <h2>Delivery Challan: {selectedChallan.challan_no}</h2>
-              <div className="header-buttons">
-                <button className="pchallan-btn pchallan-btn-primary" onClick={handlePrint}>
-                  🖨️ Print Challan
-                </button>
-                <button className="close-btn" onClick={() => setPrintModalOpen(false)}>
-                  &times;
-                </button>
-              </div>
+      <Modal
+        isOpen={printModalOpen && !!selectedChallan}
+        onClose={() => setPrintModalOpen(false)}
+        title={`Delivery Challan: ${selectedChallan?.challan_no || ""}`}
+      >
+        {selectedChallan && (
+          <div>
+            <div className="no-print" style={{ display: "flex", justifyContent: "flex-end", marginBottom: "16px" }}>
+              <Button variant="primary" onClick={handlePrint}>
+                🖨️ Print Challan
+              </Button>
             </div>
 
             {/* PRINTABLE DOCUMENT BODY */}
@@ -694,7 +686,7 @@ function PlasticDeliveryChallan() {
                         <td>{idx + 1}</td>
                         <td>
                           <strong>{item.description || item.fg_name}</strong>
-                          {item.fg_code && <div className="text-sm text-muted">{item.fg_code}</div>}
+                          {item.fg_code && <div style={{ fontSize: "11px", color: "#64748b" }}>{item.fg_code}</div>}
                         </td>
                         <td>{item.lot_number || "—"}</td>
                         <td>{item.bags_count ? `${item.bags_count} Bags` : "—"}</td>
@@ -736,11 +728,11 @@ function PlasticDeliveryChallan() {
               <div className="challan-signatures">
                 <div className="sig-box">
                   <div className="sig-line"></div>
-                  <span>Receiver's Signature & Stamp</span>
+                  <span>Receiver&apos;s Signature & Stamp</span>
                 </div>
                 <div className="sig-box">
                   <div className="sig-line"></div>
-                  <span>Driver's Signature</span>
+                  <span>Driver&apos;s Signature</span>
                 </div>
                 <div className="sig-box">
                   <div className="sig-line"></div>
@@ -749,8 +741,8 @@ function PlasticDeliveryChallan() {
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 }

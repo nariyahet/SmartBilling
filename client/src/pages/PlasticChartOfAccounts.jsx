@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import API from "../api/axios";
 import PlasticNavbar from "../components/PlasticNavbar";
 import LoadingScreen from "../components/LoadingScreen";
+import { PageHeader, Card, KpiCard, Button, StatusBadge, Tabs, Modal } from "../components";
 import "./PlasticChartOfAccounts.css";
 
 function PlasticChartOfAccounts() {
@@ -69,9 +70,10 @@ function PlasticChartOfAccounts() {
         setSummary(accRes.data.summary || {});
       }
       if (grpRes.data?.success) {
-        setGroups(grpRes.data.groups || []);
-        if (grpRes.data.groups.length > 0 && !accountForm.group_id) {
-          setAccountForm((prev) => ({ ...prev, group_id: grpRes.data.groups[0].id }));
+        const grps = grpRes.data.groups || [];
+        setGroups(grps);
+        if (grps.length > 0 && !accountForm.group_id) {
+          setAccountForm((prev) => ({ ...prev, group_id: grps[0].id }));
         }
       }
       if (mastRes.data?.success) {
@@ -179,119 +181,108 @@ function PlasticChartOfAccounts() {
     }
   };
 
+  const tabItems = [
+    { key: "ALL", label: `All Ledger Accounts (${accounts.length})`, icon: "📋" },
+    { key: "GROUPS", label: `Account Groups (${groups.length})`, icon: "🌳" },
+    { key: "MASTERS", label: "Integrated Masters (Customers & Suppliers)", icon: "🔗" },
+  ];
+
   if (loading && accounts.length === 0) {
     return <LoadingScreen message="Loading Chart of Accounts..." />;
   }
 
   return (
-    <div className="plastic-page">
+    <div className="sb-page-container">
       <PlasticNavbar />
-      <main className="plastic-container">
-        {/* Header */}
-        <div className="plastic-header-row">
-          <div>
-            <span className="plastic-breadcrumb">Plastic ERP / Accounting</span>
-            <h1 className="plastic-title">🏛️ Chart of Accounts</h1>
-            <p className="plastic-subtitle">
-              Manage hierarchical ledger accounts, balance natures, opening balances, and integrated masters.
-            </p>
-          </div>
-          <div style={{ display: "flex", gap: "10px" }}>
-            <button
-              type="button"
-              className="plastic-btn plastic-btn-secondary"
-              onClick={() => setGroupModalOpen(true)}
-            >
-              + Create Group
-            </button>
-            <button
-              type="button"
-              className="plastic-btn plastic-btn-primary"
-              onClick={handleOpenCreateAccount}
-            >
-              + Add Ledger Account
-            </button>
-          </div>
-        </div>
+      <main className="sb-main-content">
+        <PageHeader
+          title="Chart of Accounts"
+          subtitle="Manage hierarchical ledger accounts, normal balance natures, opening balances, and integrated masters"
+          breadcrumbs={[
+            { label: "Plastic ERP", to: "/plastic-erp" },
+            { label: "Accounting & GST", to: "/plastic-erp/accounting" },
+            { label: "Chart of Accounts" },
+          ]}
+          actions={
+            <div className="coa-action-group">
+              <Button
+                variant="outline"
+                icon="➕"
+                onClick={() => setGroupModalOpen(true)}
+              >
+                Create Group
+              </Button>
+              <Button
+                variant="primary"
+                icon="➕"
+                onClick={handleOpenCreateAccount}
+              >
+                Add Ledger Account
+              </Button>
+            </div>
+          }
+        />
 
         {/* KPI Cards */}
-        <div className="plastic-kpi-grid">
-          <div className="plastic-kpi-card">
-            <span className="plastic-kpi-icon" style={{ background: "#eff6ff", color: "#1d4ed8" }}>📚</span>
-            <div>
-              <span className="plastic-kpi-label">Total Accounts</span>
-              <h3 className="plastic-kpi-val">{summary.totalAccounts || 0}</h3>
-              <small className="plastic-kpi-sub">Across {groups.length} account groups</small>
-            </div>
-          </div>
-          <div className="plastic-kpi-card">
-            <span className="plastic-kpi-icon" style={{ background: "#eff6ff", color: "#2563eb" }}>🏢</span>
-            <div>
-              <span className="plastic-kpi-label">Asset Accounts</span>
-              <h3 className="plastic-kpi-val">{summary.assetCount || 0}</h3>
-              <small className="plastic-kpi-sub">Cash, Bank, Inventory, Debtors</small>
-            </div>
-          </div>
-          <div className="plastic-kpi-card">
-            <span className="plastic-kpi-icon" style={{ background: "#fef2f2", color: "#dc2626" }}>⚖️</span>
-            <div>
-              <span className="plastic-kpi-label">Liability Accounts</span>
-              <h3 className="plastic-kpi-val">{summary.liabilityCount || 0}</h3>
-              <small className="plastic-kpi-sub">Creditors, Taxes & Payables</small>
-            </div>
-          </div>
-          <div className="plastic-kpi-card">
-            <span className="plastic-kpi-icon" style={{ background: "#ecfdf5", color: "#059669" }}>📈</span>
-            <div>
-              <span className="plastic-kpi-label">Income & Expenses</span>
-              <h3 className="plastic-kpi-val">{(summary.incomeCount || 0) + (summary.expenseCount || 0)}</h3>
-              <small className="plastic-kpi-sub">{summary.incomeCount || 0} Income / {summary.expenseCount || 0} Expenses</small>
-            </div>
-          </div>
+        <div className="coa-kpi-grid">
+          <KpiCard
+            title="Total Accounts"
+            value={summary.totalAccounts || 0}
+            subtitle={`Across ${groups.length} account groups`}
+            icon="📚"
+            color="navy"
+          />
+          <KpiCard
+            title="Asset Accounts"
+            value={summary.assetCount || 0}
+            subtitle="Cash, Bank, Inventory, Debtors"
+            icon="🏢"
+            color="blue"
+          />
+          <KpiCard
+            title="Liability Accounts"
+            value={summary.liabilityCount || 0}
+            subtitle="Creditors, Taxes & Payables"
+            icon="⚖️"
+            color="amber"
+          />
+          <KpiCard
+            title="Income & Expenses"
+            value={(summary.incomeCount || 0) + (summary.expenseCount || 0)}
+            subtitle={`${summary.incomeCount || 0} Income / ${summary.expenseCount || 0} Expenses`}
+            icon="📈"
+            color="teal"
+          />
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="coa-view-tabs">
-          <button
-            type="button"
-            className={`coa-tab-btn ${activeTab === "ALL" ? "active" : ""}`}
-            onClick={() => setActiveTab("ALL")}
-          >
-            📋 All Ledger Accounts ({accounts.length})
-          </button>
-          <button
-            type="button"
-            className={`coa-tab-btn ${activeTab === "GROUPS" ? "active" : ""}`}
-            onClick={() => setActiveTab("GROUPS")}
-          >
-            🌳 Account Groups Hierarchy ({groups.length})
-          </button>
-          <button
-            type="button"
-            className={`coa-tab-btn ${activeTab === "MASTERS" ? "active" : ""}`}
-            onClick={() => setActiveTab("MASTERS")}
-          >
-            🔗 Integrated Masters (Customers & Suppliers)
-          </button>
+        {/* Tab Switcher */}
+        <div className="coa-tabs-wrap">
+          <Tabs
+            items={tabItems}
+            activeKey={activeTab}
+            onChange={(key) => setActiveTab(key)}
+          />
         </div>
 
+        {/* Tab 1: All Ledger Accounts */}
         {activeTab === "ALL" && (
-          <div className="plastic-card">
-            {/* Filters Bar */}
-            <div className="plastic-filters-bar" style={{ display: "flex", flexWrap: "wrap", gap: "12px", marginBottom: "16px" }}>
+          <Card
+            title="Ledger Accounts Register"
+            subtitle="Complete list of general ledger accounts with real-time Dr/Cr balances"
+          >
+            {/* Filters */}
+            <div className="coa-filters-row">
               <input
                 type="text"
                 placeholder="Search account name, code, group..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="plastic-input"
-                style={{ flex: "1 1 240px" }}
+                className="sb-input coa-search-input"
               />
               <select
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
-                className="plastic-select"
-                style={{ flex: "0 0 160px" }}
+                className="sb-select coa-type-select"
               >
                 <option value="ALL">All Account Types</option>
                 <option value="ASSET">ASSET</option>
@@ -303,8 +294,7 @@ function PlasticChartOfAccounts() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="plastic-select"
-                style={{ flex: "0 0 140px" }}
+                className="sb-select coa-status-select"
               >
                 <option value="ALL">All Statuses</option>
                 <option value="ACTIVE">ACTIVE</option>
@@ -312,9 +302,9 @@ function PlasticChartOfAccounts() {
               </select>
             </div>
 
-            {/* Table */}
-            <div className="plastic-table-responsive">
-              <table className="plastic-table">
+            {/* Accounts Table */}
+            <div className="coa-table-wrapper">
+              <table className="coa-table">
                 <thead>
                   <tr>
                     <th>Code</th>
@@ -322,16 +312,16 @@ function PlasticChartOfAccounts() {
                     <th>Group</th>
                     <th>Type</th>
                     <th>Nature</th>
-                    <th style={{ textAlign: "right" }}>Opening Bal</th>
-                    <th style={{ textAlign: "right" }}>Current Bal</th>
+                    <th className="cell-right">Opening Bal</th>
+                    <th className="cell-right">Current Bal</th>
                     <th>Status</th>
-                    <th style={{ textAlign: "center" }}>Actions</th>
+                    <th className="cell-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {accounts.length === 0 ? (
                     <tr>
-                      <td colSpan="9" style={{ textAlign: "center", padding: "30px", color: "#64748b" }}>
+                      <td colSpan="9" className="coa-table-empty">
                         No ledger accounts found matching the filter criteria.
                       </td>
                     </tr>
@@ -339,18 +329,18 @@ function PlasticChartOfAccounts() {
                     accounts.map((acc) => (
                       <tr key={acc.id}>
                         <td>
-                          <strong>{acc.account_code}</strong>
-                          {Boolean(acc.is_system) && <span className="coa-system-tag" style={{ marginLeft: "6px" }}>SYS</span>}
+                          <span className="coa-code-badge">{acc.account_code}</span>
+                          {Boolean(acc.is_system) && <span className="coa-system-tag">SYS</span>}
                         </td>
                         <td>
-                          <span style={{ fontWeight: "600", color: "#0f172a" }}>{acc.account_name}</span>
+                          <strong className="coa-account-name">{acc.account_name}</strong>
                           {acc.reference_type && (
-                            <small style={{ display: "block", color: "#64748b", fontSize: "0.75rem" }}>
-                              Ref: {acc.reference_type}
-                            </small>
+                            <div className="coa-ref-sub">Ref: {acc.reference_type}</div>
                           )}
                         </td>
-                        <td>{acc.group_name}</td>
+                        <td>
+                          <span className="coa-group-text">{acc.group_name}</span>
+                        </td>
                         <td>
                           <span className={`coa-type-badge coa-type-${acc.account_type.toLowerCase()}`}>
                             {acc.account_type}
@@ -361,30 +351,34 @@ function PlasticChartOfAccounts() {
                             {acc.debit_credit_nature}
                           </span>
                         </td>
-                        <td style={{ textAlign: "right" }}>₹{Number(acc.opening_balance || 0).toLocaleString("en-IN")}</td>
-                        <td style={{ textAlign: "right", fontWeight: "700" }}>₹{Number(acc.current_balance || 0).toLocaleString("en-IN")}</td>
-                        <td>
-                          <span className={`plastic-badge ${acc.status === "ACTIVE" ? "plastic-badge-success" : "plastic-badge-secondary"}`}>
-                            {acc.status}
-                          </span>
+                        <td className="cell-right">
+                          ₹{Number(acc.opening_balance || 0).toLocaleString("en-IN")}
                         </td>
-                        <td style={{ textAlign: "center" }}>
-                          <button
-                            type="button"
-                            className="plastic-action-btn"
-                            title="View Account Details & Journal"
-                            onClick={() => handleViewDetails(acc)}
-                          >
-                            👁️
-                          </button>
-                          <button
-                            type="button"
-                            className="plastic-action-btn"
-                            title="Edit Account"
-                            onClick={() => handleOpenEditAccount(acc)}
-                          >
-                            ✏️
-                          </button>
+                        <td className="cell-right">
+                          <strong className="coa-balance-strong">
+                            ₹{Number(acc.current_balance || 0).toLocaleString("en-IN")}
+                          </strong>
+                        </td>
+                        <td>
+                          <StatusBadge status={acc.status} />
+                        </td>
+                        <td className="cell-right">
+                          <div className="coa-actions-inline">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              icon="👁️"
+                              title="View Details & Journal"
+                              onClick={() => handleViewDetails(acc)}
+                            />
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              icon="✏️"
+                              title="Edit Account"
+                              onClick={() => handleOpenEditAccount(acc)}
+                            />
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -392,85 +386,95 @@ function PlasticChartOfAccounts() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </Card>
         )}
 
+        {/* Tab 2: Account Groups Hierarchy */}
         {activeTab === "GROUPS" && (
-          <div>
+          <div className="coa-groups-container">
             {["ASSET", "LIABILITY", "EQUITY", "INCOME", "EXPENSE"].map((type) => {
               const grpList = groups.filter((g) => g.type === type);
               if (grpList.length === 0) return null;
               return (
-                <div key={type} className="coa-group-section">
-                  <div className="coa-group-header">
-                    <span className="coa-group-title">
+                <Card
+                  key={type}
+                  className="coa-group-card"
+                  title={
+                    <div className="coa-group-card-header">
                       <span className={`coa-type-badge coa-type-${type.toLowerCase()}`}>{type}</span>
                       <span>Primary Account Groups</span>
-                    </span>
-                    <small style={{ color: "#64748b", fontWeight: "600" }}>{grpList.length} Groups</small>
-                  </div>
-                  <div className="plastic-table-responsive">
-                    <table className="plastic-table">
+                    </div>
+                  }
+                  actions={
+                    <span className="coa-grp-count-label">{grpList.length} Groups</span>
+                  }
+                >
+                  <div className="coa-table-wrapper">
+                    <table className="coa-table">
                       <thead>
                         <tr>
                           <th>Group Code</th>
                           <th>Group Name</th>
                           <th>Description</th>
                           <th>Parent Group</th>
-                          <th style={{ textAlign: "center" }}>Accounts Count</th>
+                          <th className="cell-right">Accounts Count</th>
                         </tr>
                       </thead>
                       <tbody>
                         {grpList.map((g) => (
                           <tr key={g.id}>
-                            <td><strong>{g.code}</strong></td>
-                            <td>{g.name}</td>
-                            <td style={{ color: "#64748b" }}>{g.description || "—"}</td>
+                            <td>
+                              <span className="coa-code-badge">{g.code}</span>
+                            </td>
+                            <td><strong>{g.name}</strong></td>
+                            <td className="text-muted">{g.description || "—"}</td>
                             <td>{g.parent_name || "Primary"}</td>
-                            <td style={{ textAlign: "center", fontWeight: "700" }}>{g.account_count || 0}</td>
+                            <td className="cell-right">
+                              <strong className="coa-account-count-badge">{g.account_count || 0}</strong>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
-                </div>
+                </Card>
               );
             })}
           </div>
         )}
 
+        {/* Tab 3: Integrated Masters (Customers & Suppliers) */}
         {activeTab === "MASTERS" && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))", gap: "20px" }}>
+          <div className="coa-masters-grid">
             {/* Customers Control */}
-            <div className="plastic-card">
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
-                <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: "700", color: "#1e293b" }}>
-                  👥 Customers (Sundry Debtors)
-                </h3>
-                <span className="plastic-badge plastic-badge-info">{masters.customers.length} Customers</span>
-              </div>
-              <p style={{ color: "#64748b", fontSize: "0.85rem", margin: "0 0 16px 0" }}>
-                Direct integration with existing SmartBilling Customers master. Balance reflects sales invoices minus receipts.
-              </p>
-              <div className="plastic-table-responsive" style={{ maxHeight: "400px" }}>
-                <table className="plastic-table">
+            <Card
+              title="Customers (Sundry Debtors)"
+              subtitle="Direct integration with existing Customers master. Balance reflects sales minus receipts."
+              actions={
+                <span className="coa-master-count-badge">{masters.customers.length} Customers</span>
+              }
+            >
+              <div className="coa-table-wrapper coa-max-scroll">
+                <table className="coa-table">
                   <thead>
                     <tr>
                       <th>Customer Name</th>
                       <th>Mobile</th>
-                      <th style={{ textAlign: "right" }}>Outstanding Receivable</th>
+                      <th className="cell-right">Receivable (₹)</th>
                     </tr>
                   </thead>
                   <tbody>
                     {masters.customers.length === 0 ? (
-                      <tr><td colSpan="3" style={{ textAlign: "center" }}>No customers found</td></tr>
+                      <tr><td colSpan="3" className="coa-table-empty">No customers found</td></tr>
                     ) : (
                       masters.customers.map((c) => (
                         <tr key={c.id}>
                           <td><strong>{c.name}</strong></td>
                           <td>{c.mobile}</td>
-                          <td style={{ textAlign: "right", fontWeight: "700", color: Number(c.outstanding_balance) > 0 ? "#b91c1c" : "#047857" }}>
-                            ₹{Number(c.outstanding_balance || 0).toLocaleString("en-IN")}
+                          <td className="cell-right">
+                            <strong className={Number(c.outstanding_balance) > 0 ? "text-amber" : "text-teal"}>
+                              ₹{Number(c.outstanding_balance || 0).toLocaleString("en-IN")}
+                            </strong>
                           </td>
                         </tr>
                       ))
@@ -478,44 +482,43 @@ function PlasticChartOfAccounts() {
                   </tbody>
                 </table>
               </div>
-            </div>
+            </Card>
 
             {/* Suppliers Control */}
-            <div className="plastic-card">
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
-                <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: "700", color: "#1e293b" }}>
-                  🏢 Suppliers (Sundry Creditors)
-                </h3>
-                <span className="plastic-badge plastic-badge-info">{masters.suppliers.length} Suppliers</span>
-              </div>
-              <p style={{ color: "#64748b", fontSize: "0.85rem", margin: "0 0 16px 0" }}>
-                Direct integration with Plastic ERP Scrap Suppliers master. Balance reflects purchase bills minus disbursements.
-              </p>
-              <div className="plastic-table-responsive" style={{ maxHeight: "400px" }}>
-                <table className="plastic-table">
+            <Card
+              title="Suppliers (Sundry Creditors)"
+              subtitle="Direct integration with Scrap Suppliers master. Balance reflects purchase bills minus disbursements."
+              actions={
+                <span className="coa-master-count-badge">{masters.suppliers.length} Suppliers</span>
+              }
+            >
+              <div className="coa-table-wrapper coa-max-scroll">
+                <table className="coa-table">
                   <thead>
                     <tr>
                       <th>Supplier Name</th>
                       <th>GSTIN / State</th>
-                      <th style={{ textAlign: "right" }}>Current Payable</th>
+                      <th className="cell-right">Payable (₹)</th>
                     </tr>
                   </thead>
                   <tbody>
                     {masters.suppliers.length === 0 ? (
-                      <tr><td colSpan="3" style={{ textAlign: "center" }}>No suppliers found</td></tr>
+                      <tr><td colSpan="3" className="coa-table-empty">No suppliers found</td></tr>
                     ) : (
                       masters.suppliers.map((s) => (
                         <tr key={s.id}>
                           <td>
                             <strong>{s.supplier_name}</strong>
-                            <small style={{ display: "block", color: "#64748b" }}>{s.supplier_code}</small>
+                            <div className="sub-text">{s.supplier_code}</div>
                           </td>
                           <td>
                             {s.gst_number || "Unregistered"}
-                            <small style={{ display: "block", color: "#64748b" }}>{s.state || "Gujarat"}</small>
+                            <div className="sub-text">{s.state || "Gujarat"}</div>
                           </td>
-                          <td style={{ textAlign: "right", fontWeight: "700", color: Number(s.current_payable) > 0 ? "#b91c1c" : "#047857" }}>
-                            ₹{Number(s.current_payable || 0).toLocaleString("en-IN")}
+                          <td className="cell-right">
+                            <strong className={Number(s.current_payable) > 0 ? "text-amber" : "text-teal"}>
+                              ₹{Number(s.current_payable || 0).toLocaleString("en-IN")}
+                            </strong>
                           </td>
                         </tr>
                       ))
@@ -523,275 +526,285 @@ function PlasticChartOfAccounts() {
                   </tbody>
                 </table>
               </div>
-            </div>
+            </Card>
           </div>
         )}
 
         {/* Modal: Create/Edit Account */}
-        {accountModalOpen && (
-          <div className="plastic-modal-backdrop" onClick={() => setAccountModalOpen(false)}>
-            <div className="plastic-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "550px" }}>
-              <div className="plastic-modal-header">
-                <h2>{accountForm.id ? "✏️ Edit Ledger Account" : "+ Add New Ledger Account"}</h2>
-                <button type="button" className="plastic-modal-close" onClick={() => setAccountModalOpen(false)}>✕</button>
-              </div>
-              <form onSubmit={handleSaveAccount}>
-                <div className="plastic-modal-body">
-                  <div className="plastic-form-group">
-                    <label>Account Group *</label>
-                    <select
-                      value={accountForm.group_id}
-                      onChange={(e) => {
-                        const selGrp = groups.find((g) => g.id === Number(e.target.value));
-                        setAccountForm({
-                          ...accountForm,
-                          group_id: e.target.value,
-                          account_type: selGrp ? selGrp.type : accountForm.account_type,
-                          debit_credit_nature: selGrp && ["ASSET", "EXPENSE"].includes(selGrp.type) ? "DEBIT" : "CREDIT",
-                        });
-                      }}
-                      className="plastic-select"
-                      required
-                    >
-                      {groups.map((g) => (
-                        <option key={g.id} value={g.id}>
-                          [{g.type}] {g.name} ({g.code})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "12px" }}>
-                    <div className="plastic-form-group">
-                      <label>Account Code</label>
-                      <input
-                        type="text"
-                        placeholder="Auto if blank"
-                        value={accountForm.account_code}
-                        onChange={(e) => setAccountForm({ ...accountForm, account_code: e.target.value })}
-                        className="plastic-input"
-                        disabled={Boolean(accountForm.id)}
-                      />
-                    </div>
-                    <div className="plastic-form-group">
-                      <label>Account Name *</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Factory Boiler Maintenance"
-                        value={accountForm.account_name}
-                        onChange={(e) => setAccountForm({ ...accountForm, account_name: e.target.value })}
-                        className="plastic-input"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                    <div className="plastic-form-group">
-                      <label>Account Type</label>
-                      <input
-                        type="text"
-                        value={accountForm.account_type}
-                        className="plastic-input"
-                        readOnly
-                        style={{ background: "#f8fafc", color: "#64748b" }}
-                      />
-                    </div>
-                    <div className="plastic-form-group">
-                      <label>Normal Balance Nature</label>
-                      <select
-                        value={accountForm.debit_credit_nature}
-                        onChange={(e) => setAccountForm({ ...accountForm, debit_credit_nature: e.target.value })}
-                        className="plastic-select"
-                      >
-                        <option value="DEBIT">DEBIT (Dr)</option>
-                        <option value="CREDIT">CREDIT (Cr)</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="plastic-form-group">
-                    <label>Opening Balance (₹)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={accountForm.opening_balance}
-                      onChange={(e) => setAccountForm({ ...accountForm, opening_balance: e.target.value })}
-                      className="plastic-input"
-                    />
-                  </div>
-
-                  <div className="plastic-form-group">
-                    <label>Description / Notes</label>
-                    <textarea
-                      rows="2"
-                      value={accountForm.description}
-                      onChange={(e) => setAccountForm({ ...accountForm, description: e.target.value })}
-                      className="plastic-textarea"
-                      placeholder="Optional remarks about account purpose"
-                    />
-                  </div>
-                </div>
-
-                <div className="plastic-modal-footer">
-                  <button type="button" className="plastic-btn plastic-btn-secondary" onClick={() => setAccountModalOpen(false)}>
-                    Cancel
-                  </button>
-                  <button type="submit" className="plastic-btn plastic-btn-primary" disabled={submitting}>
-                    {submitting ? "Saving..." : accountForm.id ? "Update Account" : "Save Account"}
-                  </button>
-                </div>
-              </form>
+        <Modal
+          isOpen={accountModalOpen}
+          onClose={() => !submitting && setAccountModalOpen(false)}
+          title={accountForm.id ? "Edit Ledger Account" : "Add New Ledger Account"}
+          subtitle="Define general ledger account, nature of balance, and group assignment"
+          size="md"
+        >
+          <form onSubmit={handleSaveAccount} className="coa-modal-form">
+            <div className="form-group">
+              <label className="sb-label">Account Group *</label>
+              <select
+                value={accountForm.group_id}
+                onChange={(e) => {
+                  const selGrp = groups.find((g) => g.id === Number(e.target.value));
+                  setAccountForm({
+                    ...accountForm,
+                    group_id: e.target.value,
+                    account_type: selGrp ? selGrp.type : accountForm.account_type,
+                    debit_credit_nature: selGrp && ["ASSET", "EXPENSE"].includes(selGrp.type) ? "DEBIT" : "CREDIT",
+                  });
+                }}
+                className="sb-select"
+                required
+              >
+                {groups.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    [{g.type}] {g.name} ({g.code})
+                  </option>
+                ))}
+              </select>
             </div>
-          </div>
-        )}
+
+            <div className="form-grid-2">
+              <div className="form-group">
+                <label className="sb-label">Account Code</label>
+                <input
+                  type="text"
+                  placeholder="Auto-assigned if blank"
+                  value={accountForm.account_code}
+                  onChange={(e) => setAccountForm({ ...accountForm, account_code: e.target.value })}
+                  className="sb-input"
+                  disabled={Boolean(accountForm.id)}
+                />
+              </div>
+              <div className="form-group">
+                <label className="sb-label">Account Name *</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Factory Boiler Maintenance"
+                  value={accountForm.account_name}
+                  onChange={(e) => setAccountForm({ ...accountForm, account_name: e.target.value })}
+                  className="sb-input"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="form-grid-2">
+              <div className="form-group">
+                <label className="sb-label">Account Type</label>
+                <input
+                  type="text"
+                  value={accountForm.account_type}
+                  className="sb-input"
+                  readOnly
+                  style={{ background: "#f8fafc", color: "#64748b" }}
+                />
+              </div>
+              <div className="form-group">
+                <label className="sb-label">Normal Balance Nature</label>
+                <select
+                  value={accountForm.debit_credit_nature}
+                  onChange={(e) => setAccountForm({ ...accountForm, debit_credit_nature: e.target.value })}
+                  className="sb-select"
+                >
+                  <option value="DEBIT">DEBIT (Dr)</option>
+                  <option value="CREDIT">CREDIT (Cr)</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="sb-label">Opening Balance (₹)</label>
+              <input
+                type="number"
+                step="0.01"
+                value={accountForm.opening_balance}
+                onChange={(e) => setAccountForm({ ...accountForm, opening_balance: e.target.value })}
+                className="sb-input"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="sb-label">Description / Remarks</label>
+              <textarea
+                rows="2"
+                value={accountForm.description}
+                onChange={(e) => setAccountForm({ ...accountForm, description: e.target.value })}
+                className="sb-textarea"
+                placeholder="Optional remarks about account purpose"
+              />
+            </div>
+
+            <div className="modal-actions-bar">
+              <Button
+                variant="outline"
+                onClick={() => setAccountModalOpen(false)}
+                disabled={submitting}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={submitting}
+              >
+                {submitting ? "Saving..." : accountForm.id ? "Update Account" : "Save Account"}
+              </Button>
+            </div>
+          </form>
+        </Modal>
 
         {/* Modal: Create Group */}
-        {groupModalOpen && (
-          <div className="plastic-modal-backdrop" onClick={() => setGroupModalOpen(false)}>
-            <div className="plastic-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "500px" }}>
-              <div className="plastic-modal-header">
-                <h2>+ Create Account Group</h2>
-                <button type="button" className="plastic-modal-close" onClick={() => setGroupModalOpen(false)}>✕</button>
-              </div>
-              <form onSubmit={handleSaveGroup}>
-                <div className="plastic-modal-body">
-                  <div className="plastic-form-group">
-                    <label>Group Name *</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Administrative Overheads"
-                      value={groupForm.name}
-                      onChange={(e) => setGroupForm({ ...groupForm, name: e.target.value })}
-                      className="plastic-input"
-                      required
-                    />
-                  </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                    <div className="plastic-form-group">
-                      <label>Group Code *</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. EXP_ADMIN"
-                        value={groupForm.code}
-                        onChange={(e) => setGroupForm({ ...groupForm, code: e.target.value })}
-                        className="plastic-input"
-                        required
-                      />
-                    </div>
-                    <div className="plastic-form-group">
-                      <label>Account Type *</label>
-                      <select
-                        value={groupForm.type}
-                        onChange={(e) => setGroupForm({ ...groupForm, type: e.target.value })}
-                        className="plastic-select"
-                        required
-                      >
-                        <option value="ASSET">ASSET</option>
-                        <option value="LIABILITY">LIABILITY</option>
-                        <option value="EQUITY">EQUITY</option>
-                        <option value="INCOME">INCOME</option>
-                        <option value="EXPENSE">EXPENSE</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="plastic-form-group">
-                    <label>Description</label>
-                    <textarea
-                      rows="2"
-                      value={groupForm.description}
-                      onChange={(e) => setGroupForm({ ...groupForm, description: e.target.value })}
-                      className="plastic-textarea"
-                    />
-                  </div>
-                </div>
-                <div className="plastic-modal-footer">
-                  <button type="button" className="plastic-btn plastic-btn-secondary" onClick={() => setGroupModalOpen(false)}>
-                    Cancel
-                  </button>
-                  <button type="submit" className="plastic-btn plastic-btn-primary" disabled={submitting}>
-                    {submitting ? "Creating..." : "Create Group"}
-                  </button>
-                </div>
-              </form>
+        <Modal
+          isOpen={groupModalOpen}
+          onClose={() => !submitting && setGroupModalOpen(false)}
+          title="Create Account Group"
+          subtitle="Create high-level account groups for the ledger hierarchy"
+          size="md"
+        >
+          <form onSubmit={handleSaveGroup} className="coa-modal-form">
+            <div className="form-group">
+              <label className="sb-label">Group Name *</label>
+              <input
+                type="text"
+                placeholder="e.g. Administrative Overheads"
+                value={groupForm.name}
+                onChange={(e) => setGroupForm({ ...groupForm, name: e.target.value })}
+                className="sb-input"
+                required
+              />
             </div>
-          </div>
-        )}
+            <div className="form-grid-2">
+              <div className="form-group">
+                <label className="sb-label">Group Code *</label>
+                <input
+                  type="text"
+                  placeholder="e.g. EXP_ADMIN"
+                  value={groupForm.code}
+                  onChange={(e) => setGroupForm({ ...groupForm, code: e.target.value.toUpperCase() })}
+                  className="sb-input"
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label className="sb-label">Account Type *</label>
+                <select
+                  value={groupForm.type}
+                  onChange={(e) => setGroupForm({ ...groupForm, type: e.target.value })}
+                  className="sb-select"
+                  required
+                >
+                  <option value="ASSET">ASSET</option>
+                  <option value="LIABILITY">LIABILITY</option>
+                  <option value="EQUITY">EQUITY</option>
+                  <option value="INCOME">INCOME</option>
+                  <option value="EXPENSE">EXPENSE</option>
+                </select>
+              </div>
+            </div>
+            <div className="form-group">
+              <label className="sb-label">Description</label>
+              <textarea
+                rows="2"
+                value={groupForm.description}
+                onChange={(e) => setGroupForm({ ...groupForm, description: e.target.value })}
+                className="sb-textarea"
+                placeholder="Optional group description"
+              />
+            </div>
+            <div className="modal-actions-bar">
+              <Button
+                variant="outline"
+                onClick={() => setGroupModalOpen(false)}
+                disabled={submitting}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={submitting}
+              >
+                {submitting ? "Creating..." : "Create Group"}
+              </Button>
+            </div>
+          </form>
+        </Modal>
 
         {/* Modal: Account Details & Recent Journal */}
-        {selectedAccount && (
-          <div className="plastic-modal-backdrop" onClick={() => setSelectedAccount(null)}>
-            <div className="plastic-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "700px" }}>
-              <div className="plastic-modal-header">
-                <h2>
-                  🔍 {selectedAccount.account.account_name} ({selectedAccount.account.account_code})
-                </h2>
-                <button type="button" className="plastic-modal-close" onClick={() => setSelectedAccount(null)}>✕</button>
-              </div>
-              <div className="plastic-modal-body">
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "10px", background: "#f8fafc", padding: "12px", borderRadius: "8px", marginBottom: "16px" }}>
-                  <div>
-                    <small style={{ color: "#64748b" }}>Type</small>
-                    <strong style={{ display: "block" }}>{selectedAccount.account.account_type}</strong>
-                  </div>
-                  <div>
-                    <small style={{ color: "#64748b" }}>Nature</small>
-                    <strong style={{ display: "block" }}>{selectedAccount.account.debit_credit_nature}</strong>
-                  </div>
-                  <div>
-                    <small style={{ color: "#64748b" }}>Opening Balance</small>
-                    <strong style={{ display: "block" }}>₹{Number(selectedAccount.account.opening_balance || 0).toLocaleString("en-IN")}</strong>
-                  </div>
-                  <div>
-                    <small style={{ color: "#64748b" }}>Current Balance</small>
-                    <strong style={{ display: "block", color: "#0284c7" }}>₹{Number(selectedAccount.account.current_balance || 0).toLocaleString("en-IN")}</strong>
-                  </div>
+        <Modal
+          isOpen={Boolean(selectedAccount)}
+          onClose={() => setSelectedAccount(null)}
+          title={selectedAccount ? `${selectedAccount.account.account_name} (${selectedAccount.account.account_code})` : ""}
+          subtitle="Ledger summary and recent journal postings"
+          size="lg"
+        >
+          {selectedAccount && (
+            <div className="coa-details-content">
+              <div className="coa-details-kpi-bar">
+                <div className="detail-box">
+                  <span className="detail-label">Type</span>
+                  <span className="detail-value">{selectedAccount.account.account_type}</span>
                 </div>
+                <div className="detail-box">
+                  <span className="detail-label">Nature</span>
+                  <span className="detail-value">{selectedAccount.account.debit_credit_nature}</span>
+                </div>
+                <div className="detail-box">
+                  <span className="detail-label">Opening Balance</span>
+                  <span className="detail-value">₹{Number(selectedAccount.account.opening_balance || 0).toLocaleString("en-IN")}</span>
+                </div>
+                <div className="detail-box">
+                  <span className="detail-label">Current Balance</span>
+                  <span className="detail-value text-blue">₹{Number(selectedAccount.account.current_balance || 0).toLocaleString("en-IN")}</span>
+                </div>
+              </div>
 
-                <h4 style={{ margin: "14px 0 8px 0" }}>Recent Journal Entries</h4>
-                <div className="plastic-table-responsive" style={{ maxHeight: "300px" }}>
-                  <table className="plastic-table">
-                    <thead>
-                      <tr>
-                        <th>Date</th>
-                        <th>Journal No</th>
-                        <th>Ref</th>
-                        <th>Dr / Cr</th>
-                        <th style={{ textAlign: "right" }}>Amount</th>
-                        <th>Narration</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {selectedAccount.recentEntries?.length === 0 ? (
-                        <tr><td colSpan="6" style={{ textAlign: "center" }}>No journal postings yet.</td></tr>
-                      ) : (
-                        selectedAccount.recentEntries.map((re) => (
-                          <tr key={re.id}>
-                            <td>{re.entry_date ? new Date(re.entry_date).toLocaleDateString("en-IN") : "—"}</td>
-                            <td><strong>{re.journal_no}</strong></td>
-                            <td><small>{re.reference_type}</small></td>
-                            <td>
-                              <span className={`coa-nature-badge coa-nature-${re.entry_type.toLowerCase() === "debit" ? "dr" : "cr"}`}>
-                                {re.entry_type}
-                              </span>
-                            </td>
-                            <td style={{ textAlign: "right", fontWeight: "700" }}>₹{Number(re.amount || 0).toLocaleString("en-IN")}</td>
-                            <td style={{ fontSize: "0.85rem", color: "#475569" }}>{re.narration || "—"}</td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+              <h4 className="coa-journal-heading">Recent Journal Postings</h4>
+              <div className="coa-table-wrapper coa-max-scroll">
+                <table className="coa-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Journal No</th>
+                      <th>Ref Type</th>
+                      <th>Dr / Cr</th>
+                      <th className="cell-right">Amount</th>
+                      <th>Narration</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedAccount.recentEntries?.length === 0 ? (
+                      <tr><td colSpan="6" className="coa-table-empty">No journal postings recorded yet.</td></tr>
+                    ) : (
+                      selectedAccount.recentEntries.map((re) => (
+                        <tr key={re.id}>
+                          <td>{re.entry_date ? new Date(re.entry_date).toLocaleDateString("en-IN") : "—"}</td>
+                          <td><strong>{re.journal_no}</strong></td>
+                          <td><span className="coa-ref-sub">{re.reference_type}</span></td>
+                          <td>
+                            <span className={`coa-nature-badge coa-nature-${re.entry_type.toLowerCase() === "debit" ? "dr" : "cr"}`}>
+                              {re.entry_type}
+                            </span>
+                          </td>
+                          <td className="cell-right">
+                            <strong className="coa-balance-strong">₹{Number(re.amount || 0).toLocaleString("en-IN")}</strong>
+                          </td>
+                          <td className="text-muted">{re.narration || "—"}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
               </div>
-              <div className="plastic-modal-footer">
-                <button type="button" className="plastic-btn plastic-btn-secondary" onClick={() => setSelectedAccount(null)}>
+
+              <div className="modal-actions-bar">
+                <Button variant="outline" onClick={() => setSelectedAccount(null)}>
                   Close
-                </button>
+                </Button>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </Modal>
       </main>
     </div>
   );

@@ -2,8 +2,9 @@
 
 .tab-pills {
   display: flex;
-  background: #f1f5f9;
-  border-radius: 10px;
+  background: var(--sb-canvas, #f4f8fb);
+  border: 1px solid var(--sb-border, #e3ebf2);
+  border-radius: 8px;
   padding: 4px;
   gap: 4px;
 }
@@ -14,16 +15,27 @@
   padding: 8px 16px;
   font-size: 0.85rem;
   font-weight: 700;
-  color: #64748b;
-  border-radius: 8px;
+  color: var(--sb-text-muted, #5a7184);
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .pill-btn.active {
-  background: #ffffff;
-  color: #047857;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  background: white;
+  color: var(--sb-deep-navy, #063b66);
+  box-shadow: 0 1px 3px rgba(6, 59, 102, 0.08);
+}
+
+.patt-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.patt-filter-card {
+  margin-bottom: 24px;
 }
 
 .attendance-controls-row {
@@ -40,8 +52,62 @@
 }
 
 /* In-table form inputs */
+.patt-table-wrap {
+  overflow-x: auto;
+}
+
+.patt-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  text-align: left;
+}
+
+.patt-table th {
+  background: var(--sb-canvas, #f4f8fb);
+  color: var(--sb-deep-navy, #063b66);
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--sb-border, #e3ebf2);
+  white-space: nowrap;
+}
+
+.patt-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--sb-border, #e3ebf2);
+  color: var(--sb-text-primary, #102a43);
+  vertical-align: middle;
+}
+
+.patt-table tr:hover td {
+  background-color: rgba(8, 121, 209, 0.02);
+}
+
+.patt-code-badge {
+  background: var(--sb-canvas, #f4f8fb);
+  border: 1px solid var(--sb-border, #e3ebf2);
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--sb-deep-navy, #063b66);
+}
+
+.patt-chip {
+  display: inline-block;
+  background: rgba(8, 121, 209, 0.1);
+  color: var(--sb-primary, #0879d1);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
 .status-select {
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--sb-border, #e3ebf2);
   border-radius: 6px;
   padding: 6px 10px;
   font-size: 0.85rem;
@@ -52,69 +118,61 @@
 }
 
 .status-present {
-  background: #dcfce7;
-  color: #15803d;
-  border-color: #86efac;
+  background: rgba(24, 166, 115, 0.12);
+  color: var(--sb-success, #18a673);
+  border-color: rgba(24, 166, 115, 0.3);
 }
 
 .status-half_day {
-  background: #fef3c7;
-  color: #b45309;
-  border-color: #fde68a;
+  background: rgba(242, 169, 59, 0.12);
+  color: #b47814;
+  border-color: rgba(242, 169, 59, 0.3);
 }
 
 .status-absent {
-  background: #fee2e2;
-  color: #b91c1c;
-  border-color: #fca5a5;
+  background: rgba(224, 82, 82, 0.12);
+  color: var(--sb-danger, #e05252);
+  border-color: rgba(224, 82, 82, 0.3);
 }
 
 .status-leave {
-  background: #e0e7ff;
-  color: #4338ca;
-  border-color: #c7d2fe;
+  background: rgba(8, 121, 209, 0.1);
+  color: var(--sb-primary, #0879d1);
+  border-color: rgba(8, 121, 209, 0.3);
 }
 
 .status-weekly_off,
 .status-holiday {
-  background: #f1f5f9;
-  color: #475569;
-  border-color: #cbd5e1;
+  background: var(--sb-canvas, #f4f8fb);
+  color: var(--sb-text-muted, #5a7184);
+  border-color: var(--sb-border, #e3ebf2);
 }
 
 .table-num-input {
   width: 70px;
   padding: 6px 8px;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
   font-size: 0.85rem;
   text-align: center;
-  outline: none;
-}
-
-.table-num-input:focus {
-  border-color: #059669;
 }
 
 .ot-input {
   font-weight: 700;
-  color: #2563eb;
-  background: #eff6ff;
-  border-color: #bfdbfe;
+  color: var(--sb-primary, #0879d1);
+  background: rgba(8, 121, 209, 0.05);
+  border-color: rgba(8, 121, 209, 0.3);
 }
 
 .table-text-input {
   width: 100%;
   min-width: 160px;
   padding: 6px 10px;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
   font-size: 0.85rem;
-  outline: none;
 }
 
-.table-text-input:focus {
-  border-color: #059669;
+.patt-empty {
+  padding: 48px 20px;
+  text-align: center;
+  color: var(--sb-text-muted, #5a7184);
 }
 
 @media (max-width: 768px) {
@@ -122,9 +180,5 @@
     margin-left: 0;
     width: 100%;
     flex-direction: column;
-  }
-
-  .attendance-actions-right button {
-    width: 100%;
   }
 }

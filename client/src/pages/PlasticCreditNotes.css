@@ -1,128 +1,24 @@
 /* Plastic Credit Notes Styles */
 
-.pcn-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
-  gap: 16px;
-}
-
-.pcn-badge {
-  display: inline-block;
-  background: rgba(220, 38, 38, 0.1);
-  color: #dc2626;
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  padding: 4px 10px;
-  border-radius: 9999px;
-  margin-bottom: 6px;
-  border: 1px solid rgba(220, 38, 38, 0.25);
-}
-
-.pcn-title {
-  font-size: 1.85rem;
-  font-weight: 800;
-  color: #0f172a;
-  margin: 0 0 4px 0;
-  letter-spacing: -0.02em;
-}
-
-.pcn-subtitle {
-  color: #64748b;
-  font-size: 0.95rem;
-  margin: 0;
-}
-
 .pcn-header-actions {
   display: flex;
   gap: 12px;
   align-items: center;
 }
 
-.pcn-btn {
-  padding: 10px 18px;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border: none;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.pcn-btn-primary {
-  background: linear-gradient(135deg, #dc2626, #b91c1c);
-  color: white;
-  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
-}
-
-.pcn-btn-outline {
-  background: white;
-  border: 1px solid #cbd5e1;
-  color: #334155;
-}
-
-/* KPIs */
 .pcn-kpis {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 16px;
   margin-bottom: 24px;
 }
 
-.pcn-kpi-card {
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 18px 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  position: relative;
-  overflow: hidden;
-}
-
-.pcn-kpi-card::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 4px;
-  height: 100%;
-  background: #94a3b8;
-}
-
-.pcn-kpi-card.warning::before {
-  background: #f59e0b;
-}
-
-.pcn-kpi-val {
-  font-size: 1.6rem;
-  font-weight: 800;
-  color: #0f172a;
-  line-height: 1.2;
-}
-
-.pcn-kpi-lbl {
-  color: #64748b;
-  font-size: 0.82rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin-top: 4px;
-}
-
 /* Filters */
+.pcn-filters-card {
+  margin-bottom: 24px;
+}
+
 .pcn-filters {
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 14px 18px;
-  margin-bottom: 20px;
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
@@ -132,42 +28,13 @@
 .pcn-search {
   flex: 1;
   min-width: 250px;
-  padding: 9px 14px;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  font-size: 0.9rem;
 }
 
 .pcn-select {
-  padding: 9px 12px;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  font-size: 0.88rem;
-  background: white;
-  color: #334155;
+  min-width: 180px;
 }
 
-/* Table Card */
-.pcn-card {
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-}
-
-.pcn-card-header {
-  padding: 16px 20px;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.pcn-card-header h3 {
-  margin: 0;
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #1e293b;
-}
-
+/* Table */
 .pcn-table-wrap {
   overflow-x: auto;
 }
@@ -175,43 +42,55 @@
 .pcn-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   text-align: left;
 }
 
 .pcn-table th {
-  background: #f8fafc;
-  color: #475569;
+  background: var(--sb-canvas, #f4f8fb);
+  color: var(--sb-deep-navy, #063b66);
   font-weight: 700;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  padding: 12px 16px;
-  border-bottom: 1px solid #e2e8f0;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--sb-border, #e3ebf2);
 }
 
 .pcn-table td {
-  padding: 14px 16px;
-  border-bottom: 1px solid #f1f5f9;
-  color: #334155;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--sb-border, #e3ebf2);
+  color: var(--sb-text-primary, #102a43);
   vertical-align: middle;
 }
 
-.pcn-table tr:hover {
-  background: #f8fafc;
-}
-
-.cn-status-pill {
-  background: #ecfdf5;
-  color: #059669;
-  padding: 3px 8px;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 700;
+.pcn-table tr:hover td {
+  background-color: rgba(8, 121, 209, 0.02);
 }
 
 .pcn-empty {
   padding: 48px 20px;
   text-align: center;
-  color: #94a3b8;
+  color: var(--sb-text-muted, #5a7184);
+}
+
+.preview-action-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
+
+/* Print Rules */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white !important;
+  }
+  .challan-print-document {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
 }

@@ -75,7 +75,13 @@ test.describe('SmartBilling E2E - Products CRUD Lifecycle', () => {
     // -------------------------------------------------------------
     console.log('[Step 4] Navigating to Products page...');
     const productsNavLink = page.getByRole('link', { name: /Products/i });
-    await expect(productsNavLink).toBeVisible();
+    if (!(await productsNavLink.isVisible())) {
+      const salesMenuBtn = page.getByRole('button', { name: /Sales & Dispatch/i });
+      if (await salesMenuBtn.isVisible()) {
+        await salesMenuBtn.click();
+      }
+    }
+    await expect(productsNavLink).toBeVisible({ timeout: 10000 });
     await productsNavLink.click();
 
     // -------------------------------------------------------------

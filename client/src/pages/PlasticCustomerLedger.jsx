@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import API from "../api/axios";
 import PlasticNavbar from "../components/PlasticNavbar";
 import LoadingScreen from "../components/LoadingScreen";
+import { PageHeader, Card, Button } from "../components";
 import "./PlasticCustomerLedger.css";
 
 function PlasticCustomerLedger() {
@@ -64,18 +65,14 @@ function PlasticCustomerLedger() {
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchCustomers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (selectedCustomerId) {
       setSearchParams({ customerId: selectedCustomerId });
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchLedger(selectedCustomerId, fromDate, toDate);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCustomerId, fromDate, toDate]);
 
   const handlePrint = () => {
@@ -89,74 +86,84 @@ function PlasticCustomerLedger() {
   return (
     <div className="plastic-page">
       <PlasticNavbar />
-      <div className="plastic-container">
+      <div className="plastic-container sb-page-container">
         {/* Header */}
-        <div className="pledger-header no-print">
-          <div>
-            <span className="pledger-badge">ACCOUNTING STATEMENT</span>
-            <h1 className="pledger-title">Customer Ledger & Account Statement</h1>
-            <p className="pledger-subtitle">
-              Complete chronological debit/credit audit trail with real-time running balances.
-            </p>
-          </div>
-          <div className="pledger-header-actions">
-            <Link to="/plastic-erp/finance/receivables" className="pledger-btn pledger-btn-outline">
-              Receivables Dashboard
-            </Link>
-            <Link to="/plastic-erp/payments" className="pledger-btn pledger-btn-primary">
-              + Collect Payment
-            </Link>
-            <button className="pledger-btn pledger-btn-print" onClick={handlePrint}>
-              🖨️ Print Statement
-            </button>
-          </div>
+        <div className="no-print">
+          <PageHeader
+            title="Customer Ledger & Account Statement"
+            subtitle="Complete chronological debit/credit audit trail with real-time running balances."
+            badge="ACCOUNTING STATEMENT"
+            actions={
+              <div className="pledger-header-actions">
+                <Link to="/plastic-erp/finance/receivables" className="sb-link-btn">
+                  <Button variant="secondary" size="md">Receivables Dashboard</Button>
+                </Link>
+                <Link to="/plastic-erp/payments" className="sb-link-btn">
+                  <Button variant="primary" size="md">+ Collect Payment</Button>
+                </Link>
+                <Button variant="secondary" size="md" onClick={handlePrint}>
+                  🖨️ Print Statement
+                </Button>
+              </div>
+            }
+          />
         </div>
 
         {/* Customer Selector & Filters */}
-        <div className="pledger-selector-bar no-print">
-          <div className="selector-field cust-select-field">
-            <label>Select Customer Account</label>
-            <select
-              value={selectedCustomerId}
-              onChange={(e) => setSelectedCustomerId(e.target.value)}
-            >
-              {customers.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} {c.mobile ? `(${c.mobile})` : ""}
-                </option>
-              ))}
-            </select>
-          </div>
+        <div className="no-print">
+          <Card className="pledger-filter-card">
+            <div className="pledger-selector-bar">
+              <div className="selector-field cust-select-field">
+                <label>Select Customer Account</label>
+                <select
+                  value={selectedCustomerId}
+                  onChange={(e) => setSelectedCustomerId(e.target.value)}
+                  className="sb-select"
+                >
+                  {customers.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} {c.mobile ? `(${c.mobile})` : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-          <div className="selector-field">
-            <label>From Date</label>
-            <input
-              type="date"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-            />
-          </div>
+              <div className="selector-field">
+                <label>From Date</label>
+                <input
+                  type="date"
+                  value={fromDate}
+                  onChange={(e) => setFromDate(e.target.value)}
+                  className="sb-input"
+                />
+              </div>
 
-          <div className="selector-field">
-            <label>To Date</label>
-            <input
-              type="date"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-            />
-          </div>
+              <div className="selector-field">
+                <label>To Date</label>
+                <input
+                  type="date"
+                  value={toDate}
+                  onChange={(e) => setToDate(e.target.value)}
+                  className="sb-input"
+                />
+              </div>
 
-          {(fromDate || toDate) && (
-            <button
-              className="btn-clear-date"
-              onClick={() => {
-                setFromDate("");
-                setToDate("");
-              }}
-            >
-              Clear Dates
-            </button>
-          )}
+              {(fromDate || toDate) && (
+                <div className="selector-field align-bottom">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setFromDate("");
+                      setToDate("");
+                    }}
+                  >
+                    Clear Dates
+                  </Button>
+                </div>
+              )}
+            </div>
+          </Card>
         </div>
 
         {/* PRINTABLE STATEMENT CONTAINER */}
@@ -167,8 +174,8 @@ function PlasticCustomerLedger() {
               <div className="cust-statement-info">
                 <h2>{customerData.name}</h2>
                 <div className="cust-meta-row">
-                  <span>Mobile: {customerData.mobile || "—"}</span>
-                  <span>Email: {customerData.email || "—"}</span>
+                  <span><strong>Mobile:</strong> {customerData.mobile || "—"}</span>
+                  <span><strong>Email:</strong> {customerData.email || "—"}</span>
                 </div>
                 <div className="cust-address">{customerData.address || "Address not specified"}</div>
               </div>

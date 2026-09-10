@@ -1,8 +1,16 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import API from "../api/axios";
-import PlasticNavbar from "../components/PlasticNavbar";
 import LoadingScreen from "../components/LoadingScreen";
+import {
+  PageHeader,
+  KpiCard,
+  Card,
+  Button,
+  StatusBadge,
+  DataTable,
+  AlertBanner,
+} from "../components";
 import "./PlasticProcurementDashboard.css";
 
 function PlasticProcurementDashboard() {
@@ -20,9 +28,9 @@ function PlasticProcurementDashboard() {
         API.get("/plastic-erp/procurement/analytics/mrp"),
       ]);
 
-      setDashboardData(dashRes.data.data);
-      setAlerts(alertRes.data.data || []);
-      setMrpItems(mrpRes.data.data || []);
+      setDashboardData(dashRes.data?.data);
+      setAlerts(alertRes.data?.data || []);
+      setMrpItems(mrpRes.data?.data || []);
     } catch (err) {
       console.error("Error loading procurement dashboard:", err);
     } finally {
@@ -34,227 +42,287 @@ function PlasticProcurementDashboard() {
     fetchData();
   }, [fetchData]);
 
-  if (loading && !dashboardData) return <LoadingScreen />;
+  if (loading && !dashboardData) {
+    return <LoadingScreen title="Loading Procurement Dashboard..." subtitle="Computing purchase analytics and MRP..." />;
+  }
 
   const kpis = dashboardData?.kpis || {};
 
+  const mrpColumns = [
+    {
+      key: "material_name",
+      title: "Material Code & Name",
+      render: (val, row) => (
+        <div>
+          <strong>{val}</strong>
+          <div className="sb-text-muted text-xs">{row.material_code} ({row.plastic_type})</div>
+        </div>
+      ),
+    },
+    {
+      key: "current_stock",
+      title: "Current Stock",
+      render: (val, row) => (
+        <span className={val < row.minimum_stock ? "sb-font-semibold sb-text-danger" : ""}>
+          {Number(val || 0).toLocaleString()} {row.unit}
+        </span>
+      ),
+    },
+    {
+      key: "minimum_stock",
+      title: "Safety Min",
+      render: (val, row) => `${Number(val || 0).toLocaleString()} ${row.unit}`,
+    },
+    {
+      key: "maximum_stock",
+      title: "Target Max",
+      render: (val, row) => `${Number(val || 0).toLocaleString()} ${row.unit}`,
+    },
+    {
+      key: "required_stock",
+      title: "Deficit",
+      render: (val, row) => (
+        <span style={{ color: "var(--sb-warning, #F2A93B)", fontWeight: 600 }}>
+          {Number(val || 0).toLocaleString()} {row.unit}
+        </span>
+      ),
+    },
+    {
+      key: "suggested_order_qty",
+      title: "Suggested Order",
+      render: (val, row) => (
+        <strong style={{ color: "var(--sb-success, #18A673)" }}>
+          {Number(val || 0).toLocaleString()} {row.unit}
+        </strong>
+      ),
+    },
+    {
+      key: "urgency_level",
+      title: "Urgency",
+      render: (val) => {
+        const variant = val === "CRITICAL" ? "danger" : val === "HIGH" ? "warning" : "info";
+        return <StatusBadge status={val} variant={variant} />;
+      },
+    },
+    {
+      key: "actions",
+      title: "Action",
+      render: () => (
+        <Link to="/plastic-erp/purchase-requisitions">
+          <Button size="sm" variant="primary" icon="+">
+            Create PR
+          </Button>
+        </Link>
+      ),
+    },
+  ];
+
+  const recentPoColumns = [
+    {
+      key: "po_no",
+      title: "PO #",
+      render: (val) => <span className="sb-font-semibold sb-text-primary">{val}</span>,
+    },
+    {
+      key: "supplier_name",
+      title: "Supplier",
+    },
+    {
+      key: "grand_total",
+      title: "Total Amount",
+      render: (val) => (
+        <strong className="sb-font-semibold">
+          ₹{Number(val || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+        </strong>
+      ),
+    },
+    {
+      key: "status",
+      title: "Status",
+      render: (val) => <StatusBadge status={val} />,
+    },
+  ];
+
+  const topSuppliersColumns = [
+    {
+      key: "supplier_name",
+      title: "Supplier Name",
+      render: (val) => <strong>{val}</strong>,
+    },
+    {
+      key: "total_spend",
+      title: "Total Spend Volume",
+      render: (val) => (
+        <strong style={{ color: "var(--sb-success, #18A673)" }}>
+          ₹{Number(val || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+        </strong>
+      ),
+    },
+  ];
+
   return (
-    <div className="plastic-page-container">
-      <PlasticNavbar />
-      <div className="procurement-main">
-        {/* Header */}
-        <div className="procurement-header">
-          <div>
-            <h1 className="procurement-title">📊 Procurement & Vendor Intelligence</h1>
-            <p className="procurement-subtitle">
-              Real-time purchase commitments, MRP inventory replenishment, vendor scorecards & rate analytics
-            </p>
-          </div>
-          <div className="header-actions">
-            <Link to="/plastic-erp/purchase-requisitions" className="btn-secondary-link">
-              📋 Requisitions
+    <div className="sb-page-container">
+      <PageHeader
+        title="Procurement & Vendor Intelligence"
+        subtitle="Real-time purchase commitments, MRP inventory replenishment, vendor scorecards & rate analytics"
+        badge="ERP CONTROL CENTER"
+        actions={
+          <div className="sb-header-actions">
+            <Link to="/plastic-erp/purchase-requisitions">
+              <Button variant="secondary" size="md" icon="📋">
+                Requisitions
+              </Button>
             </Link>
-            <Link to="/plastic-erp/purchase-orders" className="procurement-btn-primary">
-              📦 Purchase Orders
+            <Link to="/plastic-erp/purchase-orders">
+              <Button variant="primary" size="md" icon="📦">
+                Purchase Orders
+              </Button>
             </Link>
           </div>
-        </div>
+        }
+      />
 
-        {/* 8 KPIs Grid */}
-        <div className="procurement-kpi-grid">
-          <div className="procurement-kpi-card success">
-            <span className="kpi-label">Purchases This Month</span>
-            <span className="kpi-value">₹{Number(kpis.purchaseThisMonth || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</span>
-            <span className="kpi-hint">Delivered & billed</span>
-          </div>
-          <div className="procurement-kpi-card warning">
-            <span className="kpi-label">Pending PRs</span>
-            <span className="kpi-value">{kpis.pendingPR || 0}</span>
-            <span className="kpi-hint">Awaiting approval</span>
-          </div>
-          <div className="procurement-kpi-card">
-            <span className="kpi-label">Active Purchase Orders</span>
-            <span className="kpi-value">{kpis.pendingPO || 0}</span>
-            <span className="kpi-hint">In delivery pipeline</span>
-          </div>
-          <div className="procurement-kpi-card purple">
-            <span className="kpi-label">Pending Inward Volume</span>
-            <span className="kpi-value">{Number(kpis.pendingDeliveries || 0).toLocaleString()} KG</span>
-            <span className="kpi-hint">Committed deliveries</span>
-          </div>
-          <div className="procurement-kpi-card warning">
-            <span className="kpi-label">Below Safety Stock</span>
-            <span className="kpi-value">{kpis.materialRequirement || 0}</span>
-            <span className="kpi-hint">Immediate procurement need</span>
-          </div>
-          <div className="procurement-kpi-card">
-            <span className="kpi-label">Supplier Outstanding</span>
-            <span className="kpi-value">₹{Number(kpis.supplierOutstanding || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</span>
-            <span className="kpi-hint">Accounts payable liability</span>
-          </div>
-          <div className="procurement-kpi-card">
-            <span className="kpi-label">Avg Purchase Rate</span>
-            <span className="kpi-value">₹{Number(kpis.avgPurchaseRate || 48.50).toFixed(2)}</span>
-            <span className="kpi-hint">Weighted per KG landed</span>
-          </div>
-          <div className="procurement-kpi-card success">
-            <span className="kpi-label">Commercial Savings</span>
-            <span className="kpi-value">₹{Number(kpis.purchaseSavings || 14200).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</span>
-            <span className="kpi-hint">Negotiated discounts</span>
-          </div>
-        </div>
+      {/* 8 KPIs Grid */}
+      <div className="sb-kpi-grid">
+        <KpiCard
+          title="Purchases This Month"
+          value={`₹${Number(kpis.purchaseThisMonth || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+          accent="green"
+          icon="💵"
+          supportingText="Delivered & billed"
+        />
+        <KpiCard
+          title="Pending PRs"
+          value={kpis.pendingPR || 0}
+          accent="amber"
+          icon="⏳"
+          supportingText="Awaiting approval"
+        />
+        <KpiCard
+          title="Active Purchase Orders"
+          value={kpis.pendingPO || 0}
+          accent="blue"
+          icon="📦"
+          supportingText="In delivery pipeline"
+        />
+        <KpiCard
+          title="Pending Inward Volume"
+          value={`${Number(kpis.pendingDeliveries || 0).toLocaleString()} KG`}
+          accent="teal"
+          icon="🚚"
+          supportingText="Committed deliveries"
+        />
+        <KpiCard
+          title="Below Safety Stock"
+          value={kpis.materialRequirement || 0}
+          accent="red"
+          icon="⚠️"
+          supportingText="Immediate purchase needed"
+        />
+        <KpiCard
+          title="Supplier Outstanding"
+          value={`₹${Number(kpis.supplierOutstanding || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+          accent="navy"
+          icon="🏛️"
+          supportingText="Accounts payable liability"
+        />
+        <KpiCard
+          title="Avg Landed Rate"
+          value={`₹${Number(kpis.avgPurchaseRate || 48.50).toFixed(2)}`}
+          accent="blue"
+          icon="⚖️"
+          supportingText="Weighted per KG rate"
+        />
+        <KpiCard
+          title="Commercial Savings"
+          value={`₹${Number(kpis.purchaseSavings || 14200).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+          accent="green"
+          icon="🏷️"
+          supportingText="Negotiated discounts"
+        />
+      </div>
 
-        {/* Real-time Alerts Panel */}
-        {alerts.length > 0 && (
-          <div className="procurement-alerts-container mb-6">
-            <h3 className="section-title">🚨 Actionable Procurement Alerts</h3>
-            <div className="alerts-list">
-              {alerts.map((alt, idx) => (
-                <div key={idx} className={`alert-card ${alt.severity.toLowerCase()}`}>
-                  <div className="alert-content">
-                    <strong>{alt.title}</strong>
-                    <p>{alt.message}</p>
-                  </div>
+      {/* Actionable Procurement Alerts */}
+      {alerts.length > 0 && (
+        <div className="sb-procurement-alerts" style={{ marginBottom: "24px" }}>
+          {alerts.map((alt, idx) => {
+            const variant = alt.severity === "CRITICAL" ? "danger" : alt.severity === "WARNING" ? "warning" : "info";
+            return (
+              <AlertBanner
+                key={idx}
+                variant={variant}
+                title={alt.title}
+                className="sb-alert-item"
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
+                  <span>{alt.message}</span>
                   {alt.link && (
-                    <Link to={alt.link} className="alert-action-btn">
-                      Action →
+                    <Link to={alt.link} style={{ marginLeft: "12px", textDecoration: "underline", fontWeight: 600 }}>
+                      Take Action →
                     </Link>
                   )}
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
+              </AlertBanner>
+            );
+          })}
+        </div>
+      )}
 
-        {/* MRP: Material Requirements Planning Snapshot */}
-        <div className="procurement-table-card mb-6">
-          <div className="card-header-bar">
-            <div>
-              <h3>📋 Material Requirements Planning (MRP Suggestions)</h3>
-              <p className="text-muted text-xs">
-                Computed from live raw material stock, min/max thresholds, and suggested replenishment without auto-ordering
-              </p>
-            </div>
-            <Link to="/plastic-erp/purchase-requisitions" className="btn-secondary-link text-xs">
-              + Open Requisition Builder
+      {/* MRP: Material Requirements Planning Snapshot */}
+      <Card
+        title="Material Requirements Planning (MRP Replenishment)"
+        subtitle="Live raw material inventory vs safety thresholds with replenishment recommendations"
+        actions={
+          <Link to="/plastic-erp/purchase-requisitions">
+            <Button size="sm" variant="secondary" icon="+">
+              Open Requisition Builder
+            </Button>
+          </Link>
+        }
+        noPadding
+        className="sb-mrp-card"
+      >
+        <DataTable
+          columns={mrpColumns}
+          data={mrpItems.filter((m) => m.suggested_order_qty > 0).slice(0, 6)}
+          loading={loading}
+          emptyMessage="All raw materials are currently operating above minimum stock safety thresholds!"
+        />
+      </Card>
+
+      {/* Dashboard Two-Column Analytics */}
+      <div className="sb-dash-two-col">
+        <Card
+          title="Recent Purchase Orders"
+          actions={
+            <Link to="/plastic-erp/purchase-orders" className="sb-text-primary sb-font-semibold" style={{ fontSize: "13px" }}>
+              View All Orders →
             </Link>
-          </div>
-          <div className="table-responsive">
-            <table className="procurement-table">
-              <thead>
-                <tr>
-                  <th>Material Code & Name</th>
-                  <th>Current Stock</th>
-                  <th>Safety Minimum</th>
-                  <th>Target Maximum</th>
-                  <th>Deficit / Shortfall</th>
-                  <th>Suggested Order Qty</th>
-                  <th>Urgency</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {mrpItems.filter((m) => m.suggested_order_qty > 0).length === 0 ? (
-                  <tr>
-                    <td colSpan="8" className="text-center py-6 text-muted">
-                      All raw materials are currently operating above minimum stock safety thresholds!
-                    </td>
-                  </tr>
-                ) : (
-                  mrpItems.filter((m) => m.suggested_order_qty > 0).slice(0, 6).map((m) => (
-                    <tr key={m.raw_material_id}>
-                      <td>
-                        <strong>{m.material_name}</strong>
-                        <div className="text-muted text-xs">{m.material_code} ({m.plastic_type})</div>
-                      </td>
-                      <td className={m.current_stock < m.minimum_stock ? "text-amber-400 font-bold" : ""}>
-                        {Number(m.current_stock).toLocaleString()} {m.unit}
-                      </td>
-                      <td>{Number(m.minimum_stock).toLocaleString()} {m.unit}</td>
-                      <td>{Number(m.maximum_stock).toLocaleString()} {m.unit}</td>
-                      <td className="text-amber-400 font-semibold">
-                        {Number(m.required_stock).toLocaleString()} {m.unit}
-                      </td>
-                      <td className="text-emerald-400 font-bold">
-                        {Number(m.suggested_order_qty).toLocaleString()} {m.unit}
-                      </td>
-                      <td>
-                        <span className={`priority-badge ${m.urgency_level.toLowerCase()}`}>
-                          {m.urgency_level}
-                        </span>
-                      </td>
-                      <td>
-                        <Link
-                          to="/plastic-erp/purchase-requisitions"
-                          className="procurement-btn-primary btn-sm"
-                        >
-                          + Create PR
-                        </Link>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+          }
+          noPadding
+        >
+          <DataTable
+            columns={recentPoColumns}
+            data={dashboardData?.recentPurchaseOrders || []}
+            emptyMessage="No recent purchase orders."
+          />
+        </Card>
 
-        {/* Dashboard 2-Column Analytics */}
-        <div className="dashboard-two-col">
-          {/* Recent POs */}
-          <div className="procurement-table-card">
-            <div className="card-header-bar">
-              <h4>Recent Purchase Orders</h4>
-              <Link to="/plastic-erp/purchase-orders" className="text-xs text-primary">View All →</Link>
-            </div>
-            <table className="procurement-table">
-              <thead>
-                <tr>
-                  <th>PO #</th>
-                  <th>Supplier</th>
-                  <th>Grand Total</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {dashboardData?.recentPurchaseOrders?.map((po) => (
-                  <tr key={po.id}>
-                    <td className="font-semibold text-primary">{po.po_no}</td>
-                    <td>{po.supplier_name}</td>
-                    <td className="font-bold">₹{Number(po.grand_total).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td>
-                    <td><span className={`status-badge ${po.status.toLowerCase()}`}>{po.status}</span></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Top Suppliers by Spend */}
-          <div className="procurement-table-card">
-            <div className="card-header-bar">
-              <h4>Top Scrap Suppliers (Spend Volume)</h4>
-              <Link to="/plastic-erp/supplier-performance" className="text-xs text-primary">Scorecards →</Link>
-            </div>
-            <table className="procurement-table">
-              <thead>
-                <tr>
-                  <th>Supplier</th>
-                  <th>Total Spend</th>
-                </tr>
-              </thead>
-              <tbody>
-                {dashboardData?.topSuppliers?.map((supp, i) => (
-                  <tr key={i}>
-                    <td><strong>{supp.supplier_name}</strong></td>
-                    <td className="font-bold text-emerald-400">
-                      ₹{Number(supp.total_spend).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <Card
+          title="Top Scrap Suppliers by Spend"
+          actions={
+            <Link to="/plastic-erp/supplier-performance" className="sb-text-primary sb-font-semibold" style={{ fontSize: "13px" }}>
+              Scorecards →
+            </Link>
+          }
+          noPadding
+        >
+          <DataTable
+            columns={topSuppliersColumns}
+            data={dashboardData?.topSuppliers || []}
+            emptyMessage="No supplier spend records recorded yet."
+          />
+        </Card>
       </div>
     </div>
   );

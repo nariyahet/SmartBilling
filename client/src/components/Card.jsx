@@ -1,4 +1,3 @@
-import PropTypes from "prop-types";
 import "./Card.css";
 
 /**
@@ -35,15 +34,5 @@ function Card({
     </div>
   );
 }
-
-Card.propTypes = {
-  title: PropTypes.node,
-  subtitle: PropTypes.node,
-  actions: PropTypes.node,
-  children: PropTypes.node,
-  footer: PropTypes.node,
-  noPadding: PropTypes.bool,
-  className: PropTypes.string,
-};
 
 export default Card;

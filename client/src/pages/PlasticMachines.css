@@ -1,23 +1,31 @@
+/* Modern styling for PlasticMachines */
 .machines-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 20px;
 }
 
-.machine-card {
-  background: #ffffff;
+.sb-machine-card {
+  background: var(--sb-card, #ffffff);
   border-radius: 12px;
   padding: 20px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--sb-border, #e3ebf2);
   display: flex;
   flex-direction: column;
   gap: 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: transform 0.2s, box-shadow 0.2s;
 }
 
-.machine-card.status-active { border-left: 5px solid #10b981; }
-.machine-card.status-breakdown { border-left: 5px solid #ef4444; }
-.machine-card.status-maintenance { border-left: 5px solid #f59e0b; }
-.machine-card.status-idle { border-left: 5px solid #94a3b8; }
+.sb-machine-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(6, 59, 102, 0.08);
+}
+
+.sb-machine-card.status-active { border-left: 4px solid var(--sb-success, #18a673); }
+.sb-machine-card.status-breakdown { border-left: 4px solid var(--sb-danger, #e05252); }
+.sb-machine-card.status-maintenance { border-left: 4px solid var(--sb-warning, #f2a93b); }
+.sb-machine-card.status-idle { border-left: 4px solid var(--sb-muted, #718096); }
 
 .mch-header {
   display: flex;
@@ -28,8 +36,9 @@
 .mch-code {
   font-size: 11px;
   font-weight: 700;
-  color: #059669;
-  background: #e6f4ea;
+  color: var(--sb-ocean, #0879d1);
+  background: #ebf8ff;
+  border: 1px solid #bae3ff;
   padding: 2px 8px;
   border-radius: 4px;
   display: inline-block;
@@ -40,16 +49,11 @@
   margin: 0;
   font-size: 16px;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--sb-navy, #063b66);
 }
 
-.badge.mch-active { background: #dcfce7; color: #15803d; }
-.badge.mch-breakdown { background: #fee2e2; color: #b91c1c; }
-.badge.mch-maintenance { background: #fef3c7; color: #b45309; }
-.badge.mch-idle { background: #f1f5f9; color: #475569; }
-
 .mch-details {
-  background: #f8fafc;
+  background: var(--sb-canvas, #f4f8fb);
   padding: 12px;
   border-radius: 8px;
   display: flex;
@@ -57,26 +61,17 @@
   gap: 6px;
 }
 
+.mch-detail-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--sb-text, #102a43);
+}
+
 .mch-footer {
   margin-top: auto;
   display: flex;
   justify-content: flex-end;
-}
-
-.btn-log-dwn {
-  background: #f8fafc;
-  border: 1px solid #cbd5e1;
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.btn-log-dwn:hover {
-  background: #fee2e2;
-  color: #b91c1c;
-  border-color: #fca5a5;
 }
 
 .downtime-cat-badge {

@@ -1,4 +1,3 @@
-import PropTypes from "prop-types";
 import "./DataTable.css";
 
 /**
@@ -72,25 +71,5 @@ function DataTable({
     </div>
   );
 }
-
-DataTable.propTypes = {
-  columns: PropTypes.arrayOf(
-    PropTypes.shape({
-      key: PropTypes.string,
-      title: PropTypes.node,
-      label: PropTypes.node,
-      width: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-      render: PropTypes.func,
-      className: PropTypes.string,
-      headerClassName: PropTypes.string,
-    })
-  ),
-  data: PropTypes.array,
-  children: PropTypes.node,
-  loading: PropTypes.bool,
-  emptyMessage: PropTypes.node,
-  density: PropTypes.oneOf(["compact", "normal", "comfortable"]),
-  className: PropTypes.string,
-};
 
 export default DataTable;

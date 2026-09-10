@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import API from "../api/axios";
 import PlasticNavbar from "../components/PlasticNavbar";
 import LoadingScreen from "../components/LoadingScreen";
+import { PageHeader, Card, KpiCard, Button, StatusBadge, Modal } from "../components";
 import "./PlasticBankReconciliation.css";
 
 function PlasticBankReconciliation() {
@@ -117,7 +118,6 @@ function PlasticBankReconciliation() {
         params: { bank_account_id: selectedAccountId },
       });
       if (res.data?.success) {
-        // Filter unreconciled
         const unreconciled = (res.data.transactions || []).filter((t) => !t.is_reconciled);
         setAvailableTransactions(unreconciled);
       }
@@ -161,164 +161,196 @@ function PlasticBankReconciliation() {
   }
 
   return (
-    <div className="plastic-page">
+    <div className="sb-page-container">
       <PlasticNavbar />
-      <main className="plastic-container">
-        {/* Header */}
-        <div className="plastic-header-row">
-          <div>
-            <span className="plastic-breadcrumb">Plastic ERP / Accounting</span>
-            <h1 className="plastic-title">⚖️ Bank Reconciliation</h1>
-            <p className="plastic-subtitle">
-              Match official bank statements against system general ledger transactions to verify clearing.
-            </p>
-          </div>
-          <div style={{ display: "flex", gap: "10px" }}>
-            <select
-              value={selectedAccountId}
-              onChange={(e) => setSelectedAccountId(e.target.value)}
-              className="plastic-select"
-              style={{ fontWeight: "600", minWidth: "220px" }}
-            >
-              {accounts.map((acc) => (
-                <option key={acc.id} value={acc.id}>
-                  🏦 {acc.bank_name} - {acc.account_number}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              className="plastic-btn plastic-btn-primary"
-              onClick={() => setStatementModalOpen(true)}
-            >
-              + Add Statement Line
-            </button>
-          </div>
-        </div>
+      <main className="sb-main-content">
+        <PageHeader
+          title="Bank Reconciliation"
+          subtitle="Match official bank statements against system general ledger transactions to verify clearing"
+          breadcrumbs={[
+            { label: "Plastic ERP", to: "/plastic-erp" },
+            { label: "Accounting & GST", to: "/plastic-erp/accounting" },
+            { label: "Bank Reconciliation" },
+          ]}
+          actions={
+            <div className="recon-action-group">
+              <select
+                value={selectedAccountId}
+                onChange={(e) => setSelectedAccountId(e.target.value)}
+                className="sb-select recon-account-select"
+              >
+                {accounts.map((acc) => (
+                  <option key={acc.id} value={acc.id}>
+                    🏦 {acc.bank_name} - {acc.account_number}
+                  </option>
+                ))}
+              </select>
+              <Button
+                variant="primary"
+                icon="➕"
+                onClick={() => setStatementModalOpen(true)}
+              >
+                Add Statement Line
+              </Button>
+            </div>
+          }
+        />
 
         {/* Reconciliation Summary Cards */}
         {summary && (
-          <div className="recon-summary-panel">
-            <div className="recon-box">
-              <div className="recon-box-label">Ledger Balance (Books)</div>
-              <div className="recon-box-val" style={{ color: "#0284c7" }}>
-                ₹{Number(summary.booksBalance || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-              </div>
-              <small style={{ color: "#64748b" }}>Current system balance</small>
-            </div>
-            <div className="recon-box">
-              <div className="recon-box-label">+ Uncredited Cheques / Deposits</div>
-              <div className="recon-box-val" style={{ color: "#059669" }}>
-                ₹{Number(summary.unreconciledBookDeposits || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-              </div>
-              <small style={{ color: "#64748b" }}>In books, not in bank</small>
-            </div>
-            <div className="recon-box">
-              <div className="recon-box-label">- Unpresented Cheques / Debits</div>
-              <div className="recon-box-val" style={{ color: "#dc2626" }}>
-                ₹{Number(summary.unreconciledBookWithdrawals || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-              </div>
-              <small style={{ color: "#64748b" }}>Issued, not cleared yet</small>
-            </div>
-            <div className="recon-box" style={{ background: "#f8fafc", border: "2px solid #cbd5e1" }}>
-              <div className="recon-box-label">Adjusted Bank Balance</div>
-              <div className="recon-box-val" style={{ color: "#1e293b" }}>
-                ₹{Number(summary.adjustedBankBalance || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-              </div>
-              <small style={{ color: "#64748b" }}>Reconciled statement target</small>
-            </div>
+          <div className="recon-kpis-grid">
+            <KpiCard
+              title="Ledger Balance (Books)"
+              value={`₹${Number(summary.booksBalance || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`}
+              subtitle="Current system general ledger balance"
+              icon="📘"
+              color="blue"
+            />
+            <KpiCard
+              title="+ Uncredited Cheques"
+              value={`₹${Number(summary.unreconciledBookDeposits || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`}
+              subtitle="Recorded in books, pending in bank"
+              icon="📥"
+              color="teal"
+            />
+            <KpiCard
+              title="- Unpresented Cheques"
+              value={`₹${Number(summary.unreconciledBookWithdrawals || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`}
+              subtitle="Issued payments, not cleared yet"
+              icon="📤"
+              color="amber"
+            />
+            <KpiCard
+              title="Adjusted Bank Balance"
+              value={`₹${Number(summary.adjustedBankBalance || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`}
+              subtitle="Target reconciled bank statement target"
+              icon="⚖️"
+              color="navy"
+            />
           </div>
         )}
 
-        {/* Statement Lines Table */}
-        <div className="plastic-card">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-            <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: "700" }}>Bank Statement Clearing Register</h3>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="plastic-select"
-              style={{ width: "160px" }}
-            >
-              <option value="ALL">All Statuses</option>
-              <option value="UNRECONCILED">UNRECONCILED</option>
-              <option value="RECONCILED">RECONCILED</option>
-            </select>
-          </div>
-
-          <div className="plastic-table-responsive">
-            <table className="plastic-table">
+        {/* Statement Lines Register Card */}
+        <Card
+          title="Bank Statement Clearing Register"
+          subtitle="Match imported or recorded bank statement lines with SmartBilling general ledger vouchers"
+          actions={
+            <div className="recon-filter-controls">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="sb-select recon-status-select"
+              >
+                <option value="ALL">All Statuses</option>
+                <option value="UNRECONCILED">UNRECONCILED</option>
+                <option value="RECONCILED">RECONCILED</option>
+              </select>
+              <Button variant="ghost" size="sm" icon="🔄" onClick={fetchReconData}>
+                Refresh
+              </Button>
+            </div>
+          }
+        >
+          <div className="recon-table-wrapper">
+            <table className="recon-table">
               <thead>
                 <tr>
                   <th>Statement Date</th>
                   <th>Reference No</th>
                   <th>Description</th>
-                  <th style={{ textAlign: "right" }}>Withdrawal (Dr)</th>
-                  <th style={{ textAlign: "right" }}>Deposit (Cr)</th>
-                  <th style={{ textAlign: "right" }}>Bank Balance</th>
+                  <th className="cell-right">Withdrawal (Dr)</th>
+                  <th className="cell-right">Deposit (Cr)</th>
+                  <th className="cell-right">Bank Balance</th>
                   <th>Matched System Tx</th>
-                  <th style={{ textAlign: "center" }}>Status</th>
-                  <th style={{ textAlign: "center" }}>Actions</th>
+                  <th className="cell-center">Status</th>
+                  <th className="cell-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {reconciliations.length === 0 ? (
                   <tr>
-                    <td colSpan="9" style={{ textAlign: "center", padding: "30px", color: "#64748b" }}>
-                      No bank statement entries recorded for this account.
+                    <td colSpan="9" className="recon-table-empty">
+                      <div className="empty-state">
+                        <span className="empty-icon">⚖️</span>
+                        <p>No bank statement entries recorded for this account.</p>
+                        <Button variant="primary" size="sm" onClick={() => setStatementModalOpen(true)}>
+                          Add First Statement Entry
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ) : (
                   reconciliations.map((row) => (
                     <tr key={row.id}>
-                      <td>{new Date(row.statement_date).toLocaleDateString("en-IN")}</td>
-                      <td><strong>{row.reference_no || "—"}</strong></td>
-                      <td style={{ fontSize: "0.85rem" }}>{row.description || "—"}</td>
-                      <td style={{ textAlign: "right", color: Number(row.withdrawal_amount) > 0 ? "#dc2626" : "inherit" }}>
-                        {Number(row.withdrawal_amount) > 0 ? `₹${Number(row.withdrawal_amount).toLocaleString("en-IN")}` : "—"}
+                      <td>
+                        <span className="recon-date">
+                          {new Date(row.statement_date).toLocaleDateString("en-IN", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric"
+                          })}
+                        </span>
                       </td>
-                      <td style={{ textAlign: "right", color: Number(row.deposit_amount) > 0 ? "#059669" : "inherit" }}>
-                        {Number(row.deposit_amount) > 0 ? `₹${Number(row.deposit_amount).toLocaleString("en-IN")}` : "—"}
+                      <td>
+                        <strong className="recon-ref">{row.reference_no || "—"}</strong>
                       </td>
-                      <td style={{ textAlign: "right", fontWeight: "600" }}>
-                        ₹{Number(row.bank_balance || 0).toLocaleString("en-IN")}
+                      <td className="recon-desc-cell">{row.description || "—"}</td>
+                      <td className="cell-right">
+                        {Number(row.withdrawal_amount) > 0 ? (
+                          <strong className="text-danger">
+                            -₹{Number(row.withdrawal_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                          </strong>
+                        ) : (
+                          <span className="text-muted">—</span>
+                        )}
+                      </td>
+                      <td className="cell-right">
+                        {Number(row.deposit_amount) > 0 ? (
+                          <strong className="text-teal">
+                            +₹{Number(row.deposit_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                          </strong>
+                        ) : (
+                          <span className="text-muted">—</span>
+                        )}
+                      </td>
+                      <td className="cell-right">
+                        <strong className="recon-bank-balance">
+                          ₹{Number(row.bank_balance || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                        </strong>
                       </td>
                       <td>
                         {row.matched_transaction_id ? (
                           <div>
-                            <span style={{ fontWeight: "600" }}>Tx #{row.matched_transaction_id}</span>
-                            <small style={{ display: "block", color: "#64748b" }}>
+                            <span className="matched-tx-badge">Tx #{row.matched_transaction_id}</span>
+                            <div className="sub-text">
                               ₹{Number(row.matched_amount).toLocaleString("en-IN")} ({row.matched_type})
-                            </small>
+                            </div>
                           </div>
                         ) : (
-                          <span style={{ color: "#94a3b8" }}>None</span>
+                          <span className="text-muted">Unlinked</span>
                         )}
                       </td>
-                      <td style={{ textAlign: "center" }}>
-                        <span className={`plastic-badge ${row.status === "RECONCILED" ? "plastic-badge-success" : "plastic-badge-warning"}`}>
-                          {row.status}
-                        </span>
+                      <td className="cell-center">
+                        <StatusBadge status={row.status} />
                       </td>
-                      <td style={{ textAlign: "center" }}>
+                      <td className="cell-right">
                         {row.status === "RECONCILED" ? (
-                          <button
-                            type="button"
-                            className="plastic-btn plastic-btn-secondary"
-                            style={{ padding: "4px 8px", fontSize: "0.75rem" }}
+                          <Button
+                            variant="outline"
+                            size="sm"
                             onClick={() => handleUnmatch(row.id)}
                           >
                             Unmatch
-                          </button>
+                          </Button>
                         ) : (
-                          <button
-                            type="button"
-                            className="plastic-btn plastic-btn-primary"
-                            style={{ padding: "4px 10px", fontSize: "0.75rem" }}
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            icon="🔗"
                             onClick={() => handleOpenMatchModal(row)}
                           >
-                            🔗 Match Tx
-                          </button>
+                            Match Tx
+                          </Button>
                         )}
                       </td>
                     </tr>
@@ -327,165 +359,178 @@ function PlasticBankReconciliation() {
               </tbody>
             </table>
           </div>
-        </div>
+        </Card>
 
         {/* Modal: Add Statement Line */}
-        {statementModalOpen && (
-          <div className="plastic-modal-backdrop" onClick={() => setStatementModalOpen(false)}>
-            <div className="plastic-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "480px" }}>
-              <div className="plastic-modal-header">
-                <h2>+ Record Bank Statement Entry</h2>
-                <button type="button" className="plastic-modal-close" onClick={() => setStatementModalOpen(false)}>✕</button>
-              </div>
-              <form onSubmit={handleAddStatementLine}>
-                <div className="plastic-modal-body">
-                  <div className="plastic-form-group">
-                    <label>Statement Date *</label>
-                    <input
-                      type="date"
-                      value={stmtForm.statement_date}
-                      onChange={(e) => setStmtForm({ ...stmtForm, statement_date: e.target.value })}
-                      className="plastic-input"
-                      required
-                    />
-                  </div>
-                  <div className="plastic-form-group">
-                    <label>Reference / Cheque / UTR No</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. CMS/123984/N"
-                      value={stmtForm.reference_no}
-                      onChange={(e) => setStmtForm({ ...stmtForm, reference_no: e.target.value })}
-                      className="plastic-input"
-                    />
-                  </div>
-                  <div className="plastic-form-group">
-                    <label>Description</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. INW NEFT - M/S PLASTIC BUYER"
-                      value={stmtForm.description}
-                      onChange={(e) => setStmtForm({ ...stmtForm, description: e.target.value })}
-                      className="plastic-input"
-                    />
-                  </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                    <div className="plastic-form-group">
-                      <label>Withdrawal / Debit (₹)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        placeholder="0.00"
-                        value={stmtForm.withdrawal_amount}
-                        onChange={(e) => setStmtForm({ ...stmtForm, withdrawal_amount: e.target.value })}
-                        className="plastic-input"
-                      />
-                    </div>
-                    <div className="plastic-form-group">
-                      <label>Deposit / Credit (₹)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        placeholder="0.00"
-                        value={stmtForm.deposit_amount}
-                        onChange={(e) => setStmtForm({ ...stmtForm, deposit_amount: e.target.value })}
-                        className="plastic-input"
-                      />
-                    </div>
-                  </div>
-                  <div className="plastic-form-group">
-                    <label>Bank Statement Balance (₹)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      placeholder="Balance after this entry"
-                      value={stmtForm.bank_balance}
-                      onChange={(e) => setStmtForm({ ...stmtForm, bank_balance: e.target.value })}
-                      className="plastic-input"
-                    />
-                  </div>
-                </div>
-                <div className="plastic-modal-footer">
-                  <button type="button" className="plastic-btn plastic-btn-secondary" onClick={() => setStatementModalOpen(false)}>
-                    Cancel
-                  </button>
-                  <button type="submit" className="plastic-btn plastic-btn-primary" disabled={submitting}>
-                    {submitting ? "Saving..." : "Save Statement Line"}
-                  </button>
-                </div>
-              </form>
+        <Modal
+          isOpen={statementModalOpen}
+          onClose={() => !submitting && setStatementModalOpen(false)}
+          title="Record Bank Statement Entry"
+          subtitle="Add line items from official bank statement for clearing against ERP ledger"
+          size="md"
+        >
+          <form onSubmit={handleAddStatementLine} className="recon-modal-form">
+            <div className="form-group">
+              <label className="sb-label">Statement Date *</label>
+              <input
+                type="date"
+                value={stmtForm.statement_date}
+                onChange={(e) => setStmtForm({ ...stmtForm, statement_date: e.target.value })}
+                className="sb-input"
+                required
+              />
             </div>
-          </div>
-        )}
+            <div className="form-group">
+              <label className="sb-label">Reference / Cheque / UTR No</label>
+              <input
+                type="text"
+                placeholder="e.g. CMS/123984/N or Cheque 00123"
+                value={stmtForm.reference_no}
+                onChange={(e) => setStmtForm({ ...stmtForm, reference_no: e.target.value })}
+                className="sb-input"
+              />
+            </div>
+            <div className="form-group">
+              <label className="sb-label">Statement Description / Narration</label>
+              <input
+                type="text"
+                placeholder="e.g. INW NEFT - M/S PLASTIC BUYER"
+                value={stmtForm.description}
+                onChange={(e) => setStmtForm({ ...stmtForm, description: e.target.value })}
+                className="sb-input"
+              />
+            </div>
+            <div className="form-grid-2">
+              <div className="form-group">
+                <label className="sb-label">Withdrawal / Debit (₹)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={stmtForm.withdrawal_amount}
+                  onChange={(e) => setStmtForm({ ...stmtForm, withdrawal_amount: e.target.value })}
+                  className="sb-input"
+                />
+              </div>
+              <div className="form-group">
+                <label className="sb-label">Deposit / Credit (₹)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={stmtForm.deposit_amount}
+                  onChange={(e) => setStmtForm({ ...stmtForm, deposit_amount: e.target.value })}
+                  className="sb-input"
+                />
+              </div>
+            </div>
+            <div className="form-group">
+              <label className="sb-label">Bank Statement Running Balance (₹)</label>
+              <input
+                type="number"
+                step="0.01"
+                placeholder="Balance recorded in bank statement"
+                value={stmtForm.bank_balance}
+                onChange={(e) => setStmtForm({ ...stmtForm, bank_balance: e.target.value })}
+                className="sb-input"
+              />
+            </div>
+            <div className="modal-actions-bar">
+              <Button
+                variant="outline"
+                onClick={() => setStatementModalOpen(false)}
+                disabled={submitting}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={submitting}
+              >
+                {submitting ? "Saving..." : "Save Statement Line"}
+              </Button>
+            </div>
+          </form>
+        </Modal>
 
         {/* Modal: Match Transaction */}
-        {matchModalItem && (
-          <div className="plastic-modal-backdrop" onClick={() => setMatchModalItem(null)}>
-            <div className="plastic-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "700px" }}>
-              <div className="plastic-modal-header">
-                <h2>Match Bank Statement Entry</h2>
-                <button type="button" className="plastic-modal-close" onClick={() => setMatchModalItem(null)}>✕</button>
-              </div>
-              <div className="plastic-modal-body">
-                <div style={{ background: "#f8fafc", padding: "12px", borderRadius: "8px", marginBottom: "16px" }}>
-                  <strong>Statement Entry:</strong> {matchModalItem.description} ({new Date(matchModalItem.statement_date).toLocaleDateString("en-IN")})
-                  <div style={{ marginTop: "4px", fontSize: "0.95rem" }}>
-                    Target Amount: <strong style={{ color: "#0284c7" }}>
-                      ₹{(Number(matchModalItem.deposit_amount) || Number(matchModalItem.withdrawal_amount)).toLocaleString("en-IN")}
-                    </strong>
-                  </div>
+        <Modal
+          isOpen={Boolean(matchModalItem)}
+          onClose={() => setMatchModalItem(null)}
+          title="Match Bank Statement Entry"
+          subtitle="Select corresponding ERP cash/bank transaction to reconcile"
+          size="lg"
+        >
+          {matchModalItem && (
+            <div className="recon-match-content">
+              <div className="recon-target-card">
+                <div className="target-line">
+                  <span className="target-label">Statement Entry:</span>
+                  <strong>{matchModalItem.description}</strong> ({new Date(matchModalItem.statement_date).toLocaleDateString("en-IN")})
                 </div>
+                <div className="target-amount-line">
+                  <span>Target Amount: </span>
+                  <strong className="target-amount-val">
+                    ₹{(Number(matchModalItem.deposit_amount) || Number(matchModalItem.withdrawal_amount)).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                  </strong>
+                </div>
+              </div>
 
-                <h4>Available Unreconciled System Transactions</h4>
-                <div className="plastic-table-responsive" style={{ maxHeight: "300px" }}>
-                  <table className="plastic-table">
-                    <thead>
-                      <tr>
-                        <th>Date</th>
-                        <th>Type</th>
-                        <th>Ref</th>
-                        <th>Description</th>
-                        <th style={{ textAlign: "right" }}>Amount (₹)</th>
-                        <th style={{ textAlign: "center" }}>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {availableTransactions.length === 0 ? (
-                        <tr><td colSpan="6" style={{ textAlign: "center" }}>No unreconciled transactions found.</td></tr>
-                      ) : (
-                        availableTransactions.map((tx) => (
-                          <tr key={tx.id}>
-                            <td>{new Date(tx.transaction_date).toLocaleDateString("en-IN")}</td>
-                            <td><span className="plastic-badge plastic-badge-secondary">{tx.transaction_type}</span></td>
-                            <td>{tx.reference_no || "—"}</td>
-                            <td style={{ fontSize: "0.85rem" }}>{tx.description || "—"}</td>
-                            <td style={{ textAlign: "right", fontWeight: "700" }}>₹{Number(tx.amount).toLocaleString("en-IN")}</td>
-                            <td style={{ textAlign: "center" }}>
-                              <button
-                                type="button"
-                                className="plastic-btn plastic-btn-primary"
-                                style={{ padding: "4px 8px", fontSize: "0.75rem" }}
-                                onClick={() => handleConfirmMatch(tx.id)}
-                                disabled={submitting}
-                              >
-                                Match
-                              </button>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+              <h4 className="available-tx-heading">Available Unreconciled System Transactions</h4>
+              <div className="recon-table-wrapper recon-match-scroll">
+                <table className="recon-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Type</th>
+                      <th>Ref</th>
+                      <th>Description</th>
+                      <th className="cell-right">Amount (₹)</th>
+                      <th className="cell-center">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {availableTransactions.length === 0 ? (
+                      <tr><td colSpan="6" className="recon-table-empty">No unreconciled transactions found.</td></tr>
+                    ) : (
+                      availableTransactions.map((tx) => (
+                        <tr key={tx.id}>
+                          <td>{new Date(tx.transaction_date).toLocaleDateString("en-IN")}</td>
+                          <td>
+                            <span className="recon-tx-type">{tx.transaction_type}</span>
+                          </td>
+                          <td><small className="sub-text">{tx.reference_no || "—"}</small></td>
+                          <td className="sub-text">{tx.description || "—"}</td>
+                          <td className="cell-right">
+                            <strong>₹{Number(tx.amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</strong>
+                          </td>
+                          <td className="cell-center">
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              icon="🔗"
+                              onClick={() => handleConfirmMatch(tx.id)}
+                              disabled={submitting}
+                            >
+                              Match
+                            </Button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
               </div>
-              <div className="plastic-modal-footer">
-                <button type="button" className="plastic-btn plastic-btn-secondary" onClick={() => setMatchModalItem(null)}>
+
+              <div className="modal-actions-bar">
+                <Button variant="outline" onClick={() => setMatchModalItem(null)}>
                   Close
-                </button>
+                </Button>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </Modal>
       </main>
     </div>
   );

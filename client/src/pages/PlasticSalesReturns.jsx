@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import API from "../api/axios";
 import PlasticNavbar from "../components/PlasticNavbar";
 import LoadingScreen from "../components/LoadingScreen";
+import { PageHeader, Card, KpiCard, Modal, Button, StatusBadge } from "../components";
 import "./PlasticSalesReturns.css";
 
 function PlasticSalesReturns() {
@@ -72,7 +73,6 @@ function PlasticSalesReturns() {
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
   }, []);
 
@@ -256,107 +256,126 @@ function PlasticSalesReturns() {
     return true;
   });
 
+  const getStatusBadgeVariant = (status) => {
+    switch (status) {
+      case "COMPLETED":
+        return "success";
+      case "INSPECTED":
+        return "info";
+      case "RECEIVED":
+        return "warning";
+      case "REJECTED":
+        return "danger";
+      default:
+        return "default";
+    }
+  };
+
   if (loading) return <LoadingScreen message="Loading Sales Returns..." />;
 
   return (
     <div className="plastic-page">
       <PlasticNavbar />
-      <div className="plastic-container">
+      <div className="plastic-container sb-page-container">
         {/* Header */}
-        <div className="pret-header">
-          <div>
-            <span className="pret-badge">QUALITY & REVERSE LOGISTICS</span>
-            <h1 className="pret-title">Sales Returns & QC Disposition</h1>
-            <p className="pret-subtitle">
-              Log customer rejections, run QC inspections, restock usable granules, and issue credit notes.
-            </p>
-          </div>
-          <div className="pret-header-actions">
-            <Link to="/plastic-erp/finance/credit-notes" className="pret-btn pret-btn-outline">
-              Credit Notes
-            </Link>
-            <button className="pret-btn pret-btn-primary" onClick={() => setCreateModalOpen(true)}>
-              + Log Sales Return
-            </button>
-          </div>
-        </div>
+        <PageHeader
+          title="Sales Returns & QC Disposition"
+          subtitle="Log customer rejections, run QC inspections, restock usable granules, and issue credit notes."
+          badge="QUALITY & REVERSE LOGISTICS"
+          actions={
+            <div className="pret-header-actions">
+              <Link to="/plastic-erp/finance/credit-notes" className="sb-link-btn">
+                <Button variant="secondary" size="md">Credit Notes</Button>
+              </Link>
+              <Button variant="primary" size="md" onClick={() => setCreateModalOpen(true)}>
+                + Log Sales Return
+              </Button>
+            </div>
+          }
+        />
 
         {/* KPIs */}
         <div className="pret-kpis">
-          <div className="pret-kpi-card">
-            <div className="pret-kpi-val">{totalReturnsCount}</div>
-            <div className="pret-kpi-lbl">Total Returns Logged</div>
-          </div>
-          <div className="pret-kpi-card warning">
-            <div className="pret-kpi-val">{pendingInspectionCount}</div>
-            <div className="pret-kpi-lbl">Pending QC & Disposition</div>
-          </div>
-          <div className="pret-kpi-card success">
-            <div className="pret-kpi-val">{completedReturnsCount}</div>
-            <div className="pret-kpi-lbl">Settled & Completed</div>
-          </div>
-          <div className="pret-kpi-card info">
-            <div className="pret-kpi-val">
-              {totalVolumeReturned.toLocaleString()} <span className="pret-unit">KG</span>
-            </div>
-            <div className="pret-kpi-lbl">Returned Volume</div>
-          </div>
+          <KpiCard
+            title="Total Returns Logged"
+            value={totalReturnsCount}
+            subtitle="All recorded tickets"
+            variant="default"
+          />
+          <KpiCard
+            title="Pending QC & Disposition"
+            value={pendingInspectionCount}
+            subtitle="Awaiting lab clearance"
+            variant="warning"
+          />
+          <KpiCard
+            title="Settled & Completed"
+            value={completedReturnsCount}
+            subtitle="Stock returned & credited"
+            variant="success"
+          />
+          <KpiCard
+            title="Returned Volume"
+            value={`${totalVolumeReturned.toLocaleString()} KG`}
+            subtitle="Total physical material"
+            variant="info"
+          />
         </div>
 
         {/* Filters */}
-        <div className="pret-filters">
-          <input
-            type="text"
-            className="pret-search"
-            placeholder="Search by Return #, Customer, Invoice #..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+        <Card className="pret-filters-card">
+          <div className="pret-filters">
+            <input
+              type="text"
+              className="sb-input pret-search"
+              placeholder="Search by Return #, Customer, Invoice #..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
 
-          <select
-            className="pret-select"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="">All Statuses</option>
-            <option value="RECEIVED">Received (Pending QC)</option>
-            <option value="INSPECTED">Inspected</option>
-            <option value="COMPLETED">Completed (Restocked / Credited)</option>
-            <option value="REJECTED">Rejected</option>
-          </select>
-
-          <select
-            className="pret-select"
-            value={customerFilter}
-            onChange={(e) => setCustomerFilter(e.target.value)}
-          >
-            <option value="">All Customers</option>
-            {customers.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-
-          {(statusFilter || customerFilter || searchQuery) && (
-            <button
-              className="pret-btn-reset"
-              onClick={() => {
-                setStatusFilter("");
-                setCustomerFilter("");
-                setSearchQuery("");
-              }}
+            <select
+              className="sb-select pret-select"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
             >
-              Reset
-            </button>
-          )}
-        </div>
+              <option value="">All Statuses</option>
+              <option value="RECEIVED">Received (Pending QC)</option>
+              <option value="INSPECTED">Inspected</option>
+              <option value="COMPLETED">Completed (Restocked / Credited)</option>
+              <option value="REJECTED">Rejected</option>
+            </select>
+
+            <select
+              className="sb-select pret-select"
+              value={customerFilter}
+              onChange={(e) => setCustomerFilter(e.target.value)}
+            >
+              <option value="">All Customers</option>
+              {customers.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+
+            {(statusFilter || customerFilter || searchQuery) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setStatusFilter("");
+                  setCustomerFilter("");
+                  setSearchQuery("");
+                }}
+              >
+                Reset
+              </Button>
+            )}
+          </div>
+        </Card>
 
         {/* Returns Table */}
-        <div className="pret-card">
-          <div className="pret-card-header">
-            <h3>Sales Returns ({filteredReturns.length})</h3>
-          </div>
+        <Card title={`Sales Returns (${filteredReturns.length})`}>
           {filteredReturns.length === 0 ? (
             <div className="pret-empty">No sales returns found.</div>
           ) : (
@@ -397,9 +416,10 @@ function PlasticSalesReturns() {
                         <strong>{Number(r.total_return_qty || 0).toLocaleString()} KG</strong>
                       </td>
                       <td>
-                        <span className={`status-pill ${String(r.status).toLowerCase()}`}>
-                          {r.status}
-                        </span>
+                        <StatusBadge
+                          status={r.status}
+                          variant={getStatusBadgeVariant(r.status)}
+                        />
                       </td>
                       <td>
                         {r.credit_note_no ? (
@@ -411,20 +431,22 @@ function PlasticSalesReturns() {
                       <td>
                         <div className="pret-actions">
                           {r.status !== "COMPLETED" ? (
-                            <button
-                              className="btn-disp"
+                            <Button
+                              variant="primary"
+                              size="sm"
                               onClick={() => handleOpenCompleteModal(r)}
                               title="QC Inspection & Restock"
                             >
                               QC & Restock
-                            </button>
+                            </Button>
                           ) : (
-                            <button
-                              className="btn-disp view"
+                            <Button
+                              variant="secondary"
+                              size="sm"
                               onClick={() => handleOpenCompleteModal(r)}
                             >
                               Details
-                            </button>
+                            </Button>
                           )}
                         </div>
                       </td>
@@ -434,365 +456,376 @@ function PlasticSalesReturns() {
               </table>
             </div>
           )}
-        </div>
+        </Card>
       </div>
 
       {/* LOG SALES RETURN MODAL */}
       {createModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-container large">
-            <div className="modal-header">
-              <h2>Log Inward Sales Return</h2>
-              <button className="close-btn" onClick={() => setCreateModalOpen(false)}>
-                &times;
-              </button>
-            </div>
-            <form onSubmit={handleCreateReturn} className="modal-form">
-              <div className="form-row">
-                <div className="form-col">
-                  <label>Customer *</label>
-                  <select
-                    value={formData.customer_id}
-                    onChange={(e) => setFormData({ ...formData, customer_id: e.target.value })}
-                    required
-                  >
-                    <option value="">Select Customer</option>
-                    {customers.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="form-col">
-                  <label>Original Invoice (Optional)</label>
-                  <select
-                    value={formData.invoice_id}
-                    onChange={(e) => setFormData({ ...formData, invoice_id: e.target.value })}
-                  >
-                    <option value="">Direct Return (No Invoice)</option>
-                    {invoices
-                      .filter(
-                        (inv) =>
-                          !formData.customer_id ||
-                          String(inv.customer_id) === String(formData.customer_id)
-                      )
-                      .map((inv) => (
-                        <option key={inv.id} value={inv.id}>
-                          {inv.invoice_no} (₹{inv.grand_total})
-                        </option>
-                      ))}
-                  </select>
-                </div>
-
-                <div className="form-col">
-                  <label>Return Date *</label>
-                  <input
-                    type="date"
-                    value={formData.return_date}
-                    onChange={(e) => setFormData({ ...formData, return_date: e.target.value })}
-                    required
-                  />
-                </div>
-              </div>
-
+        <Modal
+          isOpen={createModalOpen}
+          onClose={() => setCreateModalOpen(false)}
+          title="Log Inward Sales Return"
+          size="lg"
+        >
+          <form onSubmit={handleCreateReturn} className="modal-form">
+            <div className="form-row">
               <div className="form-col">
-                <label>Primary Return Reason</label>
+                <label>Customer *</label>
                 <select
-                  value={formData.reason}
-                  onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+                  className="sb-select"
+                  value={formData.customer_id}
+                  onChange={(e) => setFormData({ ...formData, customer_id: e.target.value })}
+                  required
                 >
-                  <option value="QUALITY_REJECTION">Quality Rejection (MFI / Density / Tensile)</option>
-                  <option value="COLOR_MISMATCH">Color Mismatch / Off-spec Tint</option>
-                  <option value="CONTAMINATION">Dust / Moisture / Impurity Contamination</option>
-                  <option value="TRANSIT_DAMAGE">Transit Damage / Burst Bags</option>
-                  <option value="EXCESS_ORDER">Excess Shipment / Customer Cancelled</option>
-                  <option value="OTHER">Other Reason</option>
+                  <option value="">Select Customer</option>
+                  {customers.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
                 </select>
               </div>
 
-              {/* Items Section */}
-              <div className="modal-section-title">Returned Products</div>
-              <div className="item-builder">
-                <div className="builder-field flex-2">
-                  <label>Product (Finished Good) *</label>
-                  <select
-                    value={newItem.finished_good_id}
-                    onChange={(e) => setNewItem({ ...newItem, finished_good_id: e.target.value })}
-                  >
-                    <option value="">Select Finished Good</option>
-                    {finishedGoods.map((fg) => (
-                      <option key={fg.id} value={fg.id}>
-                        {fg.fg_name} ({fg.fg_code})
+              <div className="form-col">
+                <label>Original Invoice (Optional)</label>
+                <select
+                  className="sb-select"
+                  value={formData.invoice_id}
+                  onChange={(e) => setFormData({ ...formData, invoice_id: e.target.value })}
+                >
+                  <option value="">Direct Return (No Invoice)</option>
+                  {invoices
+                    .filter(
+                      (inv) =>
+                        !formData.customer_id ||
+                        String(inv.customer_id) === String(formData.customer_id)
+                    )
+                    .map((inv) => (
+                      <option key={inv.id} value={inv.id}>
+                        {inv.invoice_no} (₹{inv.grand_total})
                       </option>
                     ))}
-                  </select>
-                </div>
-
-                <div className="builder-field">
-                  <label>Return Qty (KG) *</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={newItem.return_quantity}
-                    onChange={(e) =>
-                      setNewItem({ ...newItem, return_quantity: e.target.value })
-                    }
-                  />
-                </div>
-
-                <div className="builder-field">
-                  <label>Rate / KG (₹)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={newItem.rate}
-                    onChange={(e) => setNewItem({ ...newItem, rate: e.target.value })}
-                  />
-                </div>
-
-                <button type="button" className="btn-add-item" onClick={handleAddItem}>
-                  + Add Item
-                </button>
+                </select>
               </div>
 
-              <div className="item-table-wrap">
-                <table className="challan-item-table">
-                  <thead>
+              <div className="form-col">
+                <label>Return Date *</label>
+                <input
+                  type="date"
+                  className="sb-input"
+                  value={formData.return_date}
+                  onChange={(e) => setFormData({ ...formData, return_date: e.target.value })}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="form-col mt-3">
+              <label>Primary Return Reason</label>
+              <select
+                className="sb-select"
+                value={formData.reason}
+                onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+              >
+                <option value="QUALITY_REJECTION">Quality Rejection (MFI / Density / Tensile)</option>
+                <option value="COLOR_MISMATCH">Color Mismatch / Off-spec Tint</option>
+                <option value="CONTAMINATION">Dust / Moisture / Impurity Contamination</option>
+                <option value="TRANSIT_DAMAGE">Transit Damage / Burst Bags</option>
+                <option value="EXCESS_ORDER">Excess Shipment / Customer Cancelled</option>
+                <option value="OTHER">Other Reason</option>
+              </select>
+            </div>
+
+            {/* Items Section */}
+            <div className="modal-section-title mt-4">Returned Products</div>
+            <div className="item-builder">
+              <div className="builder-field flex-2">
+                <label>Product (Finished Good) *</label>
+                <select
+                  className="sb-select"
+                  value={newItem.finished_good_id}
+                  onChange={(e) => setNewItem({ ...newItem, finished_good_id: e.target.value })}
+                >
+                  <option value="">Select Finished Good</option>
+                  {finishedGoods.map((fg) => (
+                    <option key={fg.id} value={fg.id}>
+                      {fg.fg_name} ({fg.fg_code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="builder-field">
+                <label>Return Qty (KG) *</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="sb-input"
+                  value={newItem.return_quantity}
+                  onChange={(e) =>
+                    setNewItem({ ...newItem, return_quantity: e.target.value })
+                  }
+                />
+              </div>
+
+              <div className="builder-field">
+                <label>Rate / KG (₹)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="sb-input"
+                  value={newItem.rate}
+                  onChange={(e) => setNewItem({ ...newItem, rate: e.target.value })}
+                />
+              </div>
+
+              <Button type="button" variant="secondary" size="md" onClick={handleAddItem} className="btn-add-item-align">
+                + Add Item
+              </Button>
+            </div>
+
+            <div className="item-table-wrap">
+              <table className="challan-item-table">
+                <thead>
+                  <tr>
+                    <th>Product</th>
+                    <th>Quantity</th>
+                    <th>Rate (₹)</th>
+                    <th>Amount (₹)</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {formData.items.length === 0 ? (
                     <tr>
-                      <th>Product</th>
-                      <th>Quantity</th>
-                      <th>Rate (₹)</th>
-                      <th>Amount (₹)</th>
-                      <th></th>
+                      <td colSpan="5" className="text-center text-muted">
+                        No return items added.
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {formData.items.length === 0 ? (
-                      <tr>
-                        <td colSpan="5" className="text-center text-muted">
-                          No return items added.
+                  ) : (
+                    formData.items.map((it, idx) => (
+                      <tr key={idx}>
+                        <td>
+                          <strong>{it.fg_name}</strong>
+                          <div className="text-muted text-sm">{it.fg_code}</div>
+                        </td>
+                        <td>
+                          <strong>{it.return_quantity} {it.unit}</strong>
+                        </td>
+                        <td>₹{Number(it.rate).toFixed(2)}</td>
+                        <td>₹{(Number(it.return_quantity) * Number(it.rate)).toFixed(2)}</td>
+                        <td>
+                          <button
+                            type="button"
+                            className="btn-del"
+                            onClick={() => handleRemoveItem(idx)}
+                          >
+                            &times;
+                          </button>
                         </td>
                       </tr>
-                    ) : (
-                      formData.items.map((it, idx) => (
-                        <tr key={idx}>
-                          <td>
-                            <strong>{it.fg_name}</strong>
-                            <div className="text-muted text-sm">{it.fg_code}</div>
-                          </td>
-                          <td>
-                            <strong>{it.return_quantity} {it.unit}</strong>
-                          </td>
-                          <td>₹{Number(it.rate).toFixed(2)}</td>
-                          <td>₹{(Number(it.return_quantity) * Number(it.rate)).toFixed(2)}</td>
-                          <td>
-                            <button
-                              type="button"
-                              className="btn-del"
-                              onClick={() => handleRemoveItem(idx)}
-                            >
-                              &times;
-                            </button>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
 
-              <div className="form-col mt-3">
-                <label>Customer Complaint / Notes</label>
-                <textarea
-                  rows="2"
-                  placeholder="Customer feedback, delivery batch details, etc."
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                ></textarea>
-              </div>
+            <div className="form-col mt-3">
+              <label>Customer Complaint / Notes</label>
+              <textarea
+                rows="2"
+                className="sb-textarea"
+                placeholder="Customer feedback, delivery batch details, etc."
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              ></textarea>
+            </div>
 
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="pret-btn pret-btn-outline"
-                  onClick={() => setCreateModalOpen(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="pret-btn pret-btn-primary"
-                  disabled={submitting}
-                >
-                  {submitting ? "Logging..." : "Log Return"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+            <div className="modal-footer-actions">
+              <Button
+                type="button"
+                variant="secondary"
+                size="md"
+                onClick={() => setCreateModalOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                size="md"
+                disabled={submitting}
+              >
+                {submitting ? "Logging..." : "Log Return"}
+              </Button>
+            </div>
+          </form>
+        </Modal>
       )}
 
       {/* QC INSPECTION & DISPOSITION MODAL */}
       {completeModalOpen && selectedReturn && (
-        <div className="modal-overlay">
-          <div className="modal-container large">
-            <div className="modal-header">
-              <h2>QC Disposition: {selectedReturn.return_no}</h2>
-              <button className="close-btn" onClick={() => setCompleteModalOpen(false)}>
-                &times;
-              </button>
+        <Modal
+          isOpen={completeModalOpen}
+          onClose={() => setCompleteModalOpen(false)}
+          title={`QC Disposition: ${selectedReturn.return_no}`}
+          size="lg"
+        >
+          <form onSubmit={handleCompleteReturn} className="modal-form">
+            <div className="qc-banner">
+              <div>
+                <strong>Customer:</strong> {selectedReturn.customer_name}
+              </div>
+              <div>
+                <strong>Logged Date:</strong> {selectedReturn.return_date}
+              </div>
+              <div>
+                <strong>Reason:</strong> {selectedReturn.reason}
+              </div>
             </div>
-            <form onSubmit={handleCompleteReturn} className="modal-form">
-              <div className="qc-banner">
-                <div>
-                  <strong>Customer:</strong> {selectedReturn.customer_name}
-                </div>
-                <div>
-                  <strong>Logged Date:</strong> {selectedReturn.return_date}
-                </div>
-                <div>
-                  <strong>Reason:</strong> {selectedReturn.reason}
-                </div>
-              </div>
 
-              <div className="modal-section-title">QC Inspection & Inventory Disposition</div>
-              <div className="qc-table-wrap">
-                <table className="qc-table">
-                  <thead>
-                    <tr>
-                      <th>Product</th>
-                      <th>Total Ret. (KG)</th>
-                      <th>Accepted (KG)</th>
-                      <th>Rejected (KG)</th>
-                      <th>Disposition Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {dispositionData.items.map((it, idx) => (
-                      <tr key={idx}>
-                        <td>
-                          <strong>{it.fg_name}</strong>
-                        </td>
-                        <td>{it.total_qty} KG</td>
-                        <td>
-                          <input
-                            type="number"
-                            min="0"
-                            max={it.total_qty}
-                            step="0.01"
-                            value={it.accepted_quantity}
-                            onChange={(e) =>
-                              handleDispositionItemChange(idx, "accepted_quantity", e.target.value)
-                            }
-                            disabled={selectedReturn.status === "COMPLETED"}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="number"
-                            min="0"
-                            max={it.total_qty}
-                            step="0.01"
-                            value={it.rejected_quantity}
-                            onChange={(e) =>
-                              handleDispositionItemChange(idx, "rejected_quantity", e.target.value)
-                            }
-                            disabled={selectedReturn.status === "COMPLETED"}
-                          />
-                        </td>
-                        <td>
-                          <select
-                            value={it.action}
-                            onChange={(e) =>
-                              handleDispositionItemChange(idx, "action", e.target.value)
-                            }
-                            disabled={selectedReturn.status === "COMPLETED"}
-                          >
-                            <option value="RESTOCK_FG">Restock Accepted to FG Inventory</option>
-                            <option value="CONVERT_TO_SCRAP">Send Rejected to Scrap/Regrind</option>
-                            <option value="DISPOSE">Dispose / Scrapped Off-site</option>
-                          </select>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {selectedReturn.status !== "COMPLETED" && (
-                <div className="credit-note-box">
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={dispositionData.generate_credit_note}
-                      onChange={(e) =>
-                        setDispositionData({
-                          ...dispositionData,
-                          generate_credit_note: e.target.checked,
-                        })
-                      }
-                    />
-                    <span>
-                      <strong>Generate Official Credit Note & Post Ledger Credit</strong>
-                    </span>
-                  </label>
-
-                  {dispositionData.generate_credit_note && (
-                    <div className="form-row mt-2">
-                      <div className="form-col">
-                        <label>Credit Note Amount (₹)</label>
+            <div className="modal-section-title">QC Inspection & Inventory Disposition</div>
+            <div className="qc-table-wrap">
+              <table className="qc-table">
+                <thead>
+                  <tr>
+                    <th>Product</th>
+                    <th>Total Ret. (KG)</th>
+                    <th>Accepted (KG)</th>
+                    <th>Rejected (KG)</th>
+                    <th>Disposition Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dispositionData.items.map((it, idx) => (
+                    <tr key={idx}>
+                      <td>
+                        <strong>{it.fg_name}</strong>
+                      </td>
+                      <td>{it.total_qty} KG</td>
+                      <td>
                         <input
                           type="number"
+                          min="0"
+                          max={it.total_qty}
                           step="0.01"
-                          value={dispositionData.credit_amount}
+                          className="sb-input input-sm"
+                          value={it.accepted_quantity}
                           onChange={(e) =>
-                            setDispositionData({
-                              ...dispositionData,
-                              credit_amount: Number(e.target.value),
-                            })
+                            handleDispositionItemChange(idx, "accepted_quantity", e.target.value)
                           }
+                          disabled={selectedReturn.status === "COMPLETED"}
                         />
-                      </div>
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          min="0"
+                          max={it.total_qty}
+                          step="0.01"
+                          className="sb-input input-sm"
+                          value={it.rejected_quantity}
+                          onChange={(e) =>
+                            handleDispositionItemChange(idx, "rejected_quantity", e.target.value)
+                          }
+                          disabled={selectedReturn.status === "COMPLETED"}
+                        />
+                      </td>
+                      <td>
+                        <select
+                          className="sb-select select-sm"
+                          value={it.action}
+                          onChange={(e) =>
+                            handleDispositionItemChange(idx, "action", e.target.value)
+                          }
+                          disabled={selectedReturn.status === "COMPLETED"}
+                        >
+                          <option value="RESTOCK_FG">Restock Accepted to FG Inventory</option>
+                          <option value="CONVERT_TO_SCRAP">Send Rejected to Scrap/Regrind</option>
+                          <option value="DISPOSE">Dispose / Scrapped Off-site</option>
+                        </select>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {selectedReturn.status !== "COMPLETED" && (
+              <div className="credit-note-box">
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={dispositionData.generate_credit_note}
+                    onChange={(e) =>
+                      setDispositionData({
+                        ...dispositionData,
+                        generate_credit_note: e.target.checked,
+                      })
+                    }
+                  />
+                  <span>
+                    <strong>Generate Official Credit Note & Post Ledger Credit</strong>
+                  </span>
+                </label>
+
+                {dispositionData.generate_credit_note && (
+                  <div className="form-row mt-2">
+                    <div className="form-col">
+                      <label>Credit Note Amount (₹)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        className="sb-input"
+                        value={dispositionData.credit_amount}
+                        onChange={(e) =>
+                          setDispositionData({
+                            ...dispositionData,
+                            credit_amount: Number(e.target.value),
+                          })
+                        }
+                      />
                     </div>
-                  )}
-                </div>
-              )}
-
-              <div className="form-col mt-3">
-                <label>QC Lab Notes / Final Remarks</label>
-                <textarea
-                  rows="2"
-                  value={dispositionData.notes}
-                  onChange={(e) =>
-                    setDispositionData({ ...dispositionData, notes: e.target.value })
-                  }
-                  disabled={selectedReturn.status === "COMPLETED"}
-                ></textarea>
-              </div>
-
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="pret-btn pret-btn-outline"
-                  onClick={() => setCompleteModalOpen(false)}
-                >
-                  Close
-                </button>
-                {selectedReturn.status !== "COMPLETED" && (
-                  <button
-                    type="submit"
-                    className="pret-btn pret-btn-primary"
-                    disabled={submitting}
-                  >
-                    {submitting ? "Processing..." : "Complete & Restock Inventory"}
-                  </button>
+                  </div>
                 )}
               </div>
-            </form>
-          </div>
-        </div>
+            )}
+
+            <div className="form-col mt-3">
+              <label>QC Lab Notes / Final Remarks</label>
+              <textarea
+                rows="2"
+                className="sb-textarea"
+                value={dispositionData.notes}
+                onChange={(e) =>
+                  setDispositionData({ ...dispositionData, notes: e.target.value })
+                }
+                disabled={selectedReturn.status === "COMPLETED"}
+              ></textarea>
+            </div>
+
+            <div className="modal-footer-actions">
+              <Button
+                type="button"
+                variant="secondary"
+                size="md"
+                onClick={() => setCompleteModalOpen(false)}
+              >
+                Close
+              </Button>
+              {selectedReturn.status !== "COMPLETED" && (
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="md"
+                  disabled={submitting}
+                >
+                  {submitting ? "Processing..." : "Complete & Restock Inventory"}
+                </Button>
+              )}
+            </div>
+          </form>
+        </Modal>
       )}
     </div>
   );

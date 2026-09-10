@@ -1,4 +1,3 @@
-import PropTypes from "prop-types";
 import Modal from "./Modal";
 import Button from "./Button";
 
@@ -62,18 +61,5 @@ function ConfirmDialog({
     </Modal>
   );
 }
-
-ConfirmDialog.propTypes = {
-  isOpen: PropTypes.bool.isRequired,
-  title: PropTypes.node,
-  message: PropTypes.node,
-  detail: PropTypes.node,
-  confirmText: PropTypes.string,
-  cancelText: PropTypes.string,
-  variant: PropTypes.oneOf(["danger", "warning", "primary"]),
-  loading: PropTypes.bool,
-  onConfirm: PropTypes.func.isRequired,
-  onCancel: PropTypes.func.isRequired,
-};
 
 export default ConfirmDialog;

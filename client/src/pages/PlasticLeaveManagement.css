@@ -1,14 +1,20 @@
 /* Plastic Leave Management Styles */
 
-.leave-type-badge {
-  display: inline-block;
-  background: #f0fdf4;
-  color: #166534;
-  border: 1px solid #bbf7d0;
-  font-size: 0.8rem;
-  font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 6px;
+.pleave-header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.pleave-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.pleave-filter-card {
+  margin-bottom: 24px;
 }
 
 .filter-form-inline {
@@ -17,24 +23,86 @@
   gap: 12px;
 }
 
-.btn-approve {
-  color: #15803d;
-  border-color: #86efac;
+.filter-form-inline label {
   font-weight: 700;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
+  color: var(--sb-text-muted, #5a7184);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
-.btn-approve:hover {
-  background: #dcfce7;
-}
-
-.btn-reject {
-  color: #b91c1c;
-  border-color: #fca5a5;
+.leave-type-badge {
+  display: inline-block;
+  background: rgba(24, 166, 115, 0.12);
+  color: var(--sb-success, #18a673);
+  border: 1px solid rgba(24, 166, 115, 0.3);
+  font-size: 0.78rem;
   font-weight: 700;
-  font-size: 0.8rem;
+  padding: 3px 8px;
+  border-radius: 6px;
 }
 
-.btn-reject:hover {
-  background: #fee2e2;
+.pleave-table-wrap {
+  overflow-x: auto;
+}
+
+.pleave-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  text-align: left;
+}
+
+.pleave-table th {
+  background: var(--sb-canvas, #f4f8fb);
+  color: var(--sb-deep-navy, #063b66);
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--sb-border, #e3ebf2);
+  white-space: nowrap;
+}
+
+.pleave-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--sb-border, #e3ebf2);
+  color: var(--sb-text-primary, #102a43);
+  vertical-align: middle;
+}
+
+.pleave-table tr:hover td {
+  background-color: rgba(8, 121, 209, 0.02);
+}
+
+.pleave-table-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.approval-notes-text {
+  font-size: 0.75rem;
+  color: var(--sb-success, #18a673);
+  font-style: italic;
+  margin-top: 2px;
+}
+
+.pleave-empty {
+  padding: 48px 20px;
+  text-align: center;
+  color: var(--sb-text-muted, #5a7184);
+}
+
+/* Modals */
+.pleave-modal-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.init-modal-content p {
+  line-height: 1.5;
+  color: var(--sb-text-primary, #102a43);
+  margin-bottom: 8px;
 }

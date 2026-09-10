@@ -1,4 +1,3 @@
-import PropTypes from "prop-types";
 import "./AlertBanner.css";
 
 const VARIANT_ICONS = {
@@ -43,13 +42,5 @@ function AlertBanner({
     </div>
   );
 }
-
-AlertBanner.propTypes = {
-  variant: PropTypes.oneOf(["success", "warning", "danger", "info"]),
-  title: PropTypes.node,
-  children: PropTypes.node.isRequired,
-  onDismiss: PropTypes.func,
-  className: PropTypes.string,
-};
 
 export default AlertBanner;

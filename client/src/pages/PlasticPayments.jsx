@@ -1,8 +1,16 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import API from "../api/axios";
-import PlasticNavbar from "../components/PlasticNavbar";
 import LoadingScreen from "../components/LoadingScreen";
+import {
+  PageHeader,
+  KpiCard,
+  Card,
+  DataTable,
+  Modal,
+  Button,
+  StatusBadge,
+} from "../components";
 import "./PlasticPayments.css";
 
 function PlasticPayments() {
@@ -55,7 +63,6 @@ function PlasticPayments() {
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
   }, []);
 
@@ -69,7 +76,6 @@ function PlasticPayments() {
     try {
       const res = await API.get(`/invoices?customer_id=${custId}`);
       if (res.data?.invoices) {
-        // filter unpaid or partially paid invoices
         const unpaid = res.data.invoices.filter(
           (inv) => inv.payment_status !== "PAID"
         );
@@ -182,27 +188,25 @@ function PlasticPayments() {
   if (loading) return <LoadingScreen message="Loading Payment Collections..." />;
 
   return (
-    <div className="plastic-page">
-      <PlasticNavbar />
-      <div className="plastic-container">
-        {/* Header */}
-        <div className="ppay-header">
-          <div>
-            <span className="ppay-badge">FINANCE & COLLECTIONS</span>
-            <h1 className="ppay-title">Customer Payments & Receipts</h1>
-            <p className="ppay-subtitle">
-              Collect outstanding dues, link bank/UPI receipts to invoices, and update customer ledgers.
-            </p>
-          </div>
-          <div className="ppay-header-actions">
-            <Link to="/plastic-erp/finance/receivables" className="ppay-btn ppay-btn-outline">
-              Aging & Receivables
+    <div className="sb-page-container">
+      <PageHeader
+        title="Customer Payments & Receipts"
+        subtitle="Collect outstanding dues, link bank/UPI receipts to invoices, and update customer ledgers."
+        breadcrumbs={[
+          { label: "ERP", to: "/plastic-erp" },
+          { label: "Sales & Dispatch", to: "/plastic-erp/sales-orders" },
+          { label: "Payments" },
+        ]}
+        actions={
+          <div style={{ display: "flex", gap: "10px" }}>
+            <Link to="/plastic-erp/finance/receivables">
+              <Button variant="secondary">Aging & Receivables</Button>
             </Link>
-            <Link to="/plastic-erp/finance/ledger" className="ppay-btn ppay-btn-outline">
-              Customer Ledger
+            <Link to="/plastic-erp/finance/ledger">
+              <Button variant="secondary">Customer Ledger</Button>
             </Link>
-            <button
-              className="ppay-btn ppay-btn-primary"
+            <Button
+              variant="primary"
               onClick={() => {
                 setFormData({
                   customer_id: "",
@@ -219,392 +223,389 @@ function PlasticPayments() {
               }}
             >
               + Record Payment
-            </button>
+            </Button>
           </div>
-        </div>
+        }
+      />
 
-        {/* KPIs */}
-        <div className="ppay-kpis">
-          <div className="ppay-kpi-card success">
-            <div className="ppay-kpi-val">₹{totalCollections.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</div>
-            <div className="ppay-kpi-lbl">Total Realized Collections</div>
+      {/* KPIs */}
+      <div className="sb-kpis-grid" style={{ marginBottom: "24px" }}>
+        <KpiCard
+          label="Total Realized Collections"
+          value={`₹${totalCollections.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`}
+          subtext="Net received payments"
+          accent="teal"
+        />
+        <KpiCard
+          label="Bank / NEFT / RTGS / UPI"
+          value={`₹${bankCollections.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`}
+          subtext="Digital & electronic modes"
+          accent="blue"
+        />
+        <KpiCard
+          label="Cash Receipts"
+          value={`₹${cashCollections.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`}
+          subtext="Direct cash collections"
+          accent="warning"
+        />
+        <KpiCard
+          label="Receipt Transactions"
+          value={totalCount}
+          subtext="Active payment entries"
+          accent="navy"
+        />
+      </div>
+
+      {/* Filters Bar */}
+      <Card noPadding style={{ marginBottom: "24px" }}>
+        <div style={{ padding: "16px 20px", display: "flex", flexWrap: "wrap", gap: "12px", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ flex: 1, minWidth: "260px" }}>
+            <input
+              type="text"
+              className="sb-input"
+              style={{ height: "38px" }}
+              placeholder="Search Receipt #, Customer, UTR / Ref, Invoice #..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
-          <div className="ppay-kpi-card primary">
-            <div className="ppay-kpi-val">₹{bankCollections.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</div>
-            <div className="ppay-kpi-lbl">Bank / NEFT / RTGS / UPI</div>
-          </div>
-          <div className="ppay-kpi-card warning">
-            <div className="ppay-kpi-val">₹{cashCollections.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</div>
-            <div className="ppay-kpi-lbl">Cash Receipts</div>
-          </div>
-          <div className="ppay-kpi-card info">
-            <div className="ppay-kpi-val">{totalCount}</div>
-            <div className="ppay-kpi-lbl">Receipt Transactions</div>
-          </div>
-        </div>
 
-        {/* Filters */}
-        <div className="ppay-filters">
-          <input
-            type="text"
-            className="ppay-search"
-            placeholder="Search Receipt #, Customer, UTR / Ref, Invoice #..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-
-          <select
-            className="ppay-select"
-            value={modeFilter}
-            onChange={(e) => setModeFilter(e.target.value)}
-          >
-            <option value="">All Payment Modes</option>
-            <option value="BANK_TRANSFER">Bank Transfer</option>
-            <option value="NEFT">NEFT</option>
-            <option value="RTGS">RTGS</option>
-            <option value="UPI">UPI / QR</option>
-            <option value="CHEQUE">Cheque</option>
-            <option value="CASH">Cash</option>
-          </select>
-
-          <select
-            className="ppay-select"
-            value={customerFilter}
-            onChange={(e) => setCustomerFilter(e.target.value)}
-          >
-            <option value="">All Customers</option>
-            {customers.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-
-          <input
-            type="date"
-            value={fromDate}
-            onChange={(e) => setFromDate(e.target.value)}
-            className="ppay-date"
-          />
-          <input
-            type="date"
-            value={toDate}
-            onChange={(e) => setToDate(e.target.value)}
-            className="ppay-date"
-          />
-
-          {(modeFilter || customerFilter || searchQuery || fromDate || toDate) && (
-            <button
-              className="ppay-btn-reset"
-              onClick={() => {
-                setModeFilter("");
-                setCustomerFilter("");
-                setSearchQuery("");
-                setFromDate("");
-                setToDate("");
-              }}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "center" }}>
+            <select
+              className="sb-input"
+              style={{ width: "170px", height: "38px" }}
+              value={modeFilter}
+              onChange={(e) => setModeFilter(e.target.value)}
             >
-              Reset
-            </button>
-          )}
+              <option value="">All Payment Modes</option>
+              <option value="BANK_TRANSFER">Bank Transfer</option>
+              <option value="NEFT">NEFT</option>
+              <option value="RTGS">RTGS</option>
+              <option value="UPI">UPI / QR</option>
+              <option value="CHEQUE">Cheque</option>
+              <option value="CASH">Cash</option>
+            </select>
+
+            <select
+              className="sb-input"
+              style={{ width: "180px", height: "38px" }}
+              value={customerFilter}
+              onChange={(e) => setCustomerFilter(e.target.value)}
+            >
+              <option value="">All Customers</option>
+              {customers.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+
+            <input
+              type="date"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+              className="sb-input"
+              style={{ width: "140px", height: "38px" }}
+            />
+            <input
+              type="date"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+              className="sb-input"
+              style={{ width: "140px", height: "38px" }}
+            />
+
+            {(modeFilter || customerFilter || searchQuery || fromDate || toDate) && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setModeFilter("");
+                  setCustomerFilter("");
+                  setSearchQuery("");
+                  setFromDate("");
+                  setToDate("");
+                }}
+              >
+                Reset
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Payments Table */}
-        <div className="ppay-card">
-          <div className="ppay-card-header">
-            <h3>Payment Receipts ({filteredPayments.length})</h3>
-          </div>
+        <DataTable
+          headers={[
+            "Receipt #",
+            "Date",
+            "Customer",
+            "Mode",
+            "Ref / UTR",
+            "Invoice",
+            "Amount (₹)",
+            "Status",
+            "Actions",
+          ]}
+        >
           {filteredPayments.length === 0 ? (
-            <div className="ppay-empty">No payment receipts found.</div>
+            <tr>
+              <td colSpan="9" style={{ textAlign: "center", padding: "32px", color: "var(--sb-muted)" }}>
+                No payment receipts found.
+              </td>
+            </tr>
           ) : (
-            <div className="ppay-table-wrap">
-              <table className="ppay-table">
-                <thead>
-                  <tr>
-                    <th>Receipt #</th>
-                    <th>Date</th>
-                    <th>Customer</th>
-                    <th>Mode</th>
-                    <th>Ref / UTR</th>
-                    <th>Invoice</th>
-                    <th>Amount (₹)</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredPayments.map((p) => (
-                    <tr key={p.id} className={p.status === "CANCELLED" ? "row-cancelled" : ""}>
-                      <td className="font-bold text-primary">{p.payment_no}</td>
-                      <td>{p.payment_date ? new Date(p.payment_date).toLocaleDateString() : "—"}</td>
-                      <td>
-                        <strong>{p.customer_name}</strong>
-                      </td>
-                      <td>
-                        <span className="mode-badge">{p.payment_mode}</span>
-                      </td>
-                      <td>
-                        <div className="ref-cell">
-                          <span>{p.reference_number || "—"}</span>
-                          {p.bank_name && <small className="text-muted">{p.bank_name}</small>}
-                        </div>
-                      </td>
-                      <td>
-                        {p.invoice_no ? (
-                          <Link to={`/invoices/${p.invoice_id}`} className="inv-link">
-                            {p.invoice_no}
-                          </Link>
-                        ) : (
-                          <span className="text-muted">On Account</span>
-                        )}
-                      </td>
-                      <td className="font-bold text-success">
-                        ₹{Number(p.amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                      </td>
-                      <td>
-                        <span className={`status-tag ${String(p.status).toLowerCase()}`}>
-                          {p.status}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="action-btns">
-                          <button
-                            className="btn-action view"
-                            onClick={() => handleViewReceipt(p)}
-                            title="View Receipt"
-                          >
-                            Receipt
-                          </button>
-                          {p.status === "RECEIVED" && (
-                            <button
-                              className="btn-action cancel"
-                              onClick={() => handleCancelPayment(p.id)}
-                              title="Cancel & Reverse Ledger"
-                            >
-                              Cancel
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            filteredPayments.map((p) => (
+              <tr key={p.id} className={p.status === "CANCELLED" ? "row-cancelled" : ""}>
+                <td><strong style={{ color: "var(--sb-ocean)" }}>{p.payment_no}</strong></td>
+                <td>{p.payment_date ? new Date(p.payment_date).toLocaleDateString() : "—"}</td>
+                <td><strong>{p.customer_name}</strong></td>
+                <td><span className="pay-mode-badge">{p.payment_mode}</span></td>
+                <td>
+                  <div>{p.reference_number || "—"}</div>
+                  {p.bank_name && <div style={{ fontSize: "11px", color: "var(--sb-muted)" }}>{p.bank_name}</div>}
+                </td>
+                <td>
+                  {p.invoice_no ? (
+                    <Link to={`/invoices/${p.invoice_id}`} style={{ color: "var(--sb-ocean)", fontWeight: 600 }}>
+                      {p.invoice_no}
+                    </Link>
+                  ) : (
+                    <span style={{ color: "var(--sb-muted)" }}>On Account</span>
+                  )}
+                </td>
+                <td>
+                  <strong style={{ color: "var(--sb-success)" }}>
+                    ₹{Number(p.amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                  </strong>
+                </td>
+                <td>
+                  <StatusBadge status={p.status} />
+                </td>
+                <td>
+                  <div style={{ display: "flex", gap: "6px" }}>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => handleViewReceipt(p)}
+                      title="View Receipt"
+                    >
+                      Receipt
+                    </Button>
+                    {p.status === "RECEIVED" && (
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        onClick={() => handleCancelPayment(p.id)}
+                        title="Cancel & Reverse Ledger"
+                      >
+                        Cancel
+                      </Button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))
           )}
-        </div>
-      </div>
+        </DataTable>
+      </Card>
 
       {/* RECORD PAYMENT MODAL */}
-      {createModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-container">
-            <div className="modal-header">
-              <h2>Record Customer Collection</h2>
-              <button className="close-btn" onClick={() => setCreateModalOpen(false)}>
-                &times;
-              </button>
-            </div>
-            <form onSubmit={handleRecordPayment} className="modal-form">
-              <div className="form-group">
-                <label>Customer *</label>
-                <select
-                  value={formData.customer_id}
-                  onChange={(e) => handleCustomerSelect(e.target.value)}
-                  required
-                >
-                  <option value="">Select Customer</option>
-                  {customers.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {formData.customer_id && (
-                <div className="form-group">
-                  <label>Allocate to Specific Invoice (Optional)</label>
-                  <select
-                    value={formData.invoice_id}
-                    onChange={(e) => handleInvoiceSelect(e.target.value)}
-                  >
-                    <option value="">On Account (General Customer Balance)</option>
-                    {customerInvoices.map((inv) => (
-                      <option key={inv.id} value={inv.id}>
-                        {inv.invoice_no} — Due: ₹
-                        {(Number(inv.grand_total) - Number(inv.paid_amount || 0)).toFixed(2)} (Total: ₹
-                        {Number(inv.grand_total).toFixed(2)})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              <div className="form-row">
-                <div className="form-col">
-                  <label>Collection Amount (₹) *</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="1"
-                    placeholder="e.g. 50000"
-                    value={formData.amount}
-                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="form-col">
-                  <label>Payment Date *</label>
-                  <input
-                    type="date"
-                    value={formData.payment_date}
-                    onChange={(e) => setFormData({ ...formData, payment_date: e.target.value })}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-col">
-                  <label>Payment Mode *</label>
-                  <select
-                    value={formData.payment_mode}
-                    onChange={(e) => setFormData({ ...formData, payment_mode: e.target.value })}
-                    required
-                  >
-                    <option value="BANK_TRANSFER">Bank Transfer (NEFT / RTGS)</option>
-                    <option value="UPI">UPI / QR Payment</option>
-                    <option value="CHEQUE">Cheque / Demand Draft</option>
-                    <option value="CASH">Cash</option>
-                    <option value="OTHER">Other</option>
-                  </select>
-                </div>
-                <div className="form-col">
-                  <label>Reference # / UTR / Cheque #</label>
-                  <input
-                    type="text"
-                    placeholder="Transaction Reference"
-                    value={formData.reference_number}
-                    onChange={(e) =>
-                      setFormData({ ...formData, reference_number: e.target.value })
-                    }
-                  />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label>Bank Name (Deposited to / Drawn on)</label>
-                <input
-                  type="text"
-                  placeholder="e.g. HDFC Bank, SBI"
-                  value={formData.bank_name}
-                  onChange={(e) => setFormData({ ...formData, bank_name: e.target.value })}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Payment Notes</label>
-                <textarea
-                  rows="2"
-                  placeholder="e.g. Cleared via RTGS, invoice #1002 balance settlement"
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                ></textarea>
-              </div>
-
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="ppay-btn ppay-btn-outline"
-                  onClick={() => setCreateModalOpen(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="ppay-btn ppay-btn-primary"
-                  disabled={submitting}
-                >
-                  {submitting ? "Recording..." : "Save Payment & Update Ledger"}
-                </button>
-              </div>
-            </form>
+      <Modal
+        isOpen={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        title="Record Customer Collection"
+      >
+        <form onSubmit={handleRecordPayment} className="sb-form">
+          <div className="sb-form-group">
+            <label className="sb-label">Customer *</label>
+            <select
+              className="sb-input"
+              value={formData.customer_id}
+              onChange={(e) => handleCustomerSelect(e.target.value)}
+              required
+            >
+              <option value="">Select Customer</option>
+              {customers.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
           </div>
-        </div>
-      )}
+
+          {formData.customer_id && (
+            <div className="sb-form-group">
+              <label className="sb-label">Allocate to Specific Invoice (Optional)</label>
+              <select
+                className="sb-input"
+                value={formData.invoice_id}
+                onChange={(e) => handleInvoiceSelect(e.target.value)}
+              >
+                <option value="">On Account (General Customer Balance)</option>
+                {customerInvoices.map((inv) => (
+                  <option key={inv.id} value={inv.id}>
+                    {inv.invoice_no} — Due: ₹
+                    {(Number(inv.grand_total) - Number(inv.paid_amount || 0)).toFixed(2)} (Total: ₹
+                    {Number(inv.grand_total).toFixed(2)})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div className="sb-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div className="sb-form-group">
+              <label className="sb-label">Collection Amount (₹) *</label>
+              <input
+                type="number"
+                step="0.01"
+                min="1"
+                className="sb-input"
+                placeholder="e.g. 50000"
+                value={formData.amount}
+                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                required
+              />
+            </div>
+            <div className="sb-form-group">
+              <label className="sb-label">Payment Date *</label>
+              <input
+                type="date"
+                className="sb-input"
+                value={formData.payment_date}
+                onChange={(e) => setFormData({ ...formData, payment_date: e.target.value })}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="sb-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div className="sb-form-group">
+              <label className="sb-label">Payment Mode *</label>
+              <select
+                className="sb-input"
+                value={formData.payment_mode}
+                onChange={(e) => setFormData({ ...formData, payment_mode: e.target.value })}
+                required
+              >
+                <option value="BANK_TRANSFER">Bank Transfer (NEFT / RTGS)</option>
+                <option value="UPI">UPI / QR Payment</option>
+                <option value="CHEQUE">Cheque / Demand Draft</option>
+                <option value="CASH">Cash</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+            <div className="sb-form-group">
+              <label className="sb-label">Reference # / UTR / Cheque #</label>
+              <input
+                type="text"
+                className="sb-input"
+                placeholder="Transaction Reference"
+                value={formData.reference_number}
+                onChange={(e) =>
+                  setFormData({ ...formData, reference_number: e.target.value })
+                }
+              />
+            </div>
+          </div>
+
+          <div className="sb-form-group">
+            <label className="sb-label">Bank Name (Deposited to / Drawn on)</label>
+            <input
+              type="text"
+              className="sb-input"
+              placeholder="e.g. HDFC Bank, SBI"
+              value={formData.bank_name}
+              onChange={(e) => setFormData({ ...formData, bank_name: e.target.value })}
+            />
+          </div>
+
+          <div className="sb-form-group">
+            <label className="sb-label">Payment Notes</label>
+            <textarea
+              className="sb-input"
+              rows="2"
+              placeholder="e.g. Cleared via RTGS, invoice #1002 balance settlement"
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+            />
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "24px" }}>
+            <Button type="button" variant="secondary" onClick={() => setCreateModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary" disabled={submitting}>
+              {submitting ? "Recording..." : "Save Payment & Update Ledger"}
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
       {/* RECEIPT VIEW MODAL */}
-      {receiptModalOpen && selectedPayment && (
-        <div className="modal-overlay">
-          <div className="modal-container">
-            <div className="modal-header">
-              <h2>Receipt: {selectedPayment.payment_no}</h2>
-              <button className="close-btn" onClick={() => setReceiptModalOpen(false)}>
-                &times;
-              </button>
-            </div>
-            <div className="receipt-box">
-              <div className="receipt-stamp">PAYMENT RECEIVED</div>
-              <div className="receipt-row">
+      <Modal
+        isOpen={receiptModalOpen && !!selectedPayment}
+        onClose={() => setReceiptModalOpen(false)}
+        title={`Receipt: ${selectedPayment?.payment_no || ""}`}
+      >
+        {selectedPayment && (
+          <div>
+            <div className="pay-receipt-box">
+              <div className="pay-receipt-stamp">PAYMENT RECEIVED</div>
+              <div className="pay-receipt-row">
                 <span className="lbl">Received From:</span>
-                <span className="val bold">{selectedPayment.customer_name}</span>
+                <span className="val" style={{ fontWeight: 700 }}>{selectedPayment.customer_name}</span>
               </div>
-              <div className="receipt-row">
+              <div className="pay-receipt-row">
                 <span className="lbl">Receipt Date:</span>
                 <span className="val">
                   {selectedPayment.payment_date ? new Date(selectedPayment.payment_date).toLocaleDateString() : ""}
                 </span>
               </div>
-              <div className="receipt-row">
+              <div className="pay-receipt-row">
                 <span className="lbl">Amount Received:</span>
-                <span className="val amount">
+                <span className="val" style={{ fontSize: "20px", fontWeight: 800, color: "var(--sb-success)" }}>
                   ₹{Number(selectedPayment.amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                 </span>
               </div>
-              <div className="receipt-row">
+              <div className="pay-receipt-row">
                 <span className="lbl">Payment Mode:</span>
                 <span className="val">{selectedPayment.payment_mode}</span>
               </div>
-              <div className="receipt-row">
+              <div className="pay-receipt-row">
                 <span className="lbl">UTR / Ref No:</span>
                 <span className="val">{selectedPayment.reference_number || "—"}</span>
               </div>
               {selectedPayment.bank_name && (
-                <div className="receipt-row">
+                <div className="pay-receipt-row">
                   <span className="lbl">Bank Name:</span>
                   <span className="val">{selectedPayment.bank_name}</span>
                 </div>
               )}
               {selectedPayment.invoice_no && (
-                <div className="receipt-row">
+                <div className="pay-receipt-row">
                   <span className="lbl">Adjusted Against:</span>
-                  <span className="val bold text-primary">{selectedPayment.invoice_no}</span>
+                  <span className="val" style={{ fontWeight: 700, color: "var(--sb-ocean)" }}>{selectedPayment.invoice_no}</span>
                 </div>
               )}
               {selectedPayment.notes && (
-                <div className="receipt-notes">
+                <div style={{ marginTop: "14px", paddingTop: "12px", borderTop: "1px solid var(--sb-border)", fontSize: "13px", color: "var(--sb-muted)" }}>
                   <strong>Notes:</strong> {selectedPayment.notes}
                 </div>
               )}
             </div>
-            <div className="modal-footer">
-              <button
-                className="ppay-btn ppay-btn-primary"
-                onClick={() => window.print()}
-              >
+
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "24px" }}>
+              <Button variant="primary" onClick={() => window.print()}>
                 🖨️ Print Receipt
-              </button>
-              <button
-                className="ppay-btn ppay-btn-outline"
-                onClick={() => setReceiptModalOpen(false)}
-              >
+              </Button>
+              <Button variant="secondary" onClick={() => setReceiptModalOpen(false)}>
                 Close
-              </button>
+              </Button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import API from "../api/axios";
 import PlasticNavbar from "../components/PlasticNavbar";
 import LoadingScreen from "../components/LoadingScreen";
+import { PageHeader, Card, KpiCard, Button, StatusBadge, Modal } from "../components";
 import "./PlasticJournalEntries.css";
 
 function PlasticJournalEntries() {
@@ -170,171 +171,218 @@ function PlasticJournalEntries() {
     }
   };
 
+  const clearFilters = () => {
+    setSearch("");
+    setRefFilter("ALL");
+    setFromDate("");
+    setToDate("");
+  };
+
   if (loading && entries.length === 0) {
     return <LoadingScreen message="Loading Journal Entries..." />;
   }
 
   return (
-    <div className="plastic-page">
+    <div className="sb-page-container">
       <PlasticNavbar />
-      <main className="plastic-container">
-        {/* Header */}
-        <div className="plastic-header-row">
-          <div>
-            <span className="plastic-breadcrumb">Plastic ERP / Accounting</span>
-            <h1 className="plastic-title">📖 Double-Entry Journal System</h1>
-            <p className="plastic-subtitle">
-              Strict audit journal ledger with Total Debit = Total Credit validation and automatic module integration.
-            </p>
-          </div>
-          <button
-            type="button"
-            className="plastic-btn plastic-btn-primary"
-            onClick={handleOpenCreateModal}
-          >
-            + New Journal Voucher
-          </button>
-        </div>
+      <main className="sb-main-content">
+        <PageHeader
+          title="Double-Entry Journal System"
+          subtitle="Strict audit journal ledger with Total Debit = Total Credit validation and automatic module integration"
+          breadcrumbs={[
+            { label: "Plastic ERP", to: "/plastic-erp" },
+            { label: "Accounting & GST", to: "/plastic-erp/accounting" },
+            { label: "Journal Entries" },
+          ]}
+          actions={
+            <Button
+              variant="primary"
+              icon="➕"
+              onClick={handleOpenCreateModal}
+            >
+              New Journal Voucher
+            </Button>
+          }
+        />
 
         {/* KPI Cards */}
-        <div className="plastic-kpi-grid">
-          <div className="plastic-kpi-card">
-            <span className="plastic-kpi-icon" style={{ background: "#eff6ff", color: "#2563eb" }}>📑</span>
-            <div>
-              <span className="plastic-kpi-label">Journal Postings</span>
-              <h3 className="plastic-kpi-val">{summary.totalEntries || 0}</h3>
-              <small className="plastic-kpi-sub">Total posted accounting vouchers</small>
-            </div>
-          </div>
-          <div className="plastic-kpi-card">
-            <span className="plastic-kpi-icon" style={{ background: "#ecfdf5", color: "#059669" }}>💰</span>
-            <div>
-              <span className="plastic-kpi-label">Accounting Volume</span>
-              <h3 className="plastic-kpi-val">₹{Number(summary.totalVolume || 0).toLocaleString("en-IN")}</h3>
-              <small className="plastic-kpi-sub">Total balanced financial turnover</small>
-            </div>
-          </div>
-          <div className="plastic-kpi-card">
-            <span className="plastic-kpi-icon" style={{ background: "#fef3c7", color: "#b45309" }}>⚡</span>
-            <div>
-              <span className="plastic-kpi-label">Auto-Integrated</span>
-              <h3 className="plastic-kpi-val">{entries.filter((e) => e.reference_type !== "MANUAL").length}</h3>
-              <small className="plastic-kpi-sub">Purchases, Sales, Payroll, Expenses</small>
-            </div>
-          </div>
-          <div className="plastic-kpi-card">
-            <span className="plastic-kpi-icon">⚖️</span>
-            <div>
-              <span className="plastic-kpi-label">Integrity Status</span>
-              <h3 className="plastic-kpi-val" style={{ color: "#059669" }}>100% Balanced</h3>
-              <small className="plastic-kpi-sub">Dr = Cr verified across all vouchers</small>
-            </div>
-          </div>
+        <div className="journal-kpi-grid">
+          <KpiCard
+            title="Journal Postings"
+            value={summary.totalEntries || 0}
+            subtitle="Total posted vouchers"
+            icon="📑"
+            color="navy"
+          />
+          <KpiCard
+            title="Accounting Volume"
+            value={`₹${Number(summary.totalVolume || 0).toLocaleString("en-IN")}`}
+            subtitle="Balanced turnover"
+            icon="💰"
+            color="teal"
+          />
+          <KpiCard
+            title="Auto-Integrated"
+            value={entries.filter((e) => e.reference_type !== "MANUAL").length}
+            subtitle="Purchases, Sales, Payroll"
+            icon="⚡"
+            color="blue"
+          />
+          <KpiCard
+            title="Integrity Status"
+            value="100% Balanced"
+            subtitle="Dr = Cr verified across all"
+            icon="⚖️"
+            color="teal"
+          />
         </div>
 
-        {/* Filters & Table */}
-        <div className="plastic-card">
-          <div className="plastic-filters-bar" style={{ display: "flex", flexWrap: "wrap", gap: "12px", marginBottom: "16px" }}>
-            <input
-              type="text"
-              placeholder="Search voucher no, narration, reference..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="plastic-input"
-              style={{ flex: "1 1 240px" }}
-            />
-            <select
-              value={refFilter}
-              onChange={(e) => setRefFilter(e.target.value)}
-              className="plastic-select"
-              style={{ flex: "0 0 180px" }}
-            >
-              <option value="ALL">All Reference Types</option>
-              <option value="MANUAL">MANUAL</option>
-              <option value="PURCHASE_BILL">PURCHASE_BILL</option>
-              <option value="INVOICE">INVOICE</option>
-              <option value="PAYMENT_RECEIVED">PAYMENT_RECEIVED</option>
-              <option value="SUPPLIER_PAYMENT">SUPPLIER_PAYMENT</option>
-              <option value="EXPENSE">EXPENSE</option>
-              <option value="PAYROLL_PROCESSED">PAYROLL_PROCESSED</option>
-              <option value="PAYROLL_PAID">PAYROLL_PAID</option>
-              <option value="CREDIT_NOTE">CREDIT_NOTE</option>
-              <option value="BANK_TRANSFER">BANK_TRANSFER</option>
-            </select>
-            <input
-              type="date"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-              className="plastic-input"
-              style={{ flex: "0 0 140px" }}
-              title="From Date"
-            />
-            <input
-              type="date"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-              className="plastic-input"
-              style={{ flex: "0 0 140px" }}
-              title="To Date"
-            />
+        {/* Filters Card */}
+        <Card className="journal-filter-card">
+          <div className="journal-filter-grid">
+            <div className="filter-item">
+              <label htmlFor="j-search">Search Vouchers</label>
+              <input
+                id="j-search"
+                type="text"
+                placeholder="Search voucher no, narration, ref..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="sb-input"
+              />
+            </div>
+            <div className="filter-item">
+              <label htmlFor="j-ref">Reference Type</label>
+              <select
+                id="j-ref"
+                value={refFilter}
+                onChange={(e) => setRefFilter(e.target.value)}
+                className="sb-select"
+              >
+                <option value="ALL">All Reference Types</option>
+                <option value="MANUAL">MANUAL</option>
+                <option value="PURCHASE_BILL">PURCHASE_BILL</option>
+                <option value="INVOICE">INVOICE</option>
+                <option value="PAYMENT_RECEIVED">PAYMENT_RECEIVED</option>
+                <option value="SUPPLIER_PAYMENT">SUPPLIER_PAYMENT</option>
+                <option value="EXPENSE">EXPENSE</option>
+                <option value="PAYROLL_PROCESSED">PAYROLL_PROCESSED</option>
+                <option value="PAYROLL_PAID">PAYROLL_PAID</option>
+                <option value="CREDIT_NOTE">CREDIT_NOTE</option>
+                <option value="BANK_TRANSFER">BANK_TRANSFER</option>
+              </select>
+            </div>
+            <div className="filter-item">
+              <label htmlFor="j-from">From Date</label>
+              <input
+                id="j-from"
+                type="date"
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+                className="sb-input"
+              />
+            </div>
+            <div className="filter-item">
+              <label htmlFor="j-to">To Date</label>
+              <input
+                id="j-to"
+                type="date"
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
+                className="sb-input"
+              />
+            </div>
+            <div className="filter-item filter-actions-end">
+              <Button variant="ghost" size="sm" onClick={clearFilters}>
+                Reset
+              </Button>
+            </div>
           </div>
+        </Card>
 
-          <div className="plastic-table-responsive">
-            <table className="plastic-table">
+        {/* Journal Entries Table Card */}
+        <Card
+          title="General Journal Register"
+          subtitle={`Displaying ${entries.length} posted financial vouchers`}
+          actions={
+            <Button variant="ghost" size="sm" icon="🔄" onClick={fetchEntries}>
+              Refresh
+            </Button>
+          }
+        >
+          <div className="journal-table-wrapper">
+            <table className="journal-table">
               <thead>
                 <tr>
                   <th>Voucher No</th>
                   <th>Date</th>
                   <th>Reference</th>
-                  <th>Narration / Account Summary</th>
-                  <th style={{ textAlign: "right" }}>Total Amount (₹)</th>
-                  <th style={{ textAlign: "center" }}>Status</th>
-                  <th style={{ textAlign: "center" }}>Actions</th>
+                  <th>Narration & Account Breakdown</th>
+                  <th className="cell-right">Total Amount</th>
+                  <th>Status</th>
+                  <th className="cell-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {entries.length === 0 ? (
                   <tr>
-                    <td colSpan="7" style={{ textAlign: "center", padding: "30px", color: "#64748b" }}>
-                      No journal vouchers found for the selected criteria.
+                    <td colSpan="7" className="journal-table-empty">
+                      <div className="empty-state">
+                        <span className="empty-icon">📖</span>
+                        <p>No journal vouchers found for the selected criteria.</p>
+                        <Button variant="primary" size="sm" onClick={handleOpenCreateModal}>
+                          Post First Journal Voucher
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ) : (
                   entries.map((je) => (
                     <tr key={je.id}>
-                      <td><strong>{je.journal_no}</strong></td>
-                      <td>{je.entry_date ? new Date(je.entry_date).toLocaleDateString("en-IN") : "—"}</td>
                       <td>
-                        <span className="plastic-badge plastic-badge-secondary" style={{ fontSize: "0.75rem" }}>
-                          {je.reference_type}
-                        </span>
-                        {je.reference_no && <small style={{ display: "block", color: "#475569" }}>{je.reference_no}</small>}
+                        <span className="journal-code-badge">{je.journal_no}</span>
                       </td>
                       <td>
-                        <span style={{ fontWeight: "600", color: "#0f172a" }}>
-                          {je.narration || "Journal entry"}
+                        <span className="journal-date">
+                          {je.entry_date ? new Date(je.entry_date).toLocaleDateString("en-IN", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric"
+                          }) : "—"}
                         </span>
-                        {je.debit_account_name && je.credit_account_name && (
-                          <small style={{ display: "block", color: "#64748b" }}>
-                            Dr: {je.debit_account_name} | Cr: {je.credit_account_name}
-                          </small>
+                      </td>
+                      <td>
+                        <span className="journal-ref-chip">{je.reference_type}</span>
+                        {je.reference_no && (
+                          <div className="sub-text">{je.reference_no}</div>
                         )}
                       </td>
-                      <td style={{ textAlign: "right", fontWeight: "700" }}>
-                        ₹{Number(je.total_amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                      <td>
+                        <strong className="journal-narration">
+                          {je.narration || "Journal entry"}
+                        </strong>
+                        {je.debit_account_name && je.credit_account_name && (
+                          <div className="sub-text">
+                            Dr: {je.debit_account_name} | Cr: {je.credit_account_name}
+                          </div>
+                        )}
                       </td>
-                      <td style={{ textAlign: "center" }}>
-                        <span className="plastic-badge plastic-badge-success">{je.status}</span>
+                      <td className="cell-right">
+                        <strong className="journal-amount">
+                          ₹{Number(je.total_amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                        </strong>
                       </td>
-                      <td style={{ textAlign: "center" }}>
-                        <button
-                          type="button"
-                          className="plastic-action-btn"
+                      <td>
+                        <StatusBadge status={je.status} />
+                      </td>
+                      <td className="cell-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          icon="👁️"
                           title="View Voucher Line Items"
                           onClick={() => handleViewDetails(je)}
-                        >
-                          👁️
-                        </button>
+                        />
                       </td>
                     </tr>
                   ))
@@ -342,265 +390,269 @@ function PlasticJournalEntries() {
               </tbody>
             </table>
           </div>
-        </div>
+        </Card>
 
         {/* Modal: Create Journal Voucher */}
-        {createModalOpen && (
-          <div className="plastic-modal-backdrop" onClick={() => setCreateModalOpen(false)}>
-            <div className="plastic-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "850px" }}>
-              <div className="plastic-modal-header">
-                <h2>+ Create Double-Entry Journal Voucher</h2>
-                <button type="button" className="plastic-modal-close" onClick={() => setCreateModalOpen(false)}>✕</button>
+        <Modal
+          isOpen={createModalOpen}
+          onClose={() => !submitting && setCreateModalOpen(false)}
+          title="Create Double-Entry Journal Voucher"
+          subtitle="Post balanced multi-leg financial transactions directly to the general ledger"
+          size="lg"
+        >
+          <form onSubmit={handleSubmitVoucher} className="journal-form">
+            <div className="form-grid-3">
+              <div className="form-group">
+                <label className="sb-label">Journal Voucher No</label>
+                <input
+                  type="text"
+                  value={voucherForm.journal_no}
+                  onChange={(e) => setVoucherForm({ ...voucherForm, journal_no: e.target.value })}
+                  className="sb-input"
+                  placeholder="Auto generated"
+                />
               </div>
-              <form onSubmit={handleSubmitVoucher}>
-                <div className="plastic-modal-body">
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
-                    <div className="plastic-form-group">
-                      <label>Journal Voucher No</label>
-                      <input
-                        type="text"
-                        value={voucherForm.journal_no}
-                        onChange={(e) => setVoucherForm({ ...voucherForm, journal_no: e.target.value })}
-                        className="plastic-input"
-                        placeholder="Auto generated"
-                      />
-                    </div>
-                    <div className="plastic-form-group">
-                      <label>Entry Date *</label>
-                      <input
-                        type="date"
-                        value={voucherForm.entry_date}
-                        onChange={(e) => setVoucherForm({ ...voucherForm, entry_date: e.target.value })}
-                        className="plastic-input"
-                        required
-                      />
-                    </div>
-                    <div className="plastic-form-group">
-                      <label>Reference No (Optional)</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Bank Ref / Memo No"
-                        value={voucherForm.reference_no}
-                        onChange={(e) => setVoucherForm({ ...voucherForm, reference_no: e.target.value })}
-                        className="plastic-input"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="plastic-form-group">
-                    <label>Narration / Purpose *</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Depreciation adjustment for plant machinery"
-                      value={voucherForm.narration}
-                      onChange={(e) => setVoucherForm({ ...voucherForm, narration: e.target.value })}
-                      className="plastic-input"
-                      required
-                    />
-                  </div>
-
-                  {/* Dynamic Line Items Table */}
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "16px 0 8px 0" }}>
-                    <label style={{ fontWeight: "700", color: "#1e293b", margin: 0 }}>Voucher Line Items</label>
-                    <button
-                      type="button"
-                      className="plastic-btn plastic-btn-secondary"
-                      style={{ padding: "4px 10px", fontSize: "0.8rem" }}
-                      onClick={handleAddLine}
-                    >
-                      + Add Leg
-                    </button>
-                  </div>
-
-                  <div className="plastic-table-responsive" style={{ border: "1px solid #e2e8f0", borderRadius: "8px" }}>
-                    <table className="journal-lines-table" style={{ width: "100%", borderCollapse: "collapse" }}>
-                      <thead>
-                        <tr style={{ background: "#f8fafc", textAlign: "left", fontSize: "0.8rem", color: "#64748b" }}>
-                          <th style={{ width: "35%" }}>Account</th>
-                          <th style={{ width: "18%" }}>Dr / Cr</th>
-                          <th style={{ width: "20%" }}>Amount (₹)</th>
-                          <th>Line Narration</th>
-                          <th style={{ width: "5%", textAlign: "center" }}></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {voucherForm.items.map((itm, idx) => (
-                          <tr key={idx} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                            <td>
-                              <select
-                                value={itm.accountId}
-                                onChange={(e) => handleLineChange(idx, "accountId", e.target.value)}
-                                className="plastic-select"
-                                required
-                              >
-                                <option value="">Select Account</option>
-                                {accounts.map((acc) => (
-                                  <option key={acc.id} value={acc.id}>
-                                    [{acc.account_code}] {acc.account_name}
-                                  </option>
-                                ))}
-                              </select>
-                            </td>
-                            <td>
-                              <select
-                                value={itm.entryType}
-                                onChange={(e) => handleLineChange(idx, "entryType", e.target.value)}
-                                className="plastic-select"
-                              >
-                                <option value="DEBIT">DEBIT (Dr)</option>
-                                <option value="CREDIT">CREDIT (Cr)</option>
-                              </select>
-                            </td>
-                            <td>
-                              <input
-                                type="number"
-                                step="0.01"
-                                placeholder="0.00"
-                                value={itm.amount}
-                                onChange={(e) => handleLineChange(idx, "amount", e.target.value)}
-                                className="plastic-input"
-                                required
-                              />
-                            </td>
-                            <td>
-                              <input
-                                type="text"
-                                placeholder="Optional description"
-                                value={itm.narration}
-                                onChange={(e) => handleLineChange(idx, "narration", e.target.value)}
-                                className="plastic-input"
-                              />
-                            </td>
-                            <td style={{ textAlign: "center" }}>
-                              {voucherForm.items.length > 2 && (
-                                <button
-                                  type="button"
-                                  className="journal-row-btn-del"
-                                  title="Remove line"
-                                  onClick={() => handleRemoveLine(idx)}
-                                >
-                                  ✕
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* Real-time Double Entry Validation Box */}
-                  <div className={`journal-balance-indicator ${isBalanced ? "journal-balance-ok" : "journal-balance-err"}`}>
-                    <div>
-                      <span>Total Debit: <strong>₹{totalDebit.toFixed(2)}</strong></span>
-                      <span style={{ margin: "0 16px" }}>|</span>
-                      <span>Total Credit: <strong>₹{totalCredit.toFixed(2)}</strong></span>
-                    </div>
-                    <div>
-                      {isBalanced ? (
-                        <strong>✅ Balanced (Dr = Cr)</strong>
-                      ) : (
-                        <strong>⚠️ Out of Balance by ₹{imbalance.toFixed(2)}</strong>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="plastic-modal-footer">
-                  <button type="button" className="plastic-btn plastic-btn-secondary" onClick={() => setCreateModalOpen(false)}>
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="plastic-btn plastic-btn-primary"
-                    disabled={submitting || !isBalanced}
-                  >
-                    {submitting ? "Posting Voucher..." : "Post Journal Voucher"}
-                  </button>
-                </div>
-              </form>
+              <div className="form-group">
+                <label className="sb-label">Entry Date *</label>
+                <input
+                  type="date"
+                  value={voucherForm.entry_date}
+                  onChange={(e) => setVoucherForm({ ...voucherForm, entry_date: e.target.value })}
+                  className="sb-input"
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label className="sb-label">Reference No (Optional)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Bank Ref / Memo No"
+                  value={voucherForm.reference_no}
+                  onChange={(e) => setVoucherForm({ ...voucherForm, reference_no: e.target.value })}
+                  className="sb-input"
+                />
+              </div>
             </div>
-          </div>
-        )}
+
+            <div className="form-group">
+              <label className="sb-label">Narration / Purpose *</label>
+              <input
+                type="text"
+                placeholder="e.g. Depreciation adjustment for plant machinery"
+                value={voucherForm.narration}
+                onChange={(e) => setVoucherForm({ ...voucherForm, narration: e.target.value })}
+                className="sb-input"
+                required
+              />
+            </div>
+
+            {/* Dynamic Line Items Header */}
+            <div className="journal-legs-header">
+              <span className="legs-title">Voucher Line Items (Legs)</span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                icon="➕"
+                onClick={handleAddLine}
+              >
+                Add Leg
+              </Button>
+            </div>
+
+            <div className="journal-lines-wrapper">
+              <table className="journal-lines-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: "35%" }}>Account</th>
+                    <th style={{ width: "20%" }}>Dr / Cr</th>
+                    <th style={{ width: "20%" }}>Amount (₹)</th>
+                    <th>Line Narration</th>
+                    <th style={{ width: "5%", textAlign: "center" }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {voucherForm.items.map((itm, idx) => (
+                    <tr key={idx}>
+                      <td>
+                        <select
+                          value={itm.accountId}
+                          onChange={(e) => handleLineChange(idx, "accountId", e.target.value)}
+                          className="sb-select"
+                          required
+                        >
+                          <option value="">Select Account</option>
+                          {accounts.map((acc) => (
+                            <option key={acc.id} value={acc.id}>
+                              [{acc.account_code}] {acc.account_name}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td>
+                        <select
+                          value={itm.entryType}
+                          onChange={(e) => handleLineChange(idx, "entryType", e.target.value)}
+                          className="sb-select"
+                        >
+                          <option value="DEBIT">DEBIT (Dr)</option>
+                          <option value="CREDIT">CREDIT (Cr)</option>
+                        </select>
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          step="0.01"
+                          placeholder="0.00"
+                          value={itm.amount}
+                          onChange={(e) => handleLineChange(idx, "amount", e.target.value)}
+                          className="sb-input"
+                          required
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          placeholder="Optional line remarks"
+                          value={itm.narration}
+                          onChange={(e) => handleLineChange(idx, "narration", e.target.value)}
+                          className="sb-input"
+                        />
+                      </td>
+                      <td style={{ textAlign: "center" }}>
+                        {voucherForm.items.length > 2 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            icon="✕"
+                            title="Remove leg"
+                            onClick={() => handleRemoveLine(idx)}
+                          />
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Real-time Double Entry Validation Box */}
+            <div className={`journal-balance-indicator ${isBalanced ? "journal-balance-ok" : "journal-balance-err"}`}>
+              <div className="balance-totals">
+                <span>Total Debit: <strong>₹{totalDebit.toFixed(2)}</strong></span>
+                <span className="balance-sep">|</span>
+                <span>Total Credit: <strong>₹{totalCredit.toFixed(2)}</strong></span>
+              </div>
+              <div className="balance-status">
+                {isBalanced ? (
+                  <span className="badge-ok">✅ Balanced (Dr = Cr)</span>
+                ) : (
+                  <span className="badge-err">⚠️ Out of Balance by ₹{imbalance.toFixed(2)}</span>
+                )}
+              </div>
+            </div>
+
+            <div className="modal-actions-bar">
+              <Button
+                variant="outline"
+                onClick={() => setCreateModalOpen(false)}
+                disabled={submitting}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={submitting || !isBalanced}
+              >
+                {submitting ? "Posting Voucher..." : "Post Journal Voucher"}
+              </Button>
+            </div>
+          </form>
+        </Modal>
 
         {/* Modal: View Details */}
-        {selectedEntry && (
-          <div className="plastic-modal-backdrop" onClick={() => setSelectedEntry(null)}>
-            <div className="plastic-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "750px" }}>
-              <div className="plastic-modal-header">
-                <h2>Voucher Details: {selectedEntry.entry.journal_no}</h2>
-                <button type="button" className="plastic-modal-close" onClick={() => setSelectedEntry(null)}>✕</button>
+        <Modal
+          isOpen={Boolean(selectedEntry)}
+          onClose={() => setSelectedEntry(null)}
+          title={selectedEntry ? `Voucher Details: ${selectedEntry.entry.journal_no}` : ""}
+          subtitle="Audit breakdown of debits, credits, and module posting origin"
+          size="lg"
+        >
+          {selectedEntry && (
+            <div className="journal-view-modal">
+              <div className="journal-view-kpis">
+                <div className="detail-box">
+                  <span className="detail-label">Date</span>
+                  <strong className="detail-value">{new Date(selectedEntry.entry.entry_date).toLocaleDateString("en-IN")}</strong>
+                </div>
+                <div className="detail-box">
+                  <span className="detail-label">Reference</span>
+                  <strong className="detail-value">{selectedEntry.entry.reference_type}</strong>
+                </div>
+                <div className="detail-box">
+                  <span className="detail-label">Total Amount</span>
+                  <strong className="detail-value text-teal">₹{Number(selectedEntry.entry.total_amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</strong>
+                </div>
+                <div className="detail-box">
+                  <span className="detail-label">Created By</span>
+                  <strong className="detail-value">{selectedEntry.entry.created_by_name || "System"}</strong>
+                </div>
               </div>
-              <div className="plastic-modal-body">
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "10px", background: "#f8fafc", padding: "12px", borderRadius: "8px", marginBottom: "16px" }}>
-                  <div>
-                    <small style={{ color: "#64748b" }}>Date</small>
-                    <strong style={{ display: "block" }}>{new Date(selectedEntry.entry.entry_date).toLocaleDateString("en-IN")}</strong>
-                  </div>
-                  <div>
-                    <small style={{ color: "#64748b" }}>Reference</small>
-                    <strong style={{ display: "block" }}>{selectedEntry.entry.reference_type}</strong>
-                  </div>
-                  <div>
-                    <small style={{ color: "#64748b" }}>Total Amount</small>
-                    <strong style={{ display: "block", color: "#0284c7" }}>₹{Number(selectedEntry.entry.total_amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</strong>
-                  </div>
-                  <div>
-                    <small style={{ color: "#64748b" }}>Created By</small>
-                    <strong style={{ display: "block" }}>{selectedEntry.entry.created_by_name || "System"}</strong>
-                  </div>
-                </div>
 
-                <div style={{ marginBottom: "14px" }}>
-                  <small style={{ color: "#64748b", fontWeight: "600" }}>Narration</small>
-                  <p style={{ margin: "4px 0", color: "#1e293b" }}>{selectedEntry.entry.narration || "—"}</p>
-                </div>
+              <div className="journal-narration-box">
+                <span className="detail-label">Narration</span>
+                <p className="narration-text">{selectedEntry.entry.narration || "—"}</p>
+              </div>
 
-                <h4 style={{ margin: "14px 0 8px 0" }}>Accounting Breakdown</h4>
-                <div className="plastic-table-responsive">
-                  <table className="plastic-table">
-                    <thead>
-                      <tr>
-                        <th>Account</th>
-                        <th>Type</th>
-                        <th style={{ textAlign: "right" }}>Debit (₹)</th>
-                        <th style={{ textAlign: "right" }}>Credit (₹)</th>
-                        <th>Line Description</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {selectedEntry.items?.map((itm) => (
-                        <tr key={itm.id}>
-                          <td>
-                            <strong>{itm.account_name}</strong>
-                            <small style={{ display: "block", color: "#64748b" }}>Code: {itm.account_code}</small>
-                          </td>
-                          <td>
-                            <span className={`coa-type-badge coa-type-${itm.account_type.toLowerCase()}`}>
-                              {itm.account_type}
-                            </span>
-                          </td>
-                          <td style={{ textAlign: "right", fontWeight: itm.entry_type === "DEBIT" ? "700" : "normal" }}>
+              <h4 className="legs-title">Accounting Breakdown</h4>
+              <div className="journal-table-wrapper">
+                <table className="journal-table">
+                  <thead>
+                    <tr>
+                      <th>Account</th>
+                      <th>Type</th>
+                      <th className="cell-right">Debit (₹)</th>
+                      <th className="cell-right">Credit (₹)</th>
+                      <th>Line Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedEntry.items?.map((itm) => (
+                      <tr key={itm.id}>
+                        <td>
+                          <strong>{itm.account_name}</strong>
+                          <div className="sub-text">Code: {itm.account_code}</div>
+                        </td>
+                        <td>
+                          <span className="journal-type-pill">{itm.account_type}</span>
+                        </td>
+                        <td className="cell-right">
+                          <strong className={itm.entry_type === "DEBIT" ? "text-blue" : "text-muted"}>
                             {itm.entry_type === "DEBIT" ? `₹${Number(itm.amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
-                          </td>
-                          <td style={{ textAlign: "right", fontWeight: itm.entry_type === "CREDIT" ? "700" : "normal" }}>
+                          </strong>
+                        </td>
+                        <td className="cell-right">
+                          <strong className={itm.entry_type === "CREDIT" ? "text-amber" : "text-muted"}>
                             {itm.entry_type === "CREDIT" ? `₹${Number(itm.amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}
-                          </td>
-                          <td style={{ fontSize: "0.85rem", color: "#475569" }}>{itm.narration || "—"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                          </strong>
+                        </td>
+                        <td className="sub-text">{itm.narration || "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-              <div className="plastic-modal-footer">
-                <button type="button" className="plastic-btn plastic-btn-secondary" onClick={() => setSelectedEntry(null)}>
+
+              <div className="modal-actions-bar">
+                <Button variant="outline" onClick={() => setSelectedEntry(null)}>
                   Close
-                </button>
+                </Button>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </Modal>
       </main>
     </div>
   );

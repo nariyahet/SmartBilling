@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import API from "../api/axios";
 import PlasticNavbar from "../components/PlasticNavbar";
 import LoadingScreen from "../components/LoadingScreen";
+import { PageHeader, Card, KpiCard, Button } from "../components";
 import "./PlasticSalesReports.css";
 
 function PlasticSalesReports() {
@@ -46,7 +47,6 @@ function PlasticSalesReports() {
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchReports(fromDate, toDate);
   }, [fromDate, toDate]);
 
@@ -72,45 +72,47 @@ function PlasticSalesReports() {
   return (
     <div className="plastic-page">
       <PlasticNavbar />
-      <div className="plastic-container">
+      <div className="plastic-container sb-page-container">
         {/* Header */}
-        <div className="prep-header">
-          <div>
-            <span className="prep-badge">EXECUTIVE INTELLIGENCE</span>
-            <h1 className="prep-title">Sales, Dispatch & Margin Reports</h1>
-            <p className="prep-subtitle">
-              Comprehensive analytics across order volumes, transport logistics, payment collections, and actual production margins.
-            </p>
-          </div>
-          <div className="prep-header-actions">
-            <button className="prep-btn prep-btn-print" onClick={() => window.print()}>
-              🖨️ Print Report
-            </button>
-          </div>
-        </div>
+        <PageHeader
+          title="Sales, Dispatch & Margin Reports"
+          subtitle="Comprehensive analytics across order volumes, transport logistics, payment collections, and actual production margins."
+          badge="EXECUTIVE INTELLIGENCE"
+          actions={
+            <div className="prep-header-actions no-print">
+              <Button variant="secondary" size="md" onClick={() => window.print()}>
+                🖨️ Print Report
+              </Button>
+            </div>
+          }
+        />
 
         {/* Date Filter & Tab Bar */}
-        <div className="prep-control-card no-print">
+        <Card className="prep-control-card no-print">
           <div className="prep-tabs">
             <button
+              type="button"
               className={`tab-btn ${activeTab === "SALES" ? "active" : ""}`}
               onClick={() => setActiveTab("SALES")}
             >
               📊 Sales Orders
             </button>
             <button
+              type="button"
               className={`tab-btn ${activeTab === "DISPATCH" ? "active" : ""}`}
               onClick={() => setActiveTab("DISPATCH")}
             >
               🚚 Dispatches & Logistics
             </button>
             <button
+              type="button"
               className={`tab-btn ${activeTab === "COLLECTIONS" ? "active" : ""}`}
               onClick={() => setActiveTab("COLLECTIONS")}
             >
               💰 Collections & Cash Flow
             </button>
             <button
+              type="button"
               className={`tab-btn ${activeTab === "PROFIT" ? "active" : ""}`}
               onClick={() => setActiveTab("PROFIT")}
             >
@@ -119,61 +121,64 @@ function PlasticSalesReports() {
           </div>
 
           <div className="prep-date-filters">
-            <button className="btn-quick-date" onClick={() => handleQuickDate("TODAY")}>
+            <Button variant="ghost" size="sm" onClick={() => handleQuickDate("TODAY")}>
               Today
-            </button>
-            <button className="btn-quick-date" onClick={() => handleQuickDate("THIS_MONTH")}>
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => handleQuickDate("THIS_MONTH")}>
               This Month
-            </button>
-            <button className="btn-quick-date" onClick={() => handleQuickDate("ALL")}>
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => handleQuickDate("ALL")}>
               All Time
-            </button>
+            </Button>
             <input
               type="date"
               value={fromDate}
               onChange={(e) => setFromDate(e.target.value)}
-              className="prep-date-input"
+              className="sb-input prep-date-input"
             />
-            <span>to</span>
+            <span className="prep-date-separator">to</span>
             <input
               type="date"
               value={toDate}
               onChange={(e) => setToDate(e.target.value)}
-              className="prep-date-input"
+              className="sb-input prep-date-input"
             />
           </div>
-        </div>
+        </Card>
 
         {/* TAB 1: SALES SUMMARY */}
         {activeTab === "SALES" && salesData && (
           <div className="report-content">
             <div className="prep-kpis">
-              <div className="prep-kpi-card">
-                <div className="prep-kpi-val">{salesData.totalOrders || 0}</div>
-                <div className="prep-kpi-lbl">Total Sales Orders</div>
-              </div>
-              <div className="prep-kpi-card info">
-                <div className="prep-kpi-val">{salesData.confirmedOrders || 0}</div>
-                <div className="prep-kpi-lbl">Confirmed & Active</div>
-              </div>
-              <div className="prep-kpi-card success">
-                <div className="prep-kpi-val">
-                  ₹{Number(salesData.totalSalesValue || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-                </div>
-                <div className="prep-kpi-lbl">Total Booked Value</div>
-              </div>
-              <div className="prep-kpi-card primary">
-                <div className="prep-kpi-val">
-                  ₹{Number(salesData.totalDispatchedValue || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-                </div>
-                <div className="prep-kpi-lbl">Realized Invoiced Value</div>
-              </div>
+              <KpiCard
+                title="Total Sales Orders"
+                value={salesData.totalOrders || 0}
+                subtitle="All generated orders"
+                variant="default"
+              />
+              <KpiCard
+                title="Confirmed & Active"
+                value={salesData.confirmedOrders || 0}
+                subtitle="Approved production backlog"
+                variant="info"
+              />
+              <KpiCard
+                title="Total Booked Value"
+                value={`₹${Number(salesData.totalSalesValue || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+                subtitle="Total order commitment"
+                variant="success"
+              />
+              <KpiCard
+                title="Realized Invoiced Value"
+                value={`₹${Number(salesData.totalDispatchedValue || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+                subtitle="Actual delivered turnover"
+                variant="primary"
+              />
             </div>
 
             <div className="grid-2-sections">
               {/* Top Customers */}
-              <div className="report-table-card">
-                <h3>Top Customers by Sales Value</h3>
+              <Card title="Top Customers by Sales Value">
                 <table className="report-table">
                   <thead>
                     <tr>
@@ -204,11 +209,10 @@ function PlasticSalesReports() {
                     )}
                   </tbody>
                 </table>
-              </div>
+              </Card>
 
               {/* Top Products */}
-              <div className="report-table-card">
-                <h3>Top Products by Sales Volume</h3>
+              <Card title="Top Products by Sales Volume">
                 <table className="report-table">
                   <thead>
                     <tr>
@@ -242,7 +246,7 @@ function PlasticSalesReports() {
                     )}
                   </tbody>
                 </table>
-              </div>
+              </Card>
             </div>
           </div>
         )}
@@ -251,22 +255,23 @@ function PlasticSalesReports() {
         {activeTab === "DISPATCH" && dispatchData && (
           <div className="report-content">
             <div className="prep-kpis">
-              <div className="prep-kpi-card info">
-                <div className="prep-kpi-val">{dispatchData.totalDispatches || 0}</div>
-                <div className="prep-kpi-lbl">Total Dispatches</div>
-              </div>
-              <div className="prep-kpi-card success">
-                <div className="prep-kpi-val">
-                  {Number(dispatchData.totalDispatchedQty || 0).toLocaleString()} <span className="punit">KG</span>
-                </div>
-                <div className="prep-kpi-lbl">Shipped Granule Volume</div>
-              </div>
+              <KpiCard
+                title="Total Dispatches"
+                value={dispatchData.totalDispatches || 0}
+                subtitle="Completed vehicle departures"
+                variant="info"
+              />
+              <KpiCard
+                title="Shipped Granule Volume"
+                value={`${Number(dispatchData.totalDispatchedQty || 0).toLocaleString()} KG`}
+                subtitle="Physical material moved"
+                variant="success"
+              />
             </div>
 
             <div className="grid-2-sections">
               {/* Transport Fleet Breakdown */}
-              <div className="report-table-card">
-                <h3>Dispatches by Transporter / Fleet</h3>
+              <Card title="Dispatches by Transporter / Fleet">
                 <table className="report-table">
                   <thead>
                     <tr>
@@ -295,11 +300,10 @@ function PlasticSalesReports() {
                     )}
                   </tbody>
                 </table>
-              </div>
+              </Card>
 
               {/* Destination Breakdown */}
-              <div className="report-table-card">
-                <h3>Top Delivery Destinations</h3>
+              <Card title="Top Delivery Destinations">
                 <table className="report-table">
                   <thead>
                     <tr>
@@ -328,7 +332,7 @@ function PlasticSalesReports() {
                     )}
                   </tbody>
                 </table>
-              </div>
+              </Card>
             </div>
           </div>
         )}
@@ -337,22 +341,23 @@ function PlasticSalesReports() {
         {activeTab === "COLLECTIONS" && paymentData && (
           <div className="report-content">
             <div className="prep-kpis">
-              <div className="prep-kpi-card success">
-                <div className="prep-kpi-val">
-                  ₹{Number(paymentData.totalCollected || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-                </div>
-                <div className="prep-kpi-lbl">Total Cash Inflow</div>
-              </div>
-              <div className="prep-kpi-card info">
-                <div className="prep-kpi-val">{paymentData.totalPayments || 0}</div>
-                <div className="prep-kpi-lbl">Payment Transactions</div>
-              </div>
+              <KpiCard
+                title="Total Cash Inflow"
+                value={`₹${Number(paymentData.totalCollected || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+                subtitle="Cleared collections"
+                variant="success"
+              />
+              <KpiCard
+                title="Payment Transactions"
+                value={paymentData.totalPayments || 0}
+                subtitle="Individual receipts logged"
+                variant="info"
+              />
             </div>
 
             <div className="grid-2-sections">
               {/* Mode Breakdown */}
-              <div className="report-table-card">
-                <h3>Collections by Payment Channel</h3>
+              <Card title="Collections by Payment Channel">
                 <table className="report-table">
                   <thead>
                     <tr>
@@ -383,11 +388,10 @@ function PlasticSalesReports() {
                     )}
                   </tbody>
                 </table>
-              </div>
+              </Card>
 
               {/* Top Paying Customers */}
-              <div className="report-table-card">
-                <h3>Top Realized Collections by Customer</h3>
+              <Card title="Top Realized Collections by Customer">
                 <table className="report-table">
                   <thead>
                     <tr>
@@ -418,7 +422,7 @@ function PlasticSalesReports() {
                     )}
                   </tbody>
                 </table>
-              </div>
+              </Card>
             </div>
           </div>
         )}
@@ -427,38 +431,37 @@ function PlasticSalesReports() {
         {activeTab === "PROFIT" && profitData && (
           <div className="report-content">
             <div className="prep-kpis">
-              <div className="prep-kpi-card">
-                <div className="prep-kpi-val">
-                  ₹{Number(profitData.totalSalesRevenue || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-                </div>
-                <div className="prep-kpi-lbl">Total Sales Revenue</div>
-              </div>
-              <div className="prep-kpi-card warning">
-                <div className="prep-kpi-val">
-                  ₹{Number(profitData.totalCostOfGoodsSold || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-                </div>
-                <div className="prep-kpi-lbl">Total Cost of Goods (COGS)</div>
-              </div>
-              <div className="prep-kpi-card success">
-                <div className="prep-kpi-val">
-                  ₹{Number(profitData.totalGrossProfit || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-                </div>
-                <div className="prep-kpi-lbl">Total Gross Profit</div>
-              </div>
-              <div className="prep-kpi-card primary">
-                <div className="prep-kpi-val">
-                  {Number(profitData.grossMarginPercentage || 0).toFixed(1)}%
-                </div>
-                <div className="prep-kpi-lbl">Average Gross Margin</div>
-              </div>
+              <KpiCard
+                title="Total Sales Revenue"
+                value={`₹${Number(profitData.totalSalesRevenue || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+                subtitle="Net invoiced turnover"
+                variant="default"
+              />
+              <KpiCard
+                title="Total Cost of Goods (COGS)"
+                value={`₹${Number(profitData.totalCostOfGoodsSold || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+                subtitle="Direct material & batch costs"
+                variant="warning"
+              />
+              <KpiCard
+                title="Total Gross Profit"
+                value={`₹${Number(profitData.totalGrossProfit || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+                subtitle="Gross manufacturing contribution"
+                variant="success"
+              />
+              <KpiCard
+                title="Average Gross Margin"
+                value={`${Number(profitData.grossMarginPercentage || 0).toFixed(1)}%`}
+                subtitle="Blended production margin"
+                variant="primary"
+              />
             </div>
 
             <div className="costing-notice-banner">
               <strong>Phase 2 Cost Engine Link:</strong> Product costs are derived directly from actual production batch costs (raw material consumption, machine running hours, electricity, direct labor).
             </div>
 
-            <div className="report-table-card">
-              <h3>Product Profit & Gross Margin Analysis</h3>
+            <Card title="Product Profit & Gross Margin Analysis">
               <table className="report-table">
                 <thead>
                   <tr>
@@ -513,7 +516,7 @@ function PlasticSalesReports() {
                   )}
                 </tbody>
               </table>
-            </div>
+            </Card>
           </div>
         )}
       </div>

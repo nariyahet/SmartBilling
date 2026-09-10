@@ -1,27 +1,168 @@
-/* Plastic HR & Expense Reports Styles */
+/* PlasticHrReports.css - Ocean Blue / Deep Navy Design System */
 
-.rep-two-col {
+.hr-rep-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sb-space-3, 0.75rem);
+}
+
+.hr-rep-tabs-wrap {
+  margin-bottom: var(--sb-space-6, 1.5rem);
+}
+
+.hr-tab-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sb-space-6, 1.5rem);
+}
+
+.hr-filter-card {
+  margin-bottom: 0;
+}
+
+.hr-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) auto;
+  gap: var(--sb-space-4, 1rem);
+  align-items: flex-end;
+}
+
+@media (max-width: 640px) {
+  .hr-filter-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.filter-btn-end {
+  display: flex;
+  align-items: flex-end;
+}
+
+.hr-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--sb-space-4, 1rem);
+}
+
+.hr-single-kpi {
+  max-width: 480px;
+}
+
+.rep-two-col-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  gap: var(--sb-space-6, 1.5rem);
 }
 
-.rep-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 18px 20px;
-}
-
-.rep-card h3 {
-  margin: 0 0 16px 0;
-  font-size: 1.1rem;
-  font-weight: 800;
-  color: #0f172a;
-}
-
-@media (max-width: 900px) {
-  .rep-two-col {
+@media (max-width: 960px) {
+  .rep-two-col-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* HR Reports Table Styles */
+.hr-table-wrapper {
+  overflow-x: auto;
+}
+
+.hr-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.hr-table th {
+  background: #f8fafc;
+  color: var(--sb-text-muted, #718096);
+  font-weight: 600;
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--sb-border, #e3ebf2);
+  white-space: nowrap;
+}
+
+.hr-table td {
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--sb-border, #e3ebf2);
+  vertical-align: middle;
+  color: var(--sb-text, #102a43);
+}
+
+.hr-table tr:hover td {
+  background-color: #f8fbff;
+}
+
+.cell-right {
+  text-align: right;
+}
+
+.emp-code-badge {
+  display: inline-block;
+  font-family: monospace;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  padding: 0.25rem 0.5rem;
+  background: #ebf5ff;
+  color: #0879d1;
+  border-radius: 4px;
+}
+
+.dept-chip {
+  display: inline-flex;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  background: #f1f5f9;
+  color: #334155;
+  border-radius: 12px;
+}
+
+.sub-text {
+  font-size: 0.75rem;
+  color: var(--sb-text-muted, #718096);
+  margin-top: 0.2rem;
+}
+
+.bank-name {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--sb-text, #102a43);
+}
+
+.text-teal {
+  color: #065f46;
+}
+
+.text-blue {
+  color: #0879d1;
+}
+
+.text-amber {
+  color: #b45309;
+}
+
+.text-danger {
+  color: #b91c1c;
+}
+
+.text-muted {
+  color: var(--sb-text-muted, #718096);
+}
+
+.font-medium {
+  font-size: 1rem;
+}
+
+.hr-table-empty {
+  text-align: center;
+  padding: 3rem 1rem !important;
+  color: var(--sb-text-muted, #718096);
+}
+
+@media print {
+  .hr-rep-actions,
+  .hr-rep-tabs-wrap,
+  .hr-filter-card {
+    display: none !important;
   }
 }

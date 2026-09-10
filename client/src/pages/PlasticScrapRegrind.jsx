@@ -1,8 +1,18 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import API from "../api/axios";
-import PlasticNavbar from "../components/PlasticNavbar";
 import LoadingScreen from "../components/LoadingScreen";
+import {
+  PageHeader,
+  KpiCard,
+  Card,
+  Tabs,
+  DataTable,
+  Modal,
+  Button,
+  StatusBadge,
+  AlertBanner,
+} from "../components";
 import "./PlasticScrapRegrind.css";
 
 function PlasticScrapRegrind() {
@@ -75,7 +85,6 @@ function PlasticScrapRegrind() {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
   }, [fetchData]);
 
@@ -105,363 +114,328 @@ function PlasticScrapRegrind() {
 
   if (loading) return <LoadingScreen message="Loading Scrap & Regrind..." />;
 
+  const tabs = [
+    { id: "scrap", label: "Process Scrap & Waste", count: scrapRecords.length },
+    { id: "regrind", label: "Regrind Transactions", count: regrindTx.length },
+  ];
+
   return (
-    <div className="plastic-page-container">
-      <PlasticNavbar />
-
-      <div className="plastic-content-wrap">
-        <div className="plastic-page-header">
-          <div>
-            <h1 className="plastic-page-title">♻️ Scrap & Regrind Operations</h1>
-            <p className="plastic-page-subtitle">Process Waste Tracking, In-House Regrind Recycling & Recovery %</p>
-          </div>
-
-          <div className="plastic-page-actions">
-            <Link to="/plastic-erp" className="btn-dashboard-nav">
-              📊 ERP Dashboard
+    <div className="sb-page-container">
+      <PageHeader
+        title="Scrap & Regrind Operations"
+        subtitle="Process Waste Tracking, In-House Regrind Recycling & Recovery %"
+        breadcrumbs={[
+          { label: "ERP", to: "/plastic-erp" },
+          { label: "Production", to: "/plastic-erp/production" },
+          { label: "Scrap & Regrind" },
+        ]}
+        actions={
+          <div style={{ display: "flex", gap: "10px" }}>
+            <Link to="/plastic-erp">
+              <Button variant="secondary">ERP Dashboard</Button>
             </Link>
             {activeTab === "scrap" ? (
-              <button type="button" className="btn-primary" onClick={() => setShowScrapModal(true)}>
-                ➕ Record Process Scrap
-              </button>
+              <Button variant="primary" onClick={() => setShowScrapModal(true)}>
+                + Record Process Scrap
+              </Button>
             ) : (
-              <button type="button" className="btn-primary" onClick={() => setShowRegrindModal(true)}>
-                ➕ Generate Regrind Stock
-              </button>
+              <Button variant="primary" onClick={() => setShowRegrindModal(true)}>
+                + Generate Regrind Stock
+              </Button>
             )}
           </div>
-        </div>
+        }
+      />
 
-        {error && (
-          <div className="plastic-alert error">
-            <span>⚠️ {error}</span>
-            <button type="button" onClick={() => setError("")}>✕</button>
-          </div>
-        )}
+      {error && <AlertBanner type="error" message={error} onClose={() => setError("")} />}
+      {successMsg && <AlertBanner type="success" message={successMsg} onClose={() => setSuccessMsg("")} />}
 
-        {successMsg && (
-          <div className="plastic-alert success">
-            <span>✅ {successMsg}</span>
-            <button type="button" onClick={() => setSuccessMsg("")}>✕</button>
-          </div>
-        )}
-
-        {/* Top KPI Cards */}
-        <div className="wip-summary-cards">
-          <div className="summary-stat-card">
-            <span className="stat-label">Total Process Scrap</span>
-            <strong className="stat-value text-red">
-              {Number(scrapSummary.totalScrapKg || 0).toLocaleString()} KG
-            </strong>
-            <span className="stat-sub">{Number(scrapSummary.reusableScrapKg || 0).toLocaleString()} KG reusable</span>
-          </div>
-
-          <div className="summary-stat-card">
-            <span className="stat-label">Current Regrind Stock</span>
-            <strong className="stat-value text-green">
-              {Number(regrindSummary.currentRegrindStockKg || 0).toLocaleString()} KG
-            </strong>
-            <span className="stat-sub">Available for future extrusion batches</span>
-          </div>
-
-          <div className="summary-stat-card">
-            <span className="stat-label">Regrind Generated</span>
-            <strong className="stat-value text-blue">
-              {Number(regrindSummary.totalGeneratedKg || 0).toLocaleString()} KG
-            </strong>
-            <span className="stat-sub">{Number(regrindSummary.totalConsumedKg || 0).toLocaleString()} KG consumed in production</span>
-          </div>
-        </div>
-
-        {/* Tabs */}
-        <div className="plastic-tabs-nav">
-          <button
-            type="button"
-            className={`tab-btn ${activeTab === "scrap" ? "active" : ""}`}
-            onClick={() => setActiveTab("scrap")}
-          >
-            🗑️ Process Scrap & Waste ({scrapRecords.length})
-          </button>
-          <button
-            type="button"
-            className={`tab-btn ${activeTab === "regrind" ? "active" : ""}`}
-            onClick={() => setActiveTab("regrind")}
-          >
-            ♻️ Regrind Transactions ({regrindTx.length})
-          </button>
-        </div>
-
-        {/* TAB 1: SCRAP RECORDS */}
-        {activeTab === "scrap" && (
-          <div className="plastic-card">
-            <div className="table-responsive">
-              <table className="plastic-table">
-                <thead>
-                  <tr>
-                    <th>Scrap No</th>
-                    <th>Type</th>
-                    <th>Material</th>
-                    <th>Quantity</th>
-                    <th>Origin Batch</th>
-                    <th>Machine</th>
-                    <th>Reusable</th>
-                    <th>Reason</th>
-                    <th>Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {scrapRecords.length === 0 ? (
-                    <tr>
-                      <td colSpan="9" className="empty-cell">No scrap records logged.</td>
-                    </tr>
-                  ) : (
-                    scrapRecords.map((s) => (
-                      <tr key={s.id}>
-                        <td><strong>{s.scrap_no}</strong></td>
-                        <td><span className="type-tag regrind">{s.scrap_type}</span></td>
-                        <td>{s.material_name}</td>
-                        <td><strong>{Number(s.quantity).toLocaleString()} {s.unit}</strong></td>
-                        <td>{s.batch_no || "-"}</td>
-                        <td>{s.machine_name || "General"}</td>
-                        <td>
-                          <span className={`badge ${s.is_reusable ? "qc-passed" : "qc-rejected"}`}>
-                            {s.is_reusable ? "Reusable" : "Waste"}
-                          </span>
-                        </td>
-                        <td>{s.reason || "-"}</td>
-                        <td>{s.recorded_at?.split("T")[0]}</td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 2: REGRIND TRANSACTIONS */}
-        {activeTab === "regrind" && (
-          <div className="plastic-card">
-            <div className="table-responsive">
-              <table className="plastic-table">
-                <thead>
-                  <tr>
-                    <th>Tx No</th>
-                    <th>Type</th>
-                    <th>Material Name</th>
-                    <th>Quantity</th>
-                    <th>Recovery Rate</th>
-                    <th>Date</th>
-                    <th>Notes</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {regrindTx.length === 0 ? (
-                    <tr>
-                      <td colSpan="7" className="empty-cell">No regrind transactions recorded. Click "Generate Regrind Stock".</td>
-                    </tr>
-                  ) : (
-                    regrindTx.map((tx) => (
-                      <tr key={tx.id}>
-                        <td><strong>{tx.transaction_no}</strong></td>
-                        <td>
-                          <span className={`badge ${tx.transaction_type === "GENERATION" ? "status-completed" : "status-running"}`}>
-                            {tx.transaction_type}
-                          </span>
-                        </td>
-                        <td>{tx.material_name}</td>
-                        <td><strong>{Number(tx.quantity).toLocaleString()} {tx.unit}</strong></td>
-                        <td>{Number(tx.recovery_rate_percent || 100).toFixed(1)}%</td>
-                        <td>{tx.transaction_date?.split("T")[0]}</td>
-                        <td>{tx.notes || "-"}</td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* MODAL: RECORD SCRAP */}
-        {showScrapModal && (
-          <div className="plastic-modal-backdrop">
-            <div className="plastic-modal">
-              <div className="modal-header">
-                <h3>Record Process Scrap / Waste</h3>
-                <button type="button" onClick={() => setShowScrapModal(false)}>✕</button>
-              </div>
-              <form onSubmit={handleRecordScrap} className="modal-form">
-                <div className="form-group">
-                  <label>Material Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={scrapForm.material_name}
-                    onChange={(e) => setScrapForm({ ...scrapForm, material_name: e.target.value })}
-                  />
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Scrap Type</label>
-                    <select
-                      value={scrapForm.scrap_type}
-                      onChange={(e) => setScrapForm({ ...scrapForm, scrap_type: e.target.value })}
-                    >
-                      <option value="PROCESS_SCRAP">Process Scrap</option>
-                      <option value="PRODUCTION_WASTE">Production Waste</option>
-                      <option value="REJECTION">Rejected Parts</option>
-                      <option value="REWORK">Rework Purge</option>
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label>Quantity (KG) *</label>
-                    <input
-                      type="number"
-                      required
-                      min="0.1"
-                      step="0.01"
-                      value={scrapForm.quantity}
-                      onChange={(e) => setScrapForm({ ...scrapForm, quantity: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Origin Batch</label>
-                    <select
-                      value={scrapForm.batch_id}
-                      onChange={(e) => setScrapForm({ ...scrapForm, batch_id: e.target.value })}
-                    >
-                      <option value="">None (Floor Purge)</option>
-                      {batches.map((b) => (
-                        <option key={b.id} value={b.id}>{b.batch_no} - {b.product_name}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label>Machine</label>
-                    <select
-                      value={scrapForm.machine_id}
-                      onChange={(e) => setScrapForm({ ...scrapForm, machine_id: e.target.value })}
-                    >
-                      <option value="">Select Machine</option>
-                      {machines.map((m) => (
-                        <option key={m.id} value={m.id}>{m.machine_name}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label>Reason / Defect</label>
-                  <input
-                    type="text"
-                    value={scrapForm.reason}
-                    onChange={(e) => setScrapForm({ ...scrapForm, reason: e.target.value })}
-                    placeholder="e.g. Purge lump, die head pressure buildup, contaminated trims"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={scrapForm.is_reusable === 1}
-                      onChange={(e) => setScrapForm({ ...scrapForm, is_reusable: e.target.checked ? 1 : 0 })}
-                    />
-                    Reusable in Regrind Granulator
-                  </label>
-                </div>
-
-                <div className="modal-actions">
-                  <button type="button" className="btn-secondary" onClick={() => setShowScrapModal(false)}>
-                    Cancel
-                  </button>
-                  <button type="submit" className="btn-primary">
-                    Record Scrap
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* MODAL: RECORD REGRIND GENERATION */}
-        {showRegrindModal && (
-          <div className="plastic-modal-backdrop">
-            <div className="plastic-modal">
-              <div className="modal-header">
-                <h3>Generate Regrind Stock</h3>
-                <button type="button" onClick={() => setShowRegrindModal(false)}>✕</button>
-              </div>
-              <form onSubmit={handleRecordRegrind} className="modal-form">
-                <div className="form-group">
-                  <label>Regrind Material Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={regrindForm.material_name}
-                    onChange={(e) => setRegrindForm({ ...regrindForm, material_name: e.target.value })}
-                  />
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Quantity Generated (KG) *</label>
-                    <input
-                      type="number"
-                      required
-                      min="0.1"
-                      step="0.01"
-                      value={regrindForm.quantity}
-                      onChange={(e) => setRegrindForm({ ...regrindForm, quantity: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label>Recovery Rate %</label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="100"
-                      step="0.1"
-                      value={regrindForm.recovery_rate_percent}
-                      onChange={(e) => setRegrindForm({ ...regrindForm, recovery_rate_percent: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label>Source Batch (Optional)</label>
-                  <select
-                    value={regrindForm.source_batch_id}
-                    onChange={(e) => setRegrindForm({ ...regrindForm, source_batch_id: e.target.value })}
-                  >
-                    <option value="">General Reusable Scrap</option>
-                    {batches.map((b) => (
-                      <option key={b.id} value={b.id}>{b.batch_no} - {b.product_name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="modal-actions">
-                  <button type="button" className="btn-secondary" onClick={() => setShowRegrindModal(false)}>
-                    Cancel
-                  </button>
-                  <button type="submit" className="btn-primary">
-                    Save Regrind Stock
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
+      {/* KPI Cards */}
+      <div className="sb-kpis-grid" style={{ marginBottom: "24px" }}>
+        <KpiCard
+          label="Total Process Scrap"
+          value={`${Number(scrapSummary.totalScrapKg || 0).toLocaleString()} KG`}
+          subtext={`${Number(scrapSummary.reusableScrapKg || 0).toLocaleString()} KG reusable`}
+          accent="danger"
+        />
+        <KpiCard
+          label="Current Regrind Stock"
+          value={`${Number(regrindSummary.currentRegrindStockKg || 0).toLocaleString()} KG`}
+          subtext="Available for extrusion batches"
+          accent="teal"
+        />
+        <KpiCard
+          label="Regrind Generated"
+          value={`${Number(regrindSummary.totalGeneratedKg || 0).toLocaleString()} KG`}
+          subtext={`${Number(regrindSummary.totalConsumedKg || 0).toLocaleString()} KG consumed`}
+          accent="blue"
+        />
       </div>
+
+      <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
+
+      {/* TAB 1: SCRAP RECORDS */}
+      {activeTab === "scrap" && (
+        <Card noPadding>
+          <DataTable
+            headers={[
+              "Scrap No",
+              "Type",
+              "Material",
+              "Quantity",
+              "Origin Batch",
+              "Machine",
+              "Reusable",
+              "Reason",
+              "Date",
+            ]}
+          >
+            {scrapRecords.length === 0 ? (
+              <tr>
+                <td colSpan="9" style={{ textAlign: "center", padding: "32px", color: "var(--sb-muted)" }}>
+                  No scrap records logged.
+                </td>
+              </tr>
+            ) : (
+              scrapRecords.map((s) => (
+                <tr key={s.id}>
+                  <td><strong>{s.scrap_no}</strong></td>
+                  <td><span className="scrap-tag-regrind">{s.scrap_type}</span></td>
+                  <td>{s.material_name}</td>
+                  <td><strong>{Number(s.quantity).toLocaleString()} {s.unit}</strong></td>
+                  <td>{s.batch_no || "-"}</td>
+                  <td>{s.machine_name || "General"}</td>
+                  <td>
+                    <StatusBadge status={s.is_reusable ? "APPROVED" : "CANCELLED"} />
+                  </td>
+                  <td>{s.reason || "-"}</td>
+                  <td>{s.recorded_at?.split("T")[0]}</td>
+                </tr>
+              ))
+            )}
+          </DataTable>
+        </Card>
+      )}
+
+      {/* TAB 2: REGRIND TRANSACTIONS */}
+      {activeTab === "regrind" && (
+        <Card noPadding>
+          <DataTable
+            headers={[
+              "Tx No",
+              "Type",
+              "Material Name",
+              "Quantity",
+              "Recovery Rate",
+              "Date",
+              "Notes",
+            ]}
+          >
+            {regrindTx.length === 0 ? (
+              <tr>
+                <td colSpan="7" style={{ textAlign: "center", padding: "32px", color: "var(--sb-muted)" }}>
+                  No regrind transactions recorded. Click &quot;Generate Regrind Stock&quot;.
+                </td>
+              </tr>
+            ) : (
+              regrindTx.map((tx) => (
+                <tr key={tx.id}>
+                  <td><strong>{tx.transaction_no}</strong></td>
+                  <td>
+                    <StatusBadge status={tx.transaction_type === "GENERATION" ? "COMPLETED" : "IN_PROGRESS"} />
+                  </td>
+                  <td>{tx.material_name}</td>
+                  <td><strong>{Number(tx.quantity).toLocaleString()} {tx.unit}</strong></td>
+                  <td>{Number(tx.recovery_rate_percent || 100).toFixed(1)}%</td>
+                  <td>{tx.transaction_date?.split("T")[0]}</td>
+                  <td>{tx.notes || "-"}</td>
+                </tr>
+              ))
+            )}
+          </DataTable>
+        </Card>
+      )}
+
+      {/* MODAL: RECORD SCRAP */}
+      <Modal
+        isOpen={showScrapModal}
+        onClose={() => setShowScrapModal(false)}
+        title="Record Process Scrap / Waste"
+      >
+        <form onSubmit={handleRecordScrap} className="sb-form">
+          <div className="sb-form-group">
+            <label className="sb-label">Material Name *</label>
+            <input
+              type="text"
+              required
+              className="sb-input"
+              value={scrapForm.material_name}
+              onChange={(e) => setScrapForm({ ...scrapForm, material_name: e.target.value })}
+            />
+          </div>
+
+          <div className="sb-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div className="sb-form-group">
+              <label className="sb-label">Scrap Type</label>
+              <select
+                className="sb-input"
+                value={scrapForm.scrap_type}
+                onChange={(e) => setScrapForm({ ...scrapForm, scrap_type: e.target.value })}
+              >
+                <option value="PROCESS_SCRAP">Process Scrap</option>
+                <option value="PRODUCTION_WASTE">Production Waste</option>
+                <option value="REJECTION">Rejected Parts</option>
+                <option value="REWORK">Rework Purge</option>
+              </select>
+            </div>
+
+            <div className="sb-form-group">
+              <label className="sb-label">Quantity (KG) *</label>
+              <input
+                type="number"
+                required
+                min="0.1"
+                step="0.01"
+                className="sb-input"
+                value={scrapForm.quantity}
+                onChange={(e) => setScrapForm({ ...scrapForm, quantity: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div className="sb-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div className="sb-form-group">
+              <label className="sb-label">Origin Batch</label>
+              <select
+                className="sb-input"
+                value={scrapForm.batch_id}
+                onChange={(e) => setScrapForm({ ...scrapForm, batch_id: e.target.value })}
+              >
+                <option value="">None (Floor Purge)</option>
+                {batches.map((b) => (
+                  <option key={b.id} value={b.id}>{b.batch_no} - {b.product_name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="sb-form-group">
+              <label className="sb-label">Machine</label>
+              <select
+                className="sb-input"
+                value={scrapForm.machine_id}
+                onChange={(e) => setScrapForm({ ...scrapForm, machine_id: e.target.value })}
+              >
+                <option value="">Select Machine</option>
+                {machines.map((m) => (
+                  <option key={m.id} value={m.id}>{m.machine_name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="sb-form-group">
+            <label className="sb-label">Reason / Defect</label>
+            <input
+              type="text"
+              className="sb-input"
+              value={scrapForm.reason}
+              onChange={(e) => setScrapForm({ ...scrapForm, reason: e.target.value })}
+              placeholder="e.g. Purge lump, die head pressure buildup, contaminated trims"
+            />
+          </div>
+
+          <div className="sb-form-group">
+            <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={scrapForm.is_reusable === 1}
+                onChange={(e) => setScrapForm({ ...scrapForm, is_reusable: e.target.checked ? 1 : 0 })}
+              />
+              Reusable in Regrind Granulator
+            </label>
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "24px" }}>
+            <Button type="button" variant="secondary" onClick={() => setShowScrapModal(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary">
+              Record Scrap
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* MODAL: RECORD REGRIND GENERATION */}
+      <Modal
+        isOpen={showRegrindModal}
+        onClose={() => setShowRegrindModal(false)}
+        title="Generate Regrind Stock"
+      >
+        <form onSubmit={handleRecordRegrind} className="sb-form">
+          <div className="sb-form-group">
+            <label className="sb-label">Regrind Material Name *</label>
+            <input
+              type="text"
+              required
+              className="sb-input"
+              value={regrindForm.material_name}
+              onChange={(e) => setRegrindForm({ ...regrindForm, material_name: e.target.value })}
+            />
+          </div>
+
+          <div className="sb-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div className="sb-form-group">
+              <label className="sb-label">Quantity Generated (KG) *</label>
+              <input
+                type="number"
+                required
+                min="0.1"
+                step="0.01"
+                className="sb-input"
+                value={regrindForm.quantity}
+                onChange={(e) => setRegrindForm({ ...regrindForm, quantity: e.target.value })}
+              />
+            </div>
+
+            <div className="sb-form-group">
+              <label className="sb-label">Recovery Rate %</label>
+              <input
+                type="number"
+                min="1"
+                max="100"
+                step="0.1"
+                className="sb-input"
+                value={regrindForm.recovery_rate_percent}
+                onChange={(e) => setRegrindForm({ ...regrindForm, recovery_rate_percent: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div className="sb-form-group">
+            <label className="sb-label">Source Batch (Optional)</label>
+            <select
+              className="sb-input"
+              value={regrindForm.source_batch_id}
+              onChange={(e) => setRegrindForm({ ...regrindForm, source_batch_id: e.target.value })}
+            >
+              <option value="">General Reusable Scrap</option>
+              {batches.map((b) => (
+                <option key={b.id} value={b.id}>{b.batch_no} - {b.product_name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "24px" }}>
+            <Button type="button" variant="secondary" onClick={() => setShowRegrindModal(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary">
+              Save Regrind Stock
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

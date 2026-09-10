@@ -1,7 +1,220 @@
-/* Plastic Expenses Styles */
+/* PlasticExpenses.css - Ocean Blue / Deep Navy Design System */
 
-.expenses-grid {
+.expenses-action-group {
+  display: flex;
+  align-items: center;
+  gap: var(--sb-space-3, 0.75rem);
+}
+
+.expenses-kpis-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--sb-space-4, 1rem);
+  margin-bottom: var(--sb-space-6, 1.5rem);
+}
+
+.expenses-filter-card {
+  margin-bottom: var(--sb-space-6, 1.5rem);
+}
+
+.expenses-filter-grid {
+  display: grid;
+  grid-template-columns: 2fr repeat(4, 1fr) auto;
+  gap: var(--sb-space-3, 0.75rem);
+  align-items: flex-end;
+}
+
+@media (max-width: 1024px) {
+  .expenses-filter-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .expenses-filter-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.filter-item {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 0.25rem;
+}
+
+.filter-item label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--sb-text-muted, #718096);
+}
+
+.filter-actions-end {
+  justify-content: flex-end;
+  padding-bottom: 2px;
+}
+
+/* Expenses Register Table */
+.expenses-table-wrapper {
+  overflow-x: auto;
+}
+
+.expenses-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.expenses-table th {
+  background: #f8fafc;
+  color: var(--sb-text-muted, #718096);
+  font-weight: 600;
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--sb-border, #e3ebf2);
+  white-space: nowrap;
+}
+
+.expenses-table td {
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--sb-border, #e3ebf2);
+  vertical-align: middle;
+  color: var(--sb-text, #102a43);
+}
+
+.expenses-table tr:hover td {
+  background-color: #f8fbff;
+}
+
+.cell-right {
+  text-align: right;
+}
+
+.voucher-code-badge {
+  display: inline-block;
+  font-family: monospace;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  padding: 0.25rem 0.5rem;
+  background: #ebf5ff;
+  color: #0879d1;
+  border-radius: 4px;
+}
+
+.voucher-date {
+  font-size: 0.8125rem;
+  color: var(--sb-text-muted, #718096);
+}
+
+.category-chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  background: #f1f5f9;
+  color: #334155;
+  border-radius: 12px;
+}
+
+.voucher-title {
+  font-weight: 600;
+  color: var(--sb-text, #102a43);
+}
+
+.voucher-desc {
+  font-size: 0.75rem;
+  color: var(--sb-text-muted, #718096);
+  margin-top: 0.2rem;
+}
+
+.vendor-name {
+  font-size: 0.85rem;
+  color: #334155;
+}
+
+.payment-mode-tag {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.voucher-ref {
+  font-size: 0.7rem;
+  color: var(--sb-text-muted, #718096);
+}
+
+.voucher-amount {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #065f46;
+}
+
+.row-actions {
+  display: inline-flex;
+  gap: 0.25rem;
+  justify-content: flex-end;
+}
+
+.expenses-table-empty {
+  text-align: center;
+  padding: 3rem 1rem !important;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.empty-icon {
+  font-size: 2.5rem;
+}
+
+.empty-state p {
+  color: var(--sb-text-muted, #718096);
+  margin: 0;
+}
+
+/* Modal Form Grids */
+.expense-form,
+.category-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sb-space-4, 1rem);
+}
+
+.form-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--sb-space-4, 1rem);
+}
+
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--sb-space-4, 1rem);
+}
+
+@media (max-width: 640px) {
+  .form-grid-3,
+  .form-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.modal-actions-bar {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sb-space-3, 0.75rem);
+  padding-top: var(--sb-space-4, 1rem);
+  border-top: 1px solid var(--sb-border, #e3ebf2);
+  margin-top: var(--sb-space-2, 0.5rem);
 }

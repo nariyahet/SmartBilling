@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import API from "../api/axios";
 import PlasticNavbar from "../components/PlasticNavbar";
 import LoadingScreen from "../components/LoadingScreen";
+import { PageHeader, Card, KpiCard, Modal, Button, StatusBadge } from "../components";
 import "./PlasticCreditNotes.css";
 
 function PlasticCreditNotes() {
@@ -62,7 +63,6 @@ function PlasticCreditNotes() {
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
   }, []);
 
@@ -178,72 +178,71 @@ function PlasticCreditNotes() {
   return (
     <div className="plastic-page">
       <PlasticNavbar />
-      <div className="plastic-container">
+      <div className="plastic-container sb-page-container">
         {/* Header */}
-        <div className="pcn-header">
-          <div>
-            <span className="pcn-badge">ADJUSTMENT NOTE</span>
-            <h1 className="pcn-title">Credit Notes (CN)</h1>
-            <p className="pcn-subtitle">
-              Issue GST Credit Notes for sales returns, rate differences, discounts, or damaged material.
-            </p>
-          </div>
-          <div className="pcn-header-actions">
-            <Link to="/plastic-erp/finance/receivables" className="pcn-btn pcn-btn-outline">
-              Receivables Dashboard
-            </Link>
-            <Link to="/plastic-erp/finance/debit-notes" className="pcn-btn pcn-btn-outline">
-              Debit Notes
-            </Link>
-            <button className="pcn-btn pcn-btn-primary" onClick={() => setCreateModalOpen(true)}>
-              + Issue Credit Note
-            </button>
-          </div>
-        </div>
+        <PageHeader
+          title="Credit Notes (CN)"
+          subtitle="Issue GST Credit Notes for sales returns, rate differences, discounts, or damaged material."
+          badge="ADJUSTMENT NOTE"
+          actions={
+            <div className="pcn-header-actions">
+              <Link to="/plastic-erp/finance/receivables" className="sb-link-btn">
+                <Button variant="secondary" size="md">Receivables Dashboard</Button>
+              </Link>
+              <Link to="/plastic-erp/finance/debit-notes" className="sb-link-btn">
+                <Button variant="secondary" size="md">Debit Notes</Button>
+              </Link>
+              <Button variant="primary" size="md" onClick={() => setCreateModalOpen(true)}>
+                + Issue Credit Note
+              </Button>
+            </div>
+          }
+        />
 
         {/* KPIs */}
         <div className="pcn-kpis">
-          <div className="pcn-kpi-card">
-            <div className="pcn-kpi-val">{totalNotesCount}</div>
-            <div className="pcn-kpi-lbl">Credit Notes Issued</div>
-          </div>
-          <div className="pcn-kpi-card warning">
-            <div className="pcn-kpi-val">
-              ₹{totalCreditIssued.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-            </div>
-            <div className="pcn-kpi-lbl">Total Credit Value</div>
-          </div>
+          <KpiCard
+            title="Credit Notes Issued"
+            value={totalNotesCount}
+            subtitle="Total registered documents"
+            variant="default"
+          />
+          <KpiCard
+            title="Total Credit Value"
+            value={`₹${totalCreditIssued.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`}
+            subtitle="Ledger adjustment sum"
+            variant="warning"
+          />
         </div>
 
         {/* Filters */}
-        <div className="pcn-filters">
-          <input
-            type="text"
-            className="pcn-search"
-            placeholder="Search Credit Note #, Customer, Invoice #..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+        <Card className="pcn-filters-card">
+          <div className="pcn-filters">
+            <input
+              type="text"
+              className="sb-input pcn-search"
+              placeholder="Search Credit Note #, Customer, Invoice #..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
 
-          <select
-            className="pcn-select"
-            value={customerFilter}
-            onChange={(e) => setCustomerFilter(e.target.value)}
-          >
-            <option value="">All Customers</option>
-            {customers.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </div>
+            <select
+              className="sb-select pcn-select"
+              value={customerFilter}
+              onChange={(e) => setCustomerFilter(e.target.value)}
+            >
+              <option value="">All Customers</option>
+              {customers.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </Card>
 
         {/* Notes Table */}
-        <div className="pcn-card">
-          <div className="pcn-card-header">
-            <h3>Credit Notes ({filteredNotes.length})</h3>
-          </div>
+        <Card title={`Credit Notes (${filteredNotes.length})`}>
           {filteredNotes.length === 0 ? (
             <div className="pcn-empty">No credit notes found.</div>
           ) : (
@@ -283,15 +282,19 @@ function PlasticCreditNotes() {
                         ₹{Number(cn.total || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                       </td>
                       <td>
-                        <span className="cn-status-pill">{cn.status}</span>
+                        <StatusBadge
+                          status={cn.status || "ISSUED"}
+                          variant={cn.status === "CANCELLED" ? "danger" : "success"}
+                        />
                       </td>
                       <td>
-                        <button
-                          className="btn-action view"
+                        <Button
+                          variant="secondary"
+                          size="sm"
                           onClick={() => handleViewPreview(cn.id)}
                         >
                           Print / View
-                        </button>
+                        </Button>
                       </td>
                     </tr>
                   ))}
@@ -299,321 +302,326 @@ function PlasticCreditNotes() {
               </table>
             </div>
           )}
-        </div>
+        </Card>
       </div>
 
       {/* CREATE MODAL */}
       {createModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-container large">
-            <div className="modal-header">
-              <h2>Issue Credit Note</h2>
-              <button className="close-btn" onClick={() => setCreateModalOpen(false)}>
-                &times;
-              </button>
-            </div>
-            <form onSubmit={handleCreateCreditNote} className="modal-form">
-              <div className="form-row">
-                <div className="form-col">
-                  <label>Customer *</label>
-                  <select
-                    value={formData.customer_id}
-                    onChange={(e) => setFormData({ ...formData, customer_id: e.target.value })}
-                    required
-                  >
-                    <option value="">Select Customer</option>
-                    {customers.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="form-col">
-                  <label>Original Invoice (Optional)</label>
-                  <select
-                    value={formData.original_invoice_id}
-                    onChange={(e) =>
-                      setFormData({ ...formData, original_invoice_id: e.target.value })
-                    }
-                  >
-                    <option value="">No Invoice Linked</option>
-                    {invoices
-                      .filter(
-                        (inv) =>
-                          !formData.customer_id ||
-                          String(inv.customer_id) === String(formData.customer_id)
-                      )
-                      .map((inv) => (
-                        <option key={inv.id} value={inv.id}>
-                          {inv.invoice_no} (₹{inv.grand_total})
-                        </option>
-                      ))}
-                  </select>
-                </div>
-
-                <div className="form-col">
-                  <label>Date *</label>
-                  <input
-                    type="date"
-                    value={formData.credit_note_date}
-                    onChange={(e) =>
-                      setFormData({ ...formData, credit_note_date: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-              </div>
-
+        <Modal
+          isOpen={createModalOpen}
+          onClose={() => setCreateModalOpen(false)}
+          title="Issue Credit Note"
+          size="lg"
+        >
+          <form onSubmit={handleCreateCreditNote} className="modal-form">
+            <div className="form-row">
               <div className="form-col">
-                <label>Reason for Credit Note</label>
+                <label>Customer *</label>
                 <select
-                  value={formData.reason}
-                  onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+                  className="sb-select"
+                  value={formData.customer_id}
+                  onChange={(e) => setFormData({ ...formData, customer_id: e.target.value })}
+                  required
                 >
-                  <option value="SALES_RETURN">Sales Return / Rejection</option>
-                  <option value="RATE_DIFFERENCE">Rate Difference / Price Correction</option>
-                  <option value="DISCOUNT">Post-Sale Volume Discount</option>
-                  <option value="DAMAGED_GOODS">Damaged in Transit / Quality Deduction</option>
-                  <option value="OTHER">Other Reason</option>
+                  <option value="">Select Customer</option>
+                  {customers.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
                 </select>
               </div>
 
-              {/* Items Section */}
-              <div className="modal-section-title">Credit Line Items</div>
-              <div className="item-builder">
-                <div className="builder-field flex-2">
-                  <label>Particulars / Item Description *</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. PP Granules Milky White Price Difference"
-                    value={newItem.description}
-                    onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
-                  />
-                </div>
-
-                <div className="builder-field">
-                  <label>Qty (KG/Nos)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={newItem.quantity}
-                    onChange={(e) => setNewItem({ ...newItem, quantity: e.target.value })}
-                  />
-                </div>
-
-                <div className="builder-field">
-                  <label>Rate (₹) *</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={newItem.rate}
-                    onChange={(e) => setNewItem({ ...newItem, rate: e.target.value })}
-                  />
-                </div>
-
-                <div className="builder-field">
-                  <label>GST Rate (%)</label>
-                  <select
-                    value={newItem.tax_rate}
-                    onChange={(e) => setNewItem({ ...newItem, tax_rate: e.target.value })}
-                  >
-                    <option value="0">0% (Nil)</option>
-                    <option value="5">5%</option>
-                    <option value="12">12%</option>
-                    <option value="18">18% (Standard Plastic)</option>
-                    <option value="28">28%</option>
-                  </select>
-                </div>
-
-                <button type="button" className="btn-add-item" onClick={handleAddItem}>
-                  + Add Line
-                </button>
+              <div className="form-col">
+                <label>Original Invoice (Optional)</label>
+                <select
+                  className="sb-select"
+                  value={formData.original_invoice_id}
+                  onChange={(e) =>
+                    setFormData({ ...formData, original_invoice_id: e.target.value })
+                  }
+                >
+                  <option value="">No Invoice Linked</option>
+                  {invoices
+                    .filter(
+                      (inv) =>
+                        !formData.customer_id ||
+                        String(inv.customer_id) === String(formData.customer_id)
+                    )
+                    .map((inv) => (
+                      <option key={inv.id} value={inv.id}>
+                        {inv.invoice_no} (₹{inv.grand_total})
+                      </option>
+                    ))}
+                </select>
               </div>
 
-              <div className="item-table-wrap">
-                <table className="challan-item-table">
-                  <thead>
+              <div className="form-col">
+                <label>Date *</label>
+                <input
+                  type="date"
+                  className="sb-input"
+                  value={formData.credit_note_date}
+                  onChange={(e) =>
+                    setFormData({ ...formData, credit_note_date: e.target.value })
+                  }
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="form-col mt-3">
+              <label>Reason for Credit Note</label>
+              <select
+                className="sb-select"
+                value={formData.reason}
+                onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+              >
+                <option value="SALES_RETURN">Sales Return / Rejection</option>
+                <option value="RATE_DIFFERENCE">Rate Difference / Price Correction</option>
+                <option value="DISCOUNT">Post-Sale Volume Discount</option>
+                <option value="DAMAGED_GOODS">Damaged in Transit / Quality Deduction</option>
+                <option value="OTHER">Other Reason</option>
+              </select>
+            </div>
+
+            {/* Items Section */}
+            <div className="modal-section-title mt-4">Credit Line Items</div>
+            <div className="item-builder">
+              <div className="builder-field flex-2">
+                <label>Particulars / Item Description *</label>
+                <input
+                  type="text"
+                  className="sb-input"
+                  placeholder="e.g. PP Granules Milky White Price Difference"
+                  value={newItem.description}
+                  onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
+                />
+              </div>
+
+              <div className="builder-field">
+                <label>Qty (KG/Nos)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="sb-input"
+                  value={newItem.quantity}
+                  onChange={(e) => setNewItem({ ...newItem, quantity: e.target.value })}
+                />
+              </div>
+
+              <div className="builder-field">
+                <label>Rate (₹) *</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="sb-input"
+                  value={newItem.rate}
+                  onChange={(e) => setNewItem({ ...newItem, rate: e.target.value })}
+                />
+              </div>
+
+              <div className="builder-field">
+                <label>GST Rate (%)</label>
+                <select
+                  className="sb-select"
+                  value={newItem.tax_rate}
+                  onChange={(e) => setNewItem({ ...newItem, tax_rate: e.target.value })}
+                >
+                  <option value="0">0% (Nil)</option>
+                  <option value="5">5%</option>
+                  <option value="12">12%</option>
+                  <option value="18">18% (Standard Plastic)</option>
+                  <option value="28">28%</option>
+                </select>
+              </div>
+
+              <Button type="button" variant="secondary" size="md" onClick={handleAddItem} className="btn-add-item-align">
+                + Add Line
+              </Button>
+            </div>
+
+            <div className="item-table-wrap">
+              <table className="challan-item-table">
+                <thead>
+                  <tr>
+                    <th>Description</th>
+                    <th>Qty</th>
+                    <th>Rate (₹)</th>
+                    <th>Tax (%)</th>
+                    <th>Total (₹)</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {formData.items.length === 0 ? (
                     <tr>
-                      <th>Description</th>
-                      <th>Qty</th>
-                      <th>Rate (₹)</th>
-                      <th>Tax (%)</th>
-                      <th>Total (₹)</th>
-                      <th></th>
+                      <td colSpan="6" className="text-center text-muted">
+                        No lines added yet.
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {formData.items.length === 0 ? (
-                      <tr>
-                        <td colSpan="6" className="text-center text-muted">
-                          No lines added yet.
+                  ) : (
+                    formData.items.map((it, idx) => (
+                      <tr key={idx}>
+                        <td>{it.description}</td>
+                        <td>{it.quantity}</td>
+                        <td>₹{Number(it.rate).toFixed(2)}</td>
+                        <td>{it.tax_rate}%</td>
+                        <td>
+                          <strong>₹{Number(it.amount).toFixed(2)}</strong>
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            className="btn-del"
+                            onClick={() => handleRemoveItem(idx)}
+                          >
+                            &times;
+                          </button>
                         </td>
                       </tr>
-                    ) : (
-                      formData.items.map((it, idx) => (
-                        <tr key={idx}>
-                          <td>{it.description}</td>
-                          <td>{it.quantity}</td>
-                          <td>₹{Number(it.rate).toFixed(2)}</td>
-                          <td>{it.tax_rate}%</td>
-                          <td>
-                            <strong>₹{Number(it.amount).toFixed(2)}</strong>
-                          </td>
-                          <td>
-                            <button
-                              type="button"
-                              className="btn-del"
-                              onClick={() => handleRemoveItem(idx)}
-                            >
-                              &times;
-                            </button>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
 
-              <div className="form-col mt-3">
-                <label>Remarks</label>
-                <textarea
-                  rows="2"
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                ></textarea>
-              </div>
+            <div className="form-col mt-3">
+              <label>Remarks</label>
+              <textarea
+                rows="2"
+                className="sb-textarea"
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              ></textarea>
+            </div>
 
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="pcn-btn pcn-btn-outline"
-                  onClick={() => setCreateModalOpen(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="pcn-btn pcn-btn-primary"
-                  disabled={submitting}
-                >
-                  {submitting ? "Issuing..." : "Issue Credit Note"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+            <div className="modal-footer-actions">
+              <Button
+                type="button"
+                variant="secondary"
+                size="md"
+                onClick={() => setCreateModalOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                size="md"
+                disabled={submitting}
+              >
+                {submitting ? "Issuing..." : "Issue Credit Note"}
+              </Button>
+            </div>
+          </form>
+        </Modal>
       )}
 
       {/* PREVIEW & PRINT MODAL */}
       {previewModalOpen && selectedNote && (
-        <div className="modal-overlay">
-          <div className="modal-container print-modal">
-            <div className="no-print modal-header">
-              <h2>Credit Note: {selectedNote.credit_note_no}</h2>
-              <div className="header-buttons">
-                <button className="pcn-btn pcn-btn-primary" onClick={() => window.print()}>
-                  🖨️ Print Note
-                </button>
-                <button className="close-btn" onClick={() => setPreviewModalOpen(false)}>
-                  &times;
-                </button>
+        <Modal
+          isOpen={previewModalOpen}
+          onClose={() => setPreviewModalOpen(false)}
+          title={`Credit Note: ${selectedNote.credit_note_no}`}
+          size="lg"
+        >
+          <div className="preview-action-row no-print">
+            <Button variant="primary" size="md" onClick={() => window.print()}>
+              🖨️ Print Note
+            </Button>
+          </div>
+
+          <div className="challan-print-document">
+            <div className="challan-doc-header">
+              <div className="company-info">
+                <h2>{companyInfo?.company_name || "PLASTIC RECYCLING & COMPOUNDING ERP"}</h2>
+                <p>{companyInfo?.address || "Industrial Area, MIDC Phase II"}</p>
+                <p>
+                  GSTIN: <strong>{companyInfo?.gstin || "27AAAAA0000A1Z5"}</strong>
+                </p>
+              </div>
+              <div className="challan-title-block">
+                <div className="title-tag text-danger">CREDIT NOTE</div>
+                <div className="title-sub">(Section 34 of CGST Act)</div>
+                <div className="doc-num">CN No: <span>{selectedNote.credit_note_no}</span></div>
+                <div className="doc-date">Date: <span>{selectedNote.credit_note_date ? new Date(selectedNote.credit_note_date).toLocaleDateString() : ""}</span></div>
               </div>
             </div>
 
-            <div className="challan-print-document">
-              <div className="challan-doc-header">
-                <div className="company-info">
-                  <h2>{companyInfo?.company_name || "PLASTIC RECYCLING & COMPOUNDING ERP"}</h2>
-                  <p>{companyInfo?.address || "Industrial Area, MIDC Phase II"}</p>
-                  <p>
-                    GSTIN: <strong>{companyInfo?.gstin || "27AAAAA0000A1Z5"}</strong>
-                  </p>
+            <div className="challan-meta-grid">
+              <div className="meta-box">
+                <div className="meta-box-title">CREDIT ISSUED TO</div>
+                <div className="meta-val bold">{selectedNote.customer_name}</div>
+                <div className="meta-val">{selectedNote.customer_address}</div>
+                <div className="meta-val">Mobile: {selectedNote.customer_mobile || "—"}</div>
+              </div>
+              <div className="meta-box">
+                <div className="meta-box-title">REFERENCE DETAILS</div>
+                <div className="meta-row">
+                  <span>Original Invoice:</span>
+                  <strong>{selectedNote.original_invoice_no || "—"}</strong>
                 </div>
-                <div className="challan-title-block">
-                  <div className="title-tag text-danger">CREDIT NOTE</div>
-                  <div className="title-sub">(Section 34 of CGST Act)</div>
-                  <div className="doc-num">CN No: <span>{selectedNote.credit_note_no}</span></div>
-                  <div className="doc-date">Date: <span>{selectedNote.credit_note_date ? new Date(selectedNote.credit_note_date).toLocaleDateString() : ""}</span></div>
+                <div className="meta-row">
+                  <span>Reason:</span>
+                  <span>{selectedNote.reason}</span>
                 </div>
               </div>
+            </div>
 
-              <div className="challan-meta-grid">
-                <div className="meta-box">
-                  <div className="meta-box-title">CREDIT ISSUED TO</div>
-                  <div className="meta-val bold">{selectedNote.customer_name}</div>
-                  <div className="meta-val">{selectedNote.customer_address}</div>
-                  <div className="meta-val">Mobile: {selectedNote.customer_mobile || "—"}</div>
-                </div>
-                <div className="meta-box">
-                  <div className="meta-box-title">REFERENCE DETAILS</div>
-                  <div className="meta-row">
-                    <span>Original Invoice:</span>
-                    <strong>{selectedNote.original_invoice_no || "—"}</strong>
-                  </div>
-                  <div className="meta-row">
-                    <span>Reason:</span>
-                    <span>{selectedNote.reason}</span>
-                  </div>
-                </div>
-              </div>
-
-              <table className="doc-items-table">
-                <thead>
-                  <tr>
-                    <th>S.N.</th>
-                    <th>Particulars</th>
-                    <th style={{ textAlign: "right" }}>Qty</th>
-                    <th style={{ textAlign: "right" }}>Rate (₹)</th>
-                    <th style={{ textAlign: "right" }}>Subtotal (₹)</th>
-                    <th style={{ textAlign: "right" }}>GST Rate</th>
-                    <th style={{ textAlign: "right" }}>Total (₹)</th>
+            <table className="doc-items-table">
+              <thead>
+                <tr>
+                  <th>S.N.</th>
+                  <th>Particulars</th>
+                  <th style={{ textAlign: "right" }}>Qty</th>
+                  <th style={{ textAlign: "right" }}>Rate (₹)</th>
+                  <th style={{ textAlign: "right" }}>Subtotal (₹)</th>
+                  <th style={{ textAlign: "right" }}>GST Rate</th>
+                  <th style={{ textAlign: "right" }}>Total (₹)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(selectedNote.items || []).map((it, idx) => (
+                  <tr key={idx}>
+                    <td>{idx + 1}</td>
+                    <td>{it.description}</td>
+                    <td style={{ textAlign: "right" }}>{it.quantity}</td>
+                    <td style={{ textAlign: "right" }}>₹{Number(it.rate).toFixed(2)}</td>
+                    <td style={{ textAlign: "right" }}>₹{Number(it.subtotal || it.quantity * it.rate).toFixed(2)}</td>
+                    <td style={{ textAlign: "right" }}>{it.tax_rate}%</td>
+                    <td style={{ textAlign: "right", fontWeight: 700 }}>₹{Number(it.amount).toFixed(2)}</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {(selectedNote.items || []).map((it, idx) => (
-                    <tr key={idx}>
-                      <td>{idx + 1}</td>
-                      <td>{it.description}</td>
-                      <td style={{ textAlign: "right" }}>{it.quantity}</td>
-                      <td style={{ textAlign: "right" }}>₹{Number(it.rate).toFixed(2)}</td>
-                      <td style={{ textAlign: "right" }}>₹{Number(it.subtotal || it.quantity * it.rate).toFixed(2)}</td>
-                      <td style={{ textAlign: "right" }}>{it.tax_rate}%</td>
-                      <td style={{ textAlign: "right", fontWeight: 700 }}>₹{Number(it.amount).toFixed(2)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr>
-                    <td colSpan="6" style={{ textAlign: "right", fontWeight: 700 }}>
-                      Grand Total Credit:
-                    </td>
-                    <td style={{ textAlign: "right", fontWeight: 800, color: "#dc2626" }}>
-                      ₹{Number(selectedNote.total || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colSpan="6" style={{ textAlign: "right", fontWeight: 700 }}>
+                    Grand Total Credit:
+                  </td>
+                  <td style={{ textAlign: "right", fontWeight: 800, color: "var(--sb-danger, #e05252)" }}>
+                    ₹{Number(selectedNote.total || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
 
-              <div className="challan-declaration mt-4">
-                <p>
-                  This credit note adjusts the taxable value and tax on the goods/services supplied. The customer ledger has been credited accordingly.
-                </p>
-              </div>
+            <div className="challan-declaration mt-4">
+              <p>
+                This credit note adjusts the taxable value and tax on the goods/services supplied. The customer ledger has been credited accordingly.
+              </p>
+            </div>
 
-              <div className="challan-signatures">
-                <div></div>
-                <div></div>
-                <div className="sig-box">
-                  <div className="sig-line"></div>
-                  <span>Authorized Signatory</span>
-                </div>
+            <div className="challan-signatures">
+              <div></div>
+              <div></div>
+              <div className="sig-box">
+                <div className="sig-line"></div>
+                <span>Authorized Signatory</span>
               </div>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

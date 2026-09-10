@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import API from "../api/axios";
 import PlasticNavbar from "../components/PlasticNavbar";
 import LoadingScreen from "../components/LoadingScreen";
+import { PageHeader, Card, KpiCard, Modal, Button, StatusBadge } from "../components";
 import "./PlasticWorkforce.css";
 
 function PlasticWorkforce() {
@@ -79,11 +80,8 @@ function PlasticWorkforce() {
   }, [activeTab, fetchOverview, fetchLabourCost]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadWorkforceData();
   }, [loadWorkforceData]);
-
-
 
   const handleOpenMapModal = (op) => {
     setSelectedOperator(op);
@@ -119,134 +117,121 @@ function PlasticWorkforce() {
   return (
     <div className="plastic-page">
       <PlasticNavbar />
-      <main className="plastic-container">
+      <div className="plastic-container sb-page-container">
         {/* Header */}
-        <div className="plastic-header-row">
-          <div>
-            <span className="plastic-breadcrumb">Plastic ERP / HR & Payroll</span>
-            <h1 className="plastic-title">🏭 Plant Workforce & Labour Costing</h1>
-            <p className="plastic-subtitle">
-              Map production machine operators to official payroll records and calculate real-time shift labour expenditures.
-            </p>
-          </div>
-          <div className="tab-pills">
-            <button
-              type="button"
-              className={`pill-btn ${activeTab === "OPERATORS" ? "active" : ""}`}
-              onClick={() => setActiveTab("OPERATORS")}
-            >
-              👥 Operators & Machine Crew
-            </button>
-            <button
-              type="button"
-              className={`pill-btn ${activeTab === "LABOUR_COST" ? "active" : ""}`}
-              onClick={() => setActiveTab("LABOUR_COST")}
-            >
-              💰 Shift Labour Costing
-            </button>
-          </div>
-        </div>
+        <PageHeader
+          title="Plant Workforce & Labour Costing"
+          subtitle="Map production machine operators to official payroll records and calculate real-time shift labour expenditures."
+          badge="HR & PRODUCTION WORKFORCE"
+          actions={
+            <div className="tab-pills">
+              <button
+                type="button"
+                className={`pill-btn ${activeTab === "OPERATORS" ? "active" : ""}`}
+                onClick={() => setActiveTab("OPERATORS")}
+              >
+                👥 Operators & Machine Crew
+              </button>
+              <button
+                type="button"
+                className={`pill-btn ${activeTab === "LABOUR_COST" ? "active" : ""}`}
+                onClick={() => setActiveTab("LABOUR_COST")}
+              >
+                💰 Shift Labour Costing
+              </button>
+            </div>
+          }
+        />
 
         {/* Tab 1: Operators & Crew */}
         {activeTab === "OPERATORS" && (
           <>
             {/* KPI Cards */}
-            <div className="plastic-kpi-grid">
-              <div className="plastic-kpi-card">
-                <span className="plastic-kpi-icon">⚙️</span>
-                <div>
-                  <span className="plastic-kpi-label">Plant Operators</span>
-                  <h3 className="plastic-kpi-val">{totalOperators}</h3>
-                  <small className="plastic-kpi-sub">Total machinery operators</small>
-                </div>
-              </div>
-              <div className="plastic-kpi-card">
-                <span className="plastic-kpi-icon" style={{ background: "#ecfdf5", color: "#059669" }}>🔗</span>
-                <div>
-                  <span className="plastic-kpi-label">HR Mapped</span>
-                  <h3 className="plastic-kpi-val">{mappedOperators}</h3>
-                  <small className="plastic-kpi-sub">Linked to payroll records</small>
-                </div>
-              </div>
-              <div className="plastic-kpi-card">
-                <span className="plastic-kpi-icon" style={{ background: "#fef3c7", color: "#b45309" }}>⚠️</span>
-                <div>
-                  <span className="plastic-kpi-label">Unlinked</span>
-                  <h3 className="plastic-kpi-val">{unmappedOperators}</h3>
-                  <small className="plastic-kpi-sub">Needs employee profile link</small>
-                </div>
-              </div>
-              <div className="plastic-kpi-card">
-                <span className="plastic-kpi-icon" style={{ background: "#eff6ff", color: "#2563eb" }}>🕒</span>
-                <div>
-                  <span className="plastic-kpi-label">Today on Shifts</span>
-                  <h3 className="plastic-kpi-val">{todayShiftWorkers}</h3>
-                  <small className="plastic-kpi-sub">Active in running shifts</small>
-                </div>
-              </div>
+            <div className="pwork-kpis">
+              <KpiCard
+                title="Plant Operators"
+                value={totalOperators}
+                subtitle="Total machinery operators"
+                variant="default"
+              />
+              <KpiCard
+                title="HR Mapped"
+                value={mappedOperators}
+                subtitle="Linked to payroll records"
+                variant="success"
+              />
+              <KpiCard
+                title="Unlinked"
+                value={unmappedOperators}
+                subtitle="Needs employee profile link"
+                variant="warning"
+              />
+              <KpiCard
+                title="Today on Shifts"
+                value={todayShiftWorkers}
+                subtitle="Active in running shifts"
+                variant="primary"
+              />
             </div>
 
             {/* Today's Shift Roster Snapshot */}
-            <div className="shift-snapshot-card">
-              <h4 style={{ margin: "0 0 12px 0", fontSize: "1rem", color: "#0f172a" }}>
-                🕒 Today&apos;s Plant Shift Attendance Snapshot
-              </h4>
+            <Card title="🕒 Today's Plant Shift Attendance Snapshot" className="shift-snapshot-card">
               <div className="shift-grid">
-                {shiftAttendance.map((s) => (
-                  <div key={s.shift_id} className="shift-stat-box">
-                    <span className="shift-name">{s.shift_name}</span>
-                    <div className="shift-numbers">
-                      <span className="shift-present">{s.present_count} Present</span>
-                      <span className="shift-ot">⚡ {s.overtime_hours} hrs OT</span>
+                {shiftAttendance.length === 0 ? (
+                  <div className="text-muted text-sm">No shifts active today.</div>
+                ) : (
+                  shiftAttendance.map((s) => (
+                    <div key={s.shift_id} className="shift-stat-box">
+                      <span className="shift-name">{s.shift_name}</span>
+                      <div className="shift-numbers">
+                        <span className="shift-present">{s.present_count} Present</span>
+                        <span className="shift-ot">⚡ {s.overtime_hours} hrs OT</span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
-            </div>
+            </Card>
 
             {/* Operators Table */}
-            {loading ? (
-              <LoadingScreen />
-            ) : (
-              <div className="plastic-table-container">
-                <table className="plastic-table">
-                  <thead>
-                    <tr>
-                      <th>Operator Name</th>
-                      <th>Mobile</th>
-                      <th>Specialization / Role</th>
-                      <th>Mapped Employee Master</th>
-                      <th>Salary Structure</th>
-                      <th>Status</th>
-                      <th style={{ textAlign: "right" }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {operators.length === 0 ? (
+            <Card title={`Plant Machinery Operators (${operators.length})`}>
+              {loading ? (
+                <LoadingScreen message="Loading workforce overview..." />
+              ) : operators.length === 0 ? (
+                <div className="pwork-empty">No machine operators configured yet.</div>
+              ) : (
+                <div className="pwork-table-wrap">
+                  <table className="pwork-table">
+                    <thead>
                       <tr>
-                        <td colSpan="7" style={{ textAlign: "center", padding: "2.5rem" }}>
-                          No machine operators configured yet.
-                        </td>
+                        <th>Operator Name</th>
+                        <th>Mobile</th>
+                        <th>Specialization / Role</th>
+                        <th>Mapped Employee Master</th>
+                        <th>Salary Structure</th>
+                        <th>Status</th>
+                        <th className="text-right">Actions</th>
                       </tr>
-                    ) : (
-                      operators.map((op) => (
+                    </thead>
+                    <tbody>
+                      {operators.map((op) => (
                         <tr key={op.id}>
                           <td><strong>{op.name}</strong></td>
                           <td>📞 {op.mobile || "N/A"}</td>
                           <td>
-                            <span className="plastic-chip">{op.specialization || "General Operator"}</span>
+                            <span className="pemp-chip">{op.specialization || "General Operator"}</span>
                           </td>
                           <td>
                             {op.employee_id ? (
                               <div>
-                                <span className="plastic-code-badge">{op.employee_code}</span>
-                                <span style={{ marginLeft: "8px", fontWeight: "600" }}>{op.employee_name}</span>
-                                <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                                <span className="pemp-code-badge">{op.employee_code}</span>
+                                <span className="mapped-emp-name">{op.employee_name}</span>
+                                <div className="text-muted text-sm">
                                   {op.department} • {op.designation}
                                 </div>
                               </div>
                             ) : (
-                              <span style={{ color: "#d97706", fontSize: "0.85rem", fontWeight: "600" }}>
+                              <span className="unlinked-tag">
                                 ⚠️ Not Linked to HR Master
                               </span>
                             )}
@@ -255,34 +240,35 @@ function PlasticWorkforce() {
                             {op.employee_id ? (
                               <div>
                                 <strong>₹{Number(op.base_salary || 0).toLocaleString("en-IN")}</strong>
-                                <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}> / {op.salary_type || "MONTHLY"}</span>
+                                <span className="text-muted text-sm"> / {op.salary_type || "MONTHLY"}</span>
                               </div>
                             ) : (
-                              <span style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>-</span>
+                              <span className="text-muted text-sm">-</span>
                             )}
                           </td>
                           <td>
-                            <span className={`plastic-status-tag tag-${(op.status || "ACTIVE").toLowerCase()}`}>
-                              {op.status || "ACTIVE"}
-                            </span>
+                            <StatusBadge
+                              status={op.status || "ACTIVE"}
+                              variant={op.status === "INACTIVE" ? "danger" : "success"}
+                            />
                           </td>
-                          <td style={{ textAlign: "right" }}>
-                            <button
+                          <td className="text-right">
+                            <Button
                               type="button"
-                              className="plastic-btn plastic-btn-secondary"
-                              style={{ padding: "5px 12px", fontSize: "0.8rem" }}
+                              variant="secondary"
+                              size="sm"
                               onClick={() => handleOpenMapModal(op)}
                             >
                               {op.employee_id ? "Change Link" : "🔗 Map to HR"}
-                            </button>
+                            </Button>
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </Card>
           </>
         )}
 
@@ -290,14 +276,14 @@ function PlasticWorkforce() {
         {activeTab === "LABOUR_COST" && (
           <div className="labour-cost-view">
             {/* Filter Bar */}
-            <div className="plastic-filter-card">
+            <Card className="pwork-filter-card">
               <div className="attendance-controls-row">
                 <div className="filter-group">
                   <label htmlFor="cost-from">From Date</label>
                   <input
                     id="cost-from"
                     type="date"
-                    className="plastic-input"
+                    className="sb-input"
                     value={labourFrom}
                     onChange={(e) => setLabourFrom(e.target.value)}
                   />
@@ -307,7 +293,7 @@ function PlasticWorkforce() {
                   <input
                     id="cost-to"
                     type="date"
-                    className="plastic-input"
+                    className="sb-input"
                     value={labourTo}
                     onChange={(e) => setLabourTo(e.target.value)}
                   />
@@ -316,7 +302,7 @@ function PlasticWorkforce() {
                   <label htmlFor="cost-shift">Shift</label>
                   <select
                     id="cost-shift"
-                    className="plastic-select"
+                    className="sb-select"
                     value={labourShift}
                     onChange={(e) => setLabourShift(e.target.value)}
                   >
@@ -327,151 +313,143 @@ function PlasticWorkforce() {
                   </select>
                 </div>
                 <div className="attendance-actions-right">
-                  <button
+                  <Button
                     type="button"
-                    className="plastic-btn plastic-btn-primary"
+                    variant="primary"
+                    size="md"
                     onClick={fetchLabourCost}
                     disabled={calculating}
                   >
                     {calculating ? "Calculating..." : "⚡ Calculate Labour Cost"}
-                  </button>
+                  </Button>
                 </div>
               </div>
-            </div>
+            </Card>
 
             {/* KPI Cards */}
-            <div className="plastic-kpi-grid">
-              <div className="plastic-kpi-card">
-                <span className="plastic-kpi-icon" style={{ background: "#ecfdf5", color: "#059669" }}>💰</span>
-                <div>
-                  <span className="plastic-kpi-label">Estimated Labour Cost</span>
-                  <h3 className="plastic-kpi-val">₹{Number(labourData.summary?.totalLabourCost || 0).toLocaleString("en-IN")}</h3>
-                  <small className="plastic-kpi-sub">Total wage cost for selected period</small>
-                </div>
-              </div>
-              <div className="plastic-kpi-card">
-                <span className="plastic-kpi-icon" style={{ background: "#eff6ff", color: "#2563eb" }}>⏱️</span>
-                <div>
-                  <span className="plastic-kpi-label">Total Worker Hours</span>
-                  <h3 className="plastic-kpi-val">{labourData.summary?.totalHours || 0} hrs</h3>
-                  <small className="plastic-kpi-sub">Regular + Overtime hours</small>
-                </div>
-              </div>
-              <div className="plastic-kpi-card">
-                <span className="plastic-kpi-icon">📋</span>
-                <div>
-                  <span className="plastic-kpi-label">Shift Records</span>
-                  <h3 className="plastic-kpi-val">{labourData.summary?.recordsCount || 0}</h3>
-                  <small className="plastic-kpi-sub">Shift log days counted</small>
-                </div>
-              </div>
+            <div className="pwork-kpis">
+              <KpiCard
+                title="Estimated Labour Cost"
+                value={`₹${Number(labourData.summary?.totalLabourCost || 0).toLocaleString("en-IN")}`}
+                subtitle="Total wage cost for selected period"
+                variant="success"
+              />
+              <KpiCard
+                title="Total Worker Hours"
+                value={`${labourData.summary?.totalHours || 0} hrs`}
+                subtitle="Regular + Overtime hours"
+                variant="primary"
+              />
+              <KpiCard
+                title="Shift Records"
+                value={labourData.summary?.recordsCount || 0}
+                subtitle="Shift log days counted"
+                variant="default"
+              />
             </div>
 
             {/* Shift Breakdown Table */}
-            {calculating ? (
-              <LoadingScreen />
-            ) : (
-              <div className="plastic-table-container">
-                <table className="plastic-table">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Shift</th>
-                      <th>Workers Present</th>
-                      <th>Regular Hours</th>
-                      <th>Overtime Hours</th>
-                      <th style={{ textAlign: "right" }}>Estimated Labour Cost</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {labourData.records.length === 0 ? (
+            <Card title="Shift-by-Shift Labour Cost Breakdown">
+              {calculating ? (
+                <LoadingScreen message="Calculating labour expenditure..." />
+              ) : labourData.records.length === 0 ? (
+                <div className="pwork-empty">
+                  No shift attendance data found for the selected period.
+                </div>
+              ) : (
+                <div className="pwork-table-wrap">
+                  <table className="pwork-table">
+                    <thead>
                       <tr>
-                        <td colSpan="6" style={{ textAlign: "center", padding: "2.5rem" }}>
-                          No shift attendance data found for the selected period.
-                        </td>
+                        <th>Date</th>
+                        <th>Shift</th>
+                        <th>Workers Present</th>
+                        <th>Regular Hours</th>
+                        <th>Overtime Hours</th>
+                        <th className="text-right">Estimated Labour Cost</th>
                       </tr>
-                    ) : (
-                      labourData.records.map((r, i) => (
+                    </thead>
+                    <tbody>
+                      {labourData.records.map((r, i) => (
                         <tr key={i}>
                           <td><strong>{new Date(r.attendance_date).toLocaleDateString("en-IN")}</strong></td>
-                          <td><span className="plastic-chip">{r.shift_name}</span></td>
+                          <td><span className="pemp-chip">{r.shift_name}</span></td>
                           <td>{r.workers_present} workers</td>
                           <td>{r.total_regular_hours} hrs</td>
-                          <td style={{ color: "#2563eb" }}>⚡ {r.total_overtime_hours} hrs</td>
-                          <td style={{ textAlign: "right" }}>
-                            <strong style={{ color: "#047857", fontSize: "1.05rem" }}>
+                          <td className="text-primary font-semibold">⚡ {r.total_overtime_hours} hrs</td>
+                          <td className="text-right">
+                            <strong className="text-success font-bold">
                               ₹{Math.round(Number(r.estimated_labour_cost || 0)).toLocaleString("en-IN")}
                             </strong>
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </Card>
           </div>
         )}
 
         {/* Modal: Map Operator to Employee */}
         {mappingModalOpen && selectedOperator && (
-          <div className="plastic-modal-backdrop" onClick={() => !submitting && setMappingModalOpen(false)}>
-            <div className="plastic-modal" style={{ maxWidth: "550px" }} onClick={(e) => e.stopPropagation()}>
-              <div className="plastic-modal-header">
-                <h3>🔗 Link Operator to Employee Profile</h3>
-                <button type="button" className="btn-close" onClick={() => setMappingModalOpen(false)}>✕</button>
+          <Modal
+            isOpen={mappingModalOpen}
+            onClose={() => !submitting && setMappingModalOpen(false)}
+            title="🔗 Link Operator to Employee Profile"
+            size="md"
+          >
+            <form onSubmit={handleSaveMapping} className="pwork-modal-form">
+              <div className="operator-profile-peek">
+                <h4 className="peek-title">Operator: {selectedOperator.name}</h4>
+                <p className="peek-sub">
+                  Role: {selectedOperator.specialization || "Plant Operator"} • Mobile: {selectedOperator.mobile || "N/A"}
+                </p>
               </div>
-              <form onSubmit={handleSaveMapping}>
-                <div className="plastic-modal-body">
-                  <div className="operator-profile-peek">
-                    <h4 style={{ margin: "0 0 4px 0" }}>Operator: {selectedOperator.name}</h4>
-                    <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--text-muted)" }}>
-                      Role: {selectedOperator.specialization || "Plant Operator"} • Mobile: {selectedOperator.mobile || "N/A"}
-                    </p>
-                  </div>
 
-                  <div className="form-field" style={{ marginTop: "16px" }}>
-                    <label>Select Official Employee Master *</label>
-                    <select
-                      className="plastic-select"
-                      value={selectedEmployeeId}
-                      onChange={(e) => setSelectedEmployeeId(e.target.value)}
-                    >
-                      <option value="">-- No Employee Link (Unlink) --</option>
-                      {unlinkedEmployees.map((emp) => (
-                        <option key={emp.id} value={emp.id}>
-                          {emp.full_name} ({emp.employee_code} - {emp.designation})
-                        </option>
-                      ))}
-                    </select>
-                    <small style={{ color: "var(--text-muted)", marginTop: "4px" }}>
-                      Linking syncs operator contact details and ties shift production batches directly to payroll salary calculation.
-                    </small>
-                  </div>
-                </div>
+              <div className="form-field mt-3">
+                <label>Select Official Employee Master *</label>
+                <select
+                  className="sb-select"
+                  value={selectedEmployeeId}
+                  onChange={(e) => setSelectedEmployeeId(e.target.value)}
+                >
+                  <option value="">-- No Employee Link (Unlink) --</option>
+                  {unlinkedEmployees.map((emp) => (
+                    <option key={emp.id} value={emp.id}>
+                      {emp.full_name} ({emp.employee_code} - {emp.designation})
+                    </option>
+                  ))}
+                </select>
+                <small className="text-muted text-sm mt-1">
+                  Linking syncs operator contact details and ties shift production batches directly to payroll salary calculation.
+                </small>
+              </div>
 
-                <div className="plastic-modal-footer">
-                  <button
-                    type="button"
-                    className="plastic-btn plastic-btn-ghost"
-                    onClick={() => setMappingModalOpen(false)}
-                    disabled={submitting}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="plastic-btn plastic-btn-primary"
-                    disabled={submitting}
-                  >
-                    {submitting ? "Saving..." : "Save Link"}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
+              <div className="modal-footer-actions">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="md"
+                  onClick={() => setMappingModalOpen(false)}
+                  disabled={submitting}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="md"
+                  disabled={submitting}
+                >
+                  {submitting ? "Saving..." : "Save Link"}
+                </Button>
+              </div>
+            </form>
+          </Modal>
         )}
-      </main>
+      </div>
     </div>
   );
 }

@@ -1,7 +1,66 @@
 /* Plastic Employee Advances Styles */
 
-.advances-overview {
+.padv-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.padv-filter-card {
+  margin-bottom: 24px;
+}
+
+.padv-table-wrap {
+  overflow-x: auto;
+}
+
+.padv-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  text-align: left;
+}
+
+.padv-table th {
+  background: var(--sb-canvas, #f4f8fb);
+  color: var(--sb-deep-navy, #063b66);
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--sb-border, #e3ebf2);
+  white-space: nowrap;
+}
+
+.padv-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--sb-border, #e3ebf2);
+  color: var(--sb-text-primary, #102a43);
+  vertical-align: middle;
+}
+
+.padv-table tr:hover td {
+  background-color: rgba(8, 121, 209, 0.02);
+}
+
+.padv-empty {
+  padding: 48px 20px;
+  text-align: center;
+  color: var(--sb-text-muted, #5a7184);
+}
+
+.padv-modal-form {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+}
+
+.repay-summary-box {
+  background: var(--sb-canvas, #f4f8fb);
+  border: 1px solid var(--sb-border, #e3ebf2);
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  line-height: 1.6;
 }

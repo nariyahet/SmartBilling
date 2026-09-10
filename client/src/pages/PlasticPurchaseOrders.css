@@ -1,104 +1,19 @@
-/* Purchase Orders Page Specific Styles */
-.delivery-progress-cell {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
+/* ==========================================================================
+   SMARTBILLING 2.0 - Purchase Orders Styles
+   ========================================================================== */
 
-.mini-progress-bar {
+.po-progress-bar {
   width: 100%;
   height: 6px;
-  background: #334155;
-  border-radius: 3px;
+  background: var(--sb-border, #E3EBF2);
+  border-radius: 999px;
+  margin-top: 4px;
   overflow: hidden;
 }
 
-.mini-progress-fill {
+.po-progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #10b981, #059669);
+  background: var(--sb-primary, #0879D1);
+  border-radius: 999px;
   transition: width 0.3s ease;
-}
-
-.btn-action.close-po {
-  background: #475569;
-  color: #ffffff;
-}
-
-.btn-action.close-po:hover {
-  background: #334155;
-}
-
-.text-amber-400 { color: #fbbf24; }
-
-/* Printable PO document styling */
-.po-doc-header {
-  display: flex;
-  justify-content: space-between;
-  border-bottom: 2px solid #334155;
-  padding-bottom: 16px;
-  margin-bottom: 16px;
-}
-
-.company-info h2 {
-  margin: 0 0 6px 0;
-  font-size: 1.3rem;
-  color: #ffffff;
-}
-
-.company-info p, .po-meta p {
-  margin: 2px 0;
-  font-size: 0.85rem;
-  color: #94a3b8;
-}
-
-.po-meta {
-  text-align: right;
-}
-
-.po-meta h3 {
-  margin: 0 0 6px 0;
-  color: #38bdf8;
-  font-size: 1.2rem;
-  letter-spacing: 0.05em;
-}
-
-.po-parties-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  background: #0f172a;
-  padding: 16px;
-  border-radius: 8px;
-  border: 1px solid #334155;
-  margin-bottom: 16px;
-}
-
-.party-box h4 {
-  margin: 0 0 6px 0;
-  font-size: 0.82rem;
-  color: #94a3b8;
-  text-transform: uppercase;
-}
-
-.party-box p {
-  margin: 4px 0 0 0;
-  font-size: 0.85rem;
-  color: #cbd5e1;
-}
-
-@media print {
-  body * {
-    visibility: hidden;
-  }
-  .po-printable-area, .po-printable-area * {
-    visibility: visible;
-  }
-  .po-printable-area {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    color: #000;
-    background: #fff;
-  }
 }

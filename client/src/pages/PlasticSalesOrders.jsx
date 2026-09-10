@@ -1,8 +1,17 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import API from "../api/axios";
-import PlasticNavbar from "../components/PlasticNavbar";
 import LoadingScreen from "../components/LoadingScreen";
+import {
+  PageHeader,
+  KpiCard,
+  Card,
+  DataTable,
+  Modal,
+  Button,
+  StatusBadge,
+  AlertBanner,
+} from "../components";
 import "./PlasticSalesOrders.css";
 
 function PlasticSalesOrders() {
@@ -11,6 +20,7 @@ function PlasticSalesOrders() {
   const [salesOrders, setSalesOrders] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [finishedGoods, setFinishedGoods] = useState([]);
+  const [alertInfo, setAlertInfo] = useState({ type: "", message: "" });
 
   // Filters
   const [statusFilter, setStatusFilter] = useState("");
@@ -52,14 +62,13 @@ function PlasticSalesOrders() {
       if (fgRes.data?.finishedGoods) setFinishedGoods(fgRes.data.finishedGoods || []);
     } catch (err) {
       console.error("Failed to load sales orders data:", err);
-      alert("Failed to load sales orders");
+      setAlertInfo({ type: "error", message: "Failed to load sales orders" });
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
   }, []);
 
@@ -76,7 +85,7 @@ function PlasticSalesOrders() {
 
   const handleAddItem = () => {
     if (!newItem.finished_good_id) {
-      alert("Select a finished good product");
+      setAlertInfo({ type: "warning", message: "Select a finished good product" });
       return;
     }
     const fg = finishedGoods.find((f) => String(f.id) === String(newItem.finished_good_id));
@@ -124,24 +133,24 @@ function PlasticSalesOrders() {
   const handleSubmitOrder = async (e) => {
     e.preventDefault();
     if (!formData.customer_id) {
-      alert("Please select a customer");
+      setAlertInfo({ type: "warning", message: "Please select a customer" });
       return;
     }
     if (formData.items.length === 0) {
-      alert("Please add at least one line item");
+      setAlertInfo({ type: "warning", message: "Please add at least one line item" });
       return;
     }
 
     try {
       const res = await API.post("/plastic-erp/sales", formData);
       if (res.data?.success) {
-        alert("Sales order created successfully!");
+        setAlertInfo({ type: "success", message: "Sales order created successfully!" });
         setCreateModalOpen(false);
         fetchData();
       }
     } catch (err) {
       console.error("Create Sales Order error:", err);
-      alert(err.response?.data?.message || "Failed to create sales order");
+      setAlertInfo({ type: "error", message: err.response?.data?.message || "Failed to create sales order" });
     }
   };
 
@@ -150,12 +159,12 @@ function PlasticSalesOrders() {
     try {
       const res = await API.patch(`/plastic-erp/sales/${orderId}/confirm`);
       if (res.data?.success) {
-        alert("Sales order confirmed and stock reserved successfully!");
+        setAlertInfo({ type: "success", message: "Sales order confirmed and stock reserved successfully!" });
         fetchData();
       }
     } catch (err) {
       console.error("Confirm SO error:", err);
-      alert(err.response?.data?.message || "Failed to confirm sales order");
+      setAlertInfo({ type: "error", message: err.response?.data?.message || "Failed to confirm sales order" });
     }
   };
 
@@ -164,12 +173,12 @@ function PlasticSalesOrders() {
     try {
       const res = await API.patch(`/plastic-erp/sales/${orderId}/cancel`);
       if (res.data?.success) {
-        alert("Sales order cancelled and reserved stock released!");
+        setAlertInfo({ type: "success", message: "Sales order cancelled and reserved stock released!" });
         fetchData();
       }
     } catch (err) {
       console.error("Cancel SO error:", err);
-      alert(err.response?.data?.message || "Failed to cancel sales order");
+      setAlertInfo({ type: "error", message: err.response?.data?.message || "Failed to cancel sales order" });
     }
   };
 
@@ -182,7 +191,7 @@ function PlasticSalesOrders() {
       }
     } catch (err) {
       console.error("Fetch SO details error:", err);
-      alert("Failed to fetch order details");
+      setAlertInfo({ type: "error", message: "Failed to fetch order details" });
     }
   };
 
@@ -226,483 +235,446 @@ function PlasticSalesOrders() {
   const completedOrdersCount = salesOrders.filter((o) => ["DISPATCHED", "COMPLETED"].includes(o.status)).length;
   const totalValueSum = salesOrders.reduce((sum, o) => sum + (Number(o.grand_total) || 0), 0);
 
-  if (loading) return <LoadingScreen />;
+  if (loading) return <LoadingScreen message="Loading Sales Orders..." />;
 
   return (
-    <div className="plastic-page-container">
-      <PlasticNavbar />
-
-      <main className="plastic-content-wrap">
-        <header className="plastic-page-header">
-          <div>
-            <h1 className="plastic-page-title">📋 Sales Order Management</h1>
-            <p className="plastic-page-subtitle">
-              Manage customer orders, reserve finished goods stock, and pipeline dispatches
-            </p>
-          </div>
-          <div className="plastic-page-actions">
-            <Link to="/plastic-erp" className="btn-dashboard-nav">
-              ← Dashboard
+    <div className="sb-page-container">
+      <PageHeader
+        title="Sales Order Management"
+        subtitle="Manage customer orders, reserve finished goods stock, and pipeline dispatches"
+        breadcrumbs={[
+          { label: "ERP", to: "/plastic-erp" },
+          { label: "Sales & Dispatch", to: "/plastic-erp/sales-orders" },
+          { label: "Sales Orders" },
+        ]}
+        actions={
+          <div style={{ display: "flex", gap: "10px" }}>
+            <Link to="/plastic-erp">
+              <Button variant="secondary">ERP Dashboard</Button>
             </Link>
-            <button className="btn-primary" onClick={handleOpenCreateModal}>
+            <Button variant="primary" onClick={handleOpenCreateModal}>
               + New Sales Order
-            </button>
+            </Button>
           </div>
-        </header>
+        }
+      />
 
-        {/* 4 KPI Cards */}
-        <section className="so-kpi-grid">
-          <div className="so-kpi-card">
-            <div className="so-kpi-icon">📑</div>
-            <div className="so-kpi-info">
-              <span className="so-kpi-label">Total Orders</span>
-              <strong className="so-kpi-value">{totalOrdersCount}</strong>
-            </div>
-          </div>
-          <div className="so-kpi-card">
-            <div className="so-kpi-icon">🔒</div>
-            <div className="so-kpi-info">
-              <span className="so-kpi-label">Reserved Orders</span>
-              <strong className="so-kpi-value">{reservedOrdersCount}</strong>
-            </div>
-          </div>
-          <div className="so-kpi-card">
-            <div className="so-kpi-icon">🚚</div>
-            <div className="so-kpi-info">
-              <span className="so-kpi-label">Dispatched / Done</span>
-              <strong className="so-kpi-value">{completedOrdersCount}</strong>
-            </div>
-          </div>
-          <div className="so-kpi-card">
-            <div className="so-kpi-icon">💰</div>
-            <div className="so-kpi-info">
-              <span className="so-kpi-label">Total Pipeline Value</span>
-              <strong className="so-kpi-value">₹{totalValueSum.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</strong>
-            </div>
-          </div>
-        </section>
+      {alertInfo.message && (
+        <AlertBanner
+          type={alertInfo.type}
+          message={alertInfo.message}
+          onClose={() => setAlertInfo({ type: "", message: "" })}
+        />
+      )}
 
-        {/* Orders Table Card */}
-        <section className="plastic-card">
-          <div className="plastic-card-header">
-            <div className="filter-row">
-              <input
-                type="text"
-                className="filter-input"
-                placeholder="Search by SO# or customer..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
+      {/* 4 KPI Cards */}
+      <div className="sb-kpis-grid" style={{ marginBottom: "24px" }}>
+        <KpiCard
+          label="Total Orders"
+          value={totalOrdersCount}
+          subtext="Total customer orders"
+          accent="navy"
+        />
+        <KpiCard
+          label="Reserved Orders"
+          value={reservedOrdersCount}
+          subtext="Active stock reservations"
+          accent="teal"
+        />
+        <KpiCard
+          label="Dispatched / Done"
+          value={completedOrdersCount}
+          subtext="Shipped to customers"
+          accent="blue"
+        />
+        <KpiCard
+          label="Total Pipeline Value"
+          value={`₹${totalValueSum.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`}
+          subtext="Gross sales order pipeline"
+          accent="navy"
+        />
+      </div>
+
+      {/* Orders Table Card */}
+      <Card noPadding>
+        <div style={{ padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--sb-border)", flexWrap: "wrap", gap: "12px" }}>
+          <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
+            <input
+              type="text"
+              className="sb-input"
+              style={{ width: "240px", height: "36px" }}
+              placeholder="Search by SO# or customer..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <select
+              className="sb-input"
+              style={{ width: "160px", height: "36px" }}
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="">All Statuses</option>
+              <option value="DRAFT">DRAFT</option>
+              <option value="RESERVED">RESERVED</option>
+              <option value="PARTIALLY_DISPATCHED">PARTIALLY_DISPATCHED</option>
+              <option value="DISPATCHED">DISPATCHED</option>
+              <option value="COMPLETED">COMPLETED</option>
+              <option value="CANCELLED">CANCELLED</option>
+            </select>
+            <select
+              className="sb-input"
+              style={{ width: "180px", height: "36px" }}
+              value={customerFilter}
+              onChange={(e) => setCustomerFilter(e.target.value)}
+            >
+              <option value="">All Customers</option>
+              {customers.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <span style={{ fontSize: "13px", color: "var(--sb-muted)" }}>
+            Showing {filteredOrders.length} of {salesOrders.length} orders
+          </span>
+        </div>
+
+        <DataTable
+          headers={[
+            "SO Number",
+            "Customer",
+            "Order Date",
+            "Delivery Date",
+            "Ordered Qty",
+            "Reserved Qty",
+            "Dispatched",
+            "Grand Total",
+            "Status",
+            "Actions",
+          ]}
+        >
+          {filteredOrders.length === 0 ? (
+            <tr>
+              <td colSpan="10" style={{ textAlign: "center", padding: "32px", color: "var(--sb-muted)" }}>
+                No sales orders found matching filters.
+              </td>
+            </tr>
+          ) : (
+            filteredOrders.map((so) => (
+              <tr key={so.id}>
+                <td><strong>{so.sales_order_no}</strong></td>
+                <td>
+                  <div style={{ fontWeight: 600 }}>{so.customer_name}</div>
+                  <div style={{ fontSize: "11px", color: "var(--sb-muted)" }}>{so.customer_mobile}</div>
+                </td>
+                <td>{so.order_date ? new Date(so.order_date).toLocaleDateString("en-IN") : "-"}</td>
+                <td>{so.expected_delivery_date ? new Date(so.expected_delivery_date).toLocaleDateString("en-IN") : "-"}</td>
+                <td>{Number(so.total_ordered_qty || 0).toLocaleString("en-IN")} KG</td>
+                <td>{Number(so.total_reserved_qty || 0).toLocaleString("en-IN")} KG</td>
+                <td>{Number(so.total_dispatched_qty || 0).toLocaleString("en-IN")} KG</td>
+                <td>
+                  <strong>₹{Number(so.grand_total || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</strong>
+                </td>
+                <td>
+                  <StatusBadge status={so.status} />
+                </td>
+                <td>
+                  <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => handleViewDetails(so.id)}
+                      title="View order items & timeline"
+                    >
+                      👁️ View
+                    </Button>
+
+                    {so.status === "DRAFT" && (
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        onClick={() => handleConfirmOrder(so.id)}
+                        title="Confirm and reserve FG stock"
+                      >
+                        🔒 Reserve
+                      </Button>
+                    )}
+
+                    {["RESERVED", "PARTIALLY_DISPATCHED"].includes(so.status) && (
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        onClick={() => handleCreateDispatchFromSO(so)}
+                        title="Create Dispatch for this order"
+                      >
+                        🚚 Dispatch
+                      </Button>
+                    )}
+
+                    {["DRAFT", "CONFIRMED", "RESERVED"].includes(so.status) && (
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        onClick={() => handleCancelOrder(so.id)}
+                        title="Cancel order and release reservations"
+                      >
+                        ✕ Cancel
+                      </Button>
+                    )}
+
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => handleCreateInvoiceFromSO(so)}
+                      title="Open in SmartBilling Invoices"
+                    >
+                      📄 Invoice
+                    </Button>
+                  </div>
+                </td>
+              </tr>
+            ))
+          )}
+        </DataTable>
+      </Card>
+
+      {/* CREATE SALES ORDER MODAL */}
+      <Modal
+        isOpen={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        title="Create New Sales Order"
+      >
+        <form onSubmit={handleSubmitOrder} className="sb-form">
+          <div className="sb-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px" }}>
+            <div className="sb-form-group">
+              <label className="sb-label">Customer *</label>
               <select
-                className="filter-select"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                className="sb-input"
+                value={formData.customer_id}
+                onChange={(e) => setFormData({ ...formData, customer_id: e.target.value })}
+                required
               >
-                <option value="">All Statuses</option>
-                <option value="DRAFT">DRAFT</option>
-                <option value="RESERVED">RESERVED</option>
-                <option value="PARTIALLY_DISPATCHED">PARTIALLY_DISPATCHED</option>
-                <option value="DISPATCHED">DISPATCHED</option>
-                <option value="COMPLETED">COMPLETED</option>
-                <option value="CANCELLED">CANCELLED</option>
-              </select>
-              <select
-                className="filter-select"
-                value={customerFilter}
-                onChange={(e) => setCustomerFilter(e.target.value)}
-              >
-                <option value="">All Customers</option>
+                <option value="">Select Customer</option>
                 {customers.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.name}
+                    {c.name} ({c.mobile})
                   </option>
                 ))}
               </select>
             </div>
-            <span style={{ fontSize: "13px", color: "#64748b" }}>
-              Showing {filteredOrders.length} of {salesOrders.length} orders
-            </span>
+
+            <div className="sb-form-group">
+              <label className="sb-label">Order Date *</label>
+              <input
+                type="date"
+                className="sb-input"
+                value={formData.order_date}
+                onChange={(e) => setFormData({ ...formData, order_date: e.target.value })}
+                required
+              />
+            </div>
+
+            <div className="sb-form-group">
+              <label className="sb-label">Expected Delivery Date</label>
+              <input
+                type="date"
+                className="sb-input"
+                value={formData.expected_delivery_date}
+                onChange={(e) => setFormData({ ...formData, expected_delivery_date: e.target.value })}
+              />
+            </div>
           </div>
 
-          <div className="table-responsive">
-            <table className="plastic-table">
-              <thead>
+          <div style={{ marginTop: "16px", border: "1px solid var(--sb-border)", borderRadius: "8px", padding: "16px" }}>
+            <h4 style={{ margin: "0 0 12px 0", fontSize: "14px", color: "var(--sb-navy)", fontWeight: 700 }}>
+              Order Line Items
+            </h4>
+
+            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr auto", gap: "10px", alignItems: "flex-end", marginBottom: "12px" }}>
+              <div className="sb-form-group" style={{ margin: 0 }}>
+                <label className="sb-label">Finished Good Material</label>
+                <select
+                  className="sb-input"
+                  value={newItem.finished_good_id}
+                  onChange={(e) => {
+                    const fg = finishedGoods.find((f) => String(f.id) === e.target.value);
+                    setNewItem({
+                      ...newItem,
+                      finished_good_id: e.target.value,
+                      rate: fg ? Number(fg.selling_price) || 0 : 0,
+                      unit: fg ? fg.unit : "KG",
+                    });
+                  }}
+                >
+                  <option value="">Select Finished Good</option>
+                  {finishedGoods.map((fg) => (
+                    <option key={fg.id} value={fg.id}>
+                      {fg.fg_name} ({fg.fg_code}) — Stock: {fg.current_stock} {fg.unit}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="sb-form-group" style={{ margin: 0 }}>
+                <label className="sb-label">Quantity ({newItem.unit})</label>
+                <input
+                  type="number"
+                  className="sb-input"
+                  min="1"
+                  step="any"
+                  value={newItem.quantity}
+                  onChange={(e) => setNewItem({ ...newItem, quantity: e.target.value })}
+                />
+              </div>
+
+              <div className="sb-form-group" style={{ margin: 0 }}>
+                <label className="sb-label">Rate (₹)</label>
+                <input
+                  type="number"
+                  className="sb-input"
+                  min="0"
+                  step="any"
+                  value={newItem.rate}
+                  onChange={(e) => setNewItem({ ...newItem, rate: e.target.value })}
+                />
+              </div>
+
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleAddItem}
+                style={{ height: "38px" }}
+              >
+                + Add
+              </Button>
+            </div>
+
+            <DataTable
+              headers={["Material", "Qty", "Rate (₹)", "Total (₹)", "Action"]}
+            >
+              {formData.items.length === 0 ? (
                 <tr>
-                  <th>SO Number</th>
-                  <th>Customer</th>
-                  <th>Order Date</th>
-                  <th>Delivery Date</th>
-                  <th>Ordered Qty</th>
-                  <th>Reserved Qty</th>
-                  <th>Dispatched</th>
-                  <th>Grand Total</th>
-                  <th>Status</th>
-                  <th>Actions</th>
+                  <td colSpan="5" style={{ textAlign: "center", color: "var(--sb-muted)" }}>
+                    No items added yet. Select a finished good and click Add Item.
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {filteredOrders.length === 0 ? (
-                  <tr>
-                    <td colSpan="10" style={{ textAlign: "center", padding: "32px", color: "#64748b" }}>
-                      No sales orders found matching filters.
+              ) : (
+                formData.items.map((itm, idx) => (
+                  <tr key={idx}>
+                    <td>{itm.fg_name}</td>
+                    <td>{itm.quantity} {itm.unit}</td>
+                    <td>₹{itm.rate}</td>
+                    <td>₹{itm.line_total.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
+                    <td>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="danger"
+                        onClick={() => handleRemoveItem(idx)}
+                      >
+                        ✕
+                      </Button>
                     </td>
                   </tr>
-                ) : (
-                  filteredOrders.map((so) => (
-                    <tr key={so.id}>
-                      <td>
-                        <strong>{so.sales_order_no}</strong>
-                      </td>
-                      <td>
-                        <div>{so.customer_name}</div>
-                        <small style={{ color: "#64748b" }}>{so.customer_mobile}</small>
-                      </td>
-                      <td>{so.order_date ? new Date(so.order_date).toLocaleDateString("en-IN") : "-"}</td>
-                      <td>{so.expected_delivery_date ? new Date(so.expected_delivery_date).toLocaleDateString("en-IN") : "-"}</td>
-                      <td>{Number(so.total_ordered_qty || 0).toLocaleString("en-IN")} KG</td>
-                      <td>{Number(so.total_reserved_qty || 0).toLocaleString("en-IN")} KG</td>
-                      <td>{Number(so.total_dispatched_qty || 0).toLocaleString("en-IN")} KG</td>
-                      <td>
-                        <strong>₹{Number(so.grand_total || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</strong>
-                      </td>
-                      <td>
-                        <span className={`status-badge ${so.status?.toLowerCase()}`}>{so.status}</span>
-                      </td>
-                      <td>
-                        <div className="action-btn-group">
-                          <button
-                            className="btn-table-action"
-                            onClick={() => handleViewDetails(so.id)}
-                            title="View order items & timeline"
-                          >
-                            👁️ View
-                          </button>
+                ))
+              )}
+            </DataTable>
 
-                          {so.status === "DRAFT" && (
-                            <button
-                              className="btn-table-action confirm"
-                              onClick={() => handleConfirmOrder(so.id)}
-                              title="Confirm and reserve FG stock"
-                            >
-                              🔒 Reserve
-                            </button>
-                          )}
-
-                          {["RESERVED", "PARTIALLY_DISPATCHED"].includes(so.status) && (
-                            <button
-                              className="btn-table-action confirm"
-                              onClick={() => handleCreateDispatchFromSO(so)}
-                              title="Create Dispatch for this order"
-                            >
-                              🚚 Dispatch
-                            </button>
-                          )}
-
-                          {["DRAFT", "CONFIRMED", "RESERVED"].includes(so.status) && (
-                            <button
-                              className="btn-table-action cancel"
-                              onClick={() => handleCancelOrder(so.id)}
-                              title="Cancel order and release reservations"
-                            >
-                              ✕ Cancel
-                            </button>
-                          )}
-
-                          <button
-                            className="btn-table-action invoice"
-                            onClick={() => handleCreateInvoiceFromSO(so)}
-                            title="Open in SmartBilling Invoices"
-                          >
-                            📄 Invoice
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </main>
-
-      {/* CREATE SALES ORDER MODAL */}
-      {createModalOpen && (
-        <div className="modal-backdrop">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3>Create New Sales Order</h3>
-              <button className="modal-close" onClick={() => setCreateModalOpen(false)}>
-                ✕
-              </button>
+            <div style={{ marginTop: "16px", display: "flex", justifyContent: "flex-end" }}>
+              <div style={{ fontSize: "16px", fontWeight: 700, color: "var(--sb-navy)" }}>
+                Grand Total: ₹{calculateSubtotal().toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+              </div>
             </div>
-            <form onSubmit={handleSubmitOrder}>
-              <div className="modal-body">
-                <div className="form-grid">
-                  <div className="form-group">
-                    <label>Customer *</label>
-                    <select
-                      className="form-select"
-                      value={formData.customer_id}
-                      onChange={(e) => setFormData({ ...formData, customer_id: e.target.value })}
-                      required
-                    >
-                      <option value="">Select Customer</option>
-                      {customers.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name} ({c.mobile})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label>Order Date *</label>
-                    <input
-                      type="date"
-                      className="form-input"
-                      value={formData.order_date}
-                      onChange={(e) => setFormData({ ...formData, order_date: e.target.value })}
-                      required
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label>Expected Delivery Date</label>
-                    <input
-                      type="date"
-                      className="form-input"
-                      value={formData.expected_delivery_date}
-                      onChange={(e) => setFormData({ ...formData, expected_delivery_date: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className="items-section">
-                  <div className="items-header">
-                    <strong>Order Line Items</strong>
-                  </div>
-
-                  <div className="form-grid" style={{ marginBottom: "12px", alignItems: "flex-end" }}>
-                    <div className="form-group" style={{ gridColumn: "span 2" }}>
-                      <label>Finished Good Material</label>
-                      <select
-                        className="form-select"
-                        value={newItem.finished_good_id}
-                        onChange={(e) => {
-                          const fg = finishedGoods.find((f) => String(f.id) === e.target.value);
-                          setNewItem({
-                            ...newItem,
-                            finished_good_id: e.target.value,
-                            rate: fg ? Number(fg.selling_price) || 0 : 0,
-                            unit: fg ? fg.unit : "KG",
-                          });
-                        }}
-                      >
-                        <option value="">Select Finished Good</option>
-                        {finishedGoods.map((fg) => (
-                          <option key={fg.id} value={fg.id}>
-                            {fg.fg_name} ({fg.fg_code}) — Stock: {fg.current_stock} {fg.unit}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="form-group">
-                      <label>Quantity ({newItem.unit})</label>
-                      <input
-                        type="number"
-                        className="form-input"
-                        min="1"
-                        step="any"
-                        value={newItem.quantity}
-                        onChange={(e) => setNewItem({ ...newItem, quantity: e.target.value })}
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label>Rate (₹)</label>
-                      <input
-                        type="number"
-                        className="form-input"
-                        min="0"
-                        step="any"
-                        value={newItem.rate}
-                        onChange={(e) => setNewItem({ ...newItem, rate: e.target.value })}
-                      />
-                    </div>
-
-                    <button
-                      type="button"
-                      className="btn-secondary"
-                      onClick={handleAddItem}
-                      style={{ height: "40px" }}
-                    >
-                      + Add Item
-                    </button>
-                  </div>
-
-                  <table className="items-table">
-                    <thead>
-                      <tr>
-                        <th>Material</th>
-                        <th>Qty</th>
-                        <th>Rate (₹)</th>
-                        <th>Total (₹)</th>
-                        <th>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {formData.items.length === 0 ? (
-                        <tr>
-                          <td colSpan="5" style={{ textAlign: "center", color: "#64748b" }}>
-                            No items added yet. Select a finished good and click Add Item.
-                          </td>
-                        </tr>
-                      ) : (
-                        formData.items.map((itm, idx) => (
-                          <tr key={idx}>
-                            <td>{itm.fg_name}</td>
-                            <td>{itm.quantity} {itm.unit}</td>
-                            <td>₹{itm.rate}</td>
-                            <td>₹{itm.line_total.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
-                            <td>
-                              <button
-                                type="button"
-                                className="btn-table-action cancel"
-                                onClick={() => handleRemoveItem(idx)}
-                              >
-                                ✕
-                              </button>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-
-                  <div className="order-totals">
-                    <div className="total-row grand">
-                      <span>Grand Total:</span>
-                      <span>₹{calculateSubtotal().toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="form-group" style={{ marginTop: "16px" }}>
-                  <label>Notes & Instructions</label>
-                  <textarea
-                    className="form-textarea"
-                    rows="2"
-                    placeholder="Dispatch instructions, payment terms, or transport details..."
-                    value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="modal-footer">
-                <button type="button" className="btn-secondary" onClick={() => setCreateModalOpen(false)}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn-primary">
-                  Save Sales Order (Draft)
-                </button>
-              </div>
-            </form>
           </div>
-        </div>
-      )}
+
+          <div className="sb-form-group" style={{ marginTop: "16px" }}>
+            <label className="sb-label">Notes & Instructions</label>
+            <textarea
+              className="sb-input"
+              rows="2"
+              placeholder="Dispatch instructions, payment terms, or transport details..."
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+            />
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "24px" }}>
+            <Button type="button" variant="secondary" onClick={() => setCreateModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary">
+              Save Sales Order (Draft)
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
       {/* VIEW DETAILS MODAL */}
-      {detailsModalOpen && selectedOrder && (
-        <div className="modal-backdrop">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3>Sales Order: {selectedOrder.sales_order_no}</h3>
-              <button className="modal-close" onClick={() => setDetailsModalOpen(false)}>
-                ✕
-              </button>
-            </div>
-            <div className="modal-body">
-              <div className="form-grid" style={{ marginBottom: "16px" }}>
-                <div>
-                  <strong>Customer:</strong> {selectedOrder.customer_name} ({selectedOrder.customer_mobile})
-                </div>
-                <div>
-                  <strong>Order Date:</strong> {new Date(selectedOrder.order_date).toLocaleDateString("en-IN")}
-                </div>
-                <div>
-                  <strong>Status:</strong>{" "}
-                  <span className={`status-badge ${selectedOrder.status?.toLowerCase()}`}>
-                    {selectedOrder.status}
-                  </span>
-                </div>
-                <div>
-                  <strong>Grand Total:</strong> ₹{Number(selectedOrder.grand_total).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                </div>
+      <Modal
+        isOpen={detailsModalOpen && !!selectedOrder}
+        onClose={() => setDetailsModalOpen(false)}
+        title={`Sales Order: ${selectedOrder?.sales_order_no || ""}`}
+      >
+        {selectedOrder && (
+          <div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", background: "var(--sb-canvas)", padding: "14px", borderRadius: "8px", marginBottom: "16px" }}>
+              <div>
+                <strong>Customer:</strong> {selectedOrder.customer_name} ({selectedOrder.customer_mobile})
               </div>
+              <div>
+                <strong>Order Date:</strong> {new Date(selectedOrder.order_date).toLocaleDateString("en-IN")}
+              </div>
+              <div>
+                <strong>Status:</strong> <StatusBadge status={selectedOrder.status} />
+              </div>
+              <div>
+                <strong>Grand Total:</strong> ₹{Number(selectedOrder.grand_total).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+              </div>
+            </div>
 
-              <h4 style={{ margin: "16px 0 8px 0" }}>Order Items</h4>
-              <table className="items-table">
-                <thead>
-                  <tr>
-                    <th>Product</th>
-                    <th>Ordered Qty</th>
-                    <th>Reserved Qty</th>
-                    <th>Dispatched Qty</th>
-                    <th>Rate</th>
-                    <th>Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(selectedOrder.items || []).map((itm) => (
-                    <tr key={itm.id}>
-                      <td>{itm.fg_name} ({itm.plastic_type})</td>
-                      <td>{itm.quantity} {itm.unit}</td>
-                      <td>{itm.reserved_quantity} {itm.unit}</td>
-                      <td>{itm.dispatched_quantity} {itm.unit}</td>
-                      <td>₹{itm.rate}</td>
-                      <td>₹{Number(itm.line_total).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
+            <h4 style={{ margin: "16px 0 8px 0", color: "var(--sb-navy)", fontSize: "14px", fontWeight: 700 }}>Order Items</h4>
+            <DataTable
+              headers={["Product", "Ordered Qty", "Reserved Qty", "Dispatched Qty", "Rate", "Total"]}
+            >
+              {(selectedOrder.items || []).map((itm) => (
+                <tr key={itm.id}>
+                  <td>{itm.fg_name} ({itm.plastic_type})</td>
+                  <td>{itm.quantity} {itm.unit}</td>
+                  <td>{itm.reserved_quantity} {itm.unit}</td>
+                  <td>{itm.dispatched_quantity} {itm.unit}</td>
+                  <td>₹{itm.rate}</td>
+                  <td>₹{Number(itm.line_total).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
+                </tr>
+              ))}
+            </DataTable>
+
+            {selectedOrder.reservations?.length > 0 && (
+              <>
+                <h4 style={{ margin: "20px 0 8px 0", color: "var(--sb-navy)", fontSize: "14px", fontWeight: 700 }}>Stock Reservations</h4>
+                <DataTable
+                  headers={["Material", "Reserved Quantity", "Status", "Reserved At"]}
+                >
+                  {selectedOrder.reservations.map((r) => (
+                    <tr key={r.id}>
+                      <td>{r.fg_name}</td>
+                      <td>{r.reserved_quantity} KG</td>
+                      <td><StatusBadge status={r.status} /></td>
+                      <td>{new Date(r.reserved_at).toLocaleString("en-IN")}</td>
                     </tr>
                   ))}
-                </tbody>
-              </table>
+                </DataTable>
+              </>
+            )}
 
-              {selectedOrder.reservations?.length > 0 && (
-                <>
-                  <h4 style={{ margin: "20px 0 8px 0" }}>Stock Reservations</h4>
-                  <table className="items-table">
-                    <thead>
-                      <tr>
-                        <th>Material</th>
-                        <th>Reserved Quantity</th>
-                        <th>Status</th>
-                        <th>Reserved At</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {selectedOrder.reservations.map((r) => (
-                        <tr key={r.id}>
-                          <td>{r.fg_name}</td>
-                          <td>{r.reserved_quantity} KG</td>
-                          <td><span className={`status-badge ${r.status?.toLowerCase()}`}>{r.status}</span></td>
-                          <td>{new Date(r.reserved_at).toLocaleString("en-IN")}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </>
-              )}
-            </div>
-            <div className="modal-footer">
-              <button className="btn-secondary" onClick={() => setDetailsModalOpen(false)}>
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "24px" }}>
+              <Button variant="secondary" onClick={() => setDetailsModalOpen(false)}>
                 Close
-              </button>
+              </Button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 }

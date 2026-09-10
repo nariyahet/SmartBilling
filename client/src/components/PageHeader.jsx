@@ -1,4 +1,3 @@
-import PropTypes from "prop-types";
 import "./PageHeader.css";
 
 /**
@@ -23,13 +22,5 @@ function PageHeader({
     </div>
   );
 }
-
-PageHeader.propTypes = {
-  title: PropTypes.string.isRequired,
-  subtitle: PropTypes.node,
-  badge: PropTypes.node,
-  actions: PropTypes.node,
-  className: PropTypes.string,
-};
 
 export default PageHeader;

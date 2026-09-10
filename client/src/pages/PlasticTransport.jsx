@@ -1,8 +1,16 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import API from "../api/axios";
-import PlasticNavbar from "../components/PlasticNavbar";
 import LoadingScreen from "../components/LoadingScreen";
+import {
+  PageHeader,
+  KpiCard,
+  Card,
+  DataTable,
+  Modal,
+  Button,
+  StatusBadge,
+} from "../components";
 import "./PlasticTransport.css";
 
 function PlasticTransport() {
@@ -44,7 +52,6 @@ function PlasticTransport() {
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchVehicles();
   }, []);
 
@@ -153,76 +160,88 @@ function PlasticTransport() {
   if (loading) return <LoadingScreen message="Loading Fleet Logistics..." />;
 
   return (
-    <div className="plastic-page">
-      <PlasticNavbar />
-      <div className="plastic-container">
-        {/* Header */}
-        <div className="pveh-header">
-          <div>
-            <span className="pveh-badge">LOGISTICS & FLEET</span>
-            <h1 className="pveh-title">Vehicle & Transport Master</h1>
-            <p className="pveh-subtitle">
-              Manage transport vehicles, dedicated trucks, drivers, and capacity for inward & outward dispatches.
-            </p>
-          </div>
-          <div className="pveh-header-actions">
-            <Link to="/plastic-erp/dispatches" className="pveh-btn pveh-btn-outline">
-              Dispatches
+    <div className="sb-page-container">
+      <PageHeader
+        title="Vehicle & Transport Master"
+        subtitle="Manage transport vehicles, dedicated trucks, drivers, and capacity for inward & outward dispatches."
+        breadcrumbs={[
+          { label: "ERP", to: "/plastic-erp" },
+          { label: "Sales & Dispatch", to: "/plastic-erp/sales-orders" },
+          { label: "Vehicles" },
+        ]}
+        actions={
+          <div style={{ display: "flex", gap: "10px" }}>
+            <Link to="/plastic-erp/dispatches">
+              <Button variant="secondary">Dispatches</Button>
             </Link>
-            <Link to="/plastic-erp/transport/challans" className="pveh-btn pveh-btn-outline">
-              Delivery Challans
+            <Link to="/plastic-erp/transport/challans">
+              <Button variant="secondary">Delivery Challans</Button>
             </Link>
-            <button className="pveh-btn pveh-btn-primary" onClick={handleOpenCreate}>
+            <Button variant="primary" onClick={handleOpenCreate}>
               + Register Vehicle
-            </button>
+            </Button>
           </div>
-        </div>
+        }
+      />
 
-        {/* KPIs */}
-        <div className="pveh-kpis">
-          <div className="pveh-kpi-card">
-            <div className="pveh-kpi-val">{totalVehicles}</div>
-            <div className="pveh-kpi-lbl">Total Fleet</div>
-          </div>
-          <div className="pveh-kpi-card active">
-            <div className="pveh-kpi-val">{activeVehicles}</div>
-            <div className="pveh-kpi-lbl">Active Vehicles</div>
-          </div>
-          <div className="pveh-kpi-card info">
-            <div className="pveh-kpi-val">{totalCapacityTons.toLocaleString()} <span className="pveh-unit">Tons</span></div>
-            <div className="pveh-kpi-lbl">Combined Capacity</div>
-          </div>
-          <div className="pveh-kpi-card transporters">
-            <div className="pveh-kpi-val">{uniqueTransporters}</div>
-            <div className="pveh-kpi-lbl">Dedicated Transporters</div>
-          </div>
-        </div>
+      {/* KPIs */}
+      <div className="sb-kpis-grid" style={{ marginBottom: "24px" }}>
+        <KpiCard
+          label="Total Fleet"
+          value={totalVehicles}
+          subtext="Registered vehicles"
+          accent="navy"
+        />
+        <KpiCard
+          label="Active Vehicles"
+          value={activeVehicles}
+          subtext="Available for dispatches"
+          accent="teal"
+        />
+        <KpiCard
+          label="Combined Capacity"
+          value={`${totalCapacityTons.toLocaleString()} Tons`}
+          subtext="Fleet payload capacity"
+          accent="blue"
+        />
+        <KpiCard
+          label="Transporters"
+          value={uniqueTransporters}
+          subtext="Dedicated logistics partners"
+          accent="navy"
+        />
+      </div>
 
-        {/* Filters */}
-        <div className="pveh-filters">
+      {/* Filters Bar */}
+      <Card noPadding style={{ marginBottom: "24px" }}>
+        <div style={{ padding: "16px 20px", display: "flex", flexWrap: "wrap", gap: "16px", alignItems: "center", justifyContent: "space-between" }}>
           <input
             type="text"
-            className="pveh-search"
+            className="sb-input"
+            style={{ width: "300px", height: "38px" }}
             placeholder="Search by Vehicle #, Transporter, Driver..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
 
-          <div className="pveh-filter-tabs">
+          <div style={{ display: "flex", gap: "6px", background: "var(--sb-canvas)", padding: "4px", borderRadius: "8px" }}>
             <button
-              className={`filter-tab ${statusFilter === "ALL" ? "active" : ""}`}
+              type="button"
+              className={`pveh-filter-tab ${statusFilter === "ALL" ? "active" : ""}`}
               onClick={() => setStatusFilter("ALL")}
             >
               All ({totalVehicles})
             </button>
             <button
-              className={`filter-tab ${statusFilter === "ACTIVE" ? "active" : ""}`}
+              type="button"
+              className={`pveh-filter-tab ${statusFilter === "ACTIVE" ? "active" : ""}`}
               onClick={() => setStatusFilter("ACTIVE")}
             >
               Active ({activeVehicles})
             </button>
             <button
-              className={`filter-tab ${statusFilter === "INACTIVE" ? "active" : ""}`}
+              type="button"
+              className={`pveh-filter-tab ${statusFilter === "INACTIVE" ? "active" : ""}`}
               onClick={() => setStatusFilter("INACTIVE")}
             >
               Inactive ({totalVehicles - activeVehicles})
@@ -230,195 +249,175 @@ function PlasticTransport() {
           </div>
         </div>
 
-        {/* Vehicles Grid / Table */}
-        <div className="pveh-card">
-          <div className="pveh-card-header">
-            <h3>Registered Vehicles ({filteredVehicles.length})</h3>
-          </div>
+        {/* Vehicles Table */}
+        <DataTable
+          headers={[
+            "Vehicle Number",
+            "Type",
+            "Capacity (Tons)",
+            "Transporter",
+            "Default Driver",
+            "Contact",
+            "Status",
+            "Actions",
+          ]}
+        >
           {filteredVehicles.length === 0 ? (
-            <div className="pveh-empty">No vehicles found matching criteria.</div>
+            <tr>
+              <td colSpan="8" style={{ textAlign: "center", padding: "32px", color: "var(--sb-muted)" }}>
+                No vehicles found matching criteria.
+              </td>
+            </tr>
           ) : (
-            <div className="pveh-table-wrap">
-              <table className="pveh-table">
-                <thead>
-                  <tr>
-                    <th>Vehicle Number</th>
-                    <th>Type</th>
-                    <th>Capacity (Tons)</th>
-                    <th>Transporter</th>
-                    <th>Default Driver</th>
-                    <th>Contact</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredVehicles.map((v) => (
-                    <tr key={v.id}>
-                      <td className="font-bold text-primary">
-                        {v.vehicle_number}
-                      </td>
-                      <td>
-                        <span className="type-badge">{v.vehicle_type || "TRUCK"}</span>
-                      </td>
-                      <td>
-                        {v.capacity_tons ? `${v.capacity_tons} MT` : "—"}
-                      </td>
-                      <td>{v.transporter_name || "Self / Company"}</td>
-                      <td>{v.driver_name || "—"}</td>
-                      <td>{v.driver_mobile || "—"}</td>
-                      <td>
-                        <span
-                          className={`status-dot ${v.is_active ? "active" : "inactive"}`}
-                          onClick={() => handleToggleStatus(v)}
-                          title="Click to toggle active status"
-                        >
-                          {v.is_active ? "Active" : "Inactive"}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="action-btns">
-                          <button
-                            className="btn-edit"
-                            onClick={() => handleOpenEdit(v)}
-                          >
-                            Edit
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            filteredVehicles.map((v) => (
+              <tr key={v.id}>
+                <td>
+                  <strong style={{ color: "var(--sb-ocean)" }}>{v.vehicle_number}</strong>
+                </td>
+                <td>
+                  <span className="pveh-type-badge">{v.vehicle_type || "TRUCK"}</span>
+                </td>
+                <td>{v.capacity_tons ? `${v.capacity_tons} MT` : "—"}</td>
+                <td>{v.transporter_name || "Self / Company"}</td>
+                <td>{v.driver_name || "—"}</td>
+                <td>{v.driver_mobile || "—"}</td>
+                <td>
+                  <span style={{ cursor: "pointer" }} onClick={() => handleToggleStatus(v)}>
+                    <StatusBadge status={v.is_active ? "APPROVED" : "CANCELLED"} />
+                  </span>
+                </td>
+                <td>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => handleOpenEdit(v)}
+                  >
+                    Edit
+                  </Button>
+                </td>
+              </tr>
+            ))
           )}
-        </div>
-      </div>
+        </DataTable>
+      </Card>
 
       {/* ADD / EDIT MODAL */}
-      {modalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-container">
-            <div className="modal-header">
-              <h2>{editingVehicle ? "Edit Vehicle" : "Register New Vehicle"}</h2>
-              <button className="close-btn" onClick={() => setModalOpen(false)}>
-                &times;
-              </button>
-            </div>
-            <form onSubmit={handleSubmit} className="modal-form">
-              <div className="form-group">
-                <label>Vehicle Registration Number *</label>
-                <input
-                  type="text"
-                  placeholder="e.g. MH 04 AZ 5678"
-                  value={formData.vehicle_number}
-                  onChange={(e) =>
-                    setFormData({ ...formData, vehicle_number: e.target.value.toUpperCase() })
-                  }
-                  required
-                />
-              </div>
-
-              <div className="form-row">
-                <div className="form-col">
-                  <label>Vehicle Type</label>
-                  <select
-                    value={formData.vehicle_type}
-                    onChange={(e) => setFormData({ ...formData, vehicle_type: e.target.value })}
-                  >
-                    <option value="TRUCK">Heavy Truck (10/12 Wheeler)</option>
-                    <option value="TEMPO">Tempo / LCV (407 / Canter)</option>
-                    <option value="PICKUP">Pickup (Bolero / Dost)</option>
-                    <option value="TRAILER">Trailer / 20ft Container</option>
-                    <option value="TRACTOR">Tractor Trolley</option>
-                    <option value="OTHER">Other</option>
-                  </select>
-                </div>
-
-                <div className="form-col">
-                  <label>Capacity (Tons)</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    placeholder="e.g. 15.5"
-                    value={formData.capacity_tons}
-                    onChange={(e) => setFormData({ ...formData, capacity_tons: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label>Transporter Name (Optional)</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Shree Ram Logistics (leave blank for self)"
-                  value={formData.transporter_name}
-                  onChange={(e) => setFormData({ ...formData, transporter_name: e.target.value })}
-                />
-              </div>
-
-              <div className="form-row">
-                <div className="form-col">
-                  <label>Primary Driver Name</label>
-                  <input
-                    type="text"
-                    placeholder="Driver's Full Name"
-                    value={formData.driver_name}
-                    onChange={(e) => setFormData({ ...formData, driver_name: e.target.value })}
-                  />
-                </div>
-                <div className="form-col">
-                  <label>Driver Contact Number</label>
-                  <input
-                    type="text"
-                    placeholder="10-digit mobile"
-                    value={formData.driver_mobile}
-                    onChange={(e) => setFormData({ ...formData, driver_mobile: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label>Vehicle Notes / RC / Fitness Info</label>
-                <textarea
-                  rows="2"
-                  placeholder="e.g. PUC valid till Dec 2026, Insurance renewed."
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                ></textarea>
-              </div>
-
-              <div className="checkbox-row">
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={formData.is_active}
-                    onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                  />
-                  <span>Active & Available for Dispatches</span>
-                </label>
-              </div>
-
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="pveh-btn pveh-btn-outline"
-                  onClick={() => setModalOpen(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="pveh-btn pveh-btn-primary"
-                  disabled={submitting}
-                >
-                  {submitting ? "Saving..." : editingVehicle ? "Update Vehicle" : "Register Vehicle"}
-                </button>
-              </div>
-            </form>
+      <Modal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={editingVehicle ? "Edit Vehicle" : "Register New Vehicle"}
+      >
+        <form onSubmit={handleSubmit} className="sb-form">
+          <div className="sb-form-group">
+            <label className="sb-label">Vehicle Registration Number *</label>
+            <input
+              type="text"
+              className="sb-input"
+              placeholder="e.g. MH 04 AZ 5678"
+              value={formData.vehicle_number}
+              onChange={(e) =>
+                setFormData({ ...formData, vehicle_number: e.target.value.toUpperCase() })
+              }
+              required
+            />
           </div>
-        </div>
-      )}
+
+          <div className="sb-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div className="sb-form-group">
+              <label className="sb-label">Vehicle Type</label>
+              <select
+                className="sb-input"
+                value={formData.vehicle_type}
+                onChange={(e) => setFormData({ ...formData, vehicle_type: e.target.value })}
+              >
+                <option value="TRUCK">Heavy Truck (10/12 Wheeler)</option>
+                <option value="TEMPO">Tempo / LCV (407 / Canter)</option>
+                <option value="PICKUP">Pickup (Bolero / Dost)</option>
+                <option value="TRAILER">Trailer / 20ft Container</option>
+                <option value="TRACTOR">Tractor Trolley</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+
+            <div className="sb-form-group">
+              <label className="sb-label">Capacity (Tons)</label>
+              <input
+                type="number"
+                step="0.1"
+                className="sb-input"
+                placeholder="e.g. 15.5"
+                value={formData.capacity_tons}
+                onChange={(e) => setFormData({ ...formData, capacity_tons: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div className="sb-form-group">
+            <label className="sb-label">Transporter Name (Optional)</label>
+            <input
+              type="text"
+              className="sb-input"
+              placeholder="e.g. Shree Ram Logistics (leave blank for self)"
+              value={formData.transporter_name}
+              onChange={(e) => setFormData({ ...formData, transporter_name: e.target.value })}
+            />
+          </div>
+
+          <div className="sb-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div className="sb-form-group">
+              <label className="sb-label">Primary Driver Name</label>
+              <input
+                type="text"
+                className="sb-input"
+                placeholder="Driver's Full Name"
+                value={formData.driver_name}
+                onChange={(e) => setFormData({ ...formData, driver_name: e.target.value })}
+              />
+            </div>
+            <div className="sb-form-group">
+              <label className="sb-label">Driver Contact Number</label>
+              <input
+                type="text"
+                className="sb-input"
+                placeholder="10-digit mobile"
+                value={formData.driver_mobile}
+                onChange={(e) => setFormData({ ...formData, driver_mobile: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div className="sb-form-group">
+            <label className="sb-label">Vehicle Notes / RC / Fitness Info</label>
+            <textarea
+              className="sb-input"
+              rows="2"
+              placeholder="e.g. PUC valid till Dec 2026, Insurance renewed."
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+            />
+          </div>
+
+          <div style={{ marginTop: "12px" }}>
+            <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={formData.is_active}
+                onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+              />
+              <span>Active & Available for Dispatches</span>
+            </label>
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "24px" }}>
+            <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary" disabled={submitting}>
+              {submitting ? "Saving..." : editingVehicle ? "Update Vehicle" : "Register Vehicle"}
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

@@ -1,8 +1,18 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import API from "../api/axios";
-import PlasticNavbar from "../components/PlasticNavbar";
 import LoadingScreen from "../components/LoadingScreen";
+import {
+  PageHeader,
+  KpiCard,
+  Card,
+  Tabs,
+  DataTable,
+  Modal,
+  Button,
+  StatusBadge,
+  AlertBanner,
+} from "../components";
 import "./PlasticMachines.css";
 
 function PlasticMachines() {
@@ -71,7 +81,6 @@ function PlasticMachines() {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
   }, [fetchData]);
 
@@ -117,495 +126,469 @@ function PlasticMachines() {
 
   if (loading) return <LoadingScreen message="Loading Machine Management..." />;
 
+  const tabs = [
+    { id: "machines", label: "Machines Master", count: machines.length },
+    { id: "downtime", label: "Downtime Logs", count: downtimes.length },
+    { id: "maintenance", label: "Maintenance", count: maintenance.length },
+  ];
+
   return (
-    <div className="plastic-page-container">
-      <PlasticNavbar />
-
-      <div className="plastic-content-wrap">
-        <div className="plastic-page-header">
-          <div>
-            <h1 className="plastic-page-title">⚙️ Machine & Plant Management</h1>
-            <p className="plastic-page-subtitle">Equipment Master, Live Status, Downtime Tracking & Preventive Maintenance</p>
-          </div>
-
-          <div className="plastic-page-actions">
-            <Link to="/plastic-erp" className="btn-dashboard-nav">
-              📊 ERP Dashboard
+    <div className="sb-page-container">
+      <PageHeader
+        title="Machine & Plant Management"
+        subtitle="Equipment Master, Live Status, Downtime Tracking & Preventive Maintenance"
+        breadcrumbs={[
+          { label: "ERP", to: "/plastic-erp" },
+          { label: "Production", to: "/plastic-erp/production" },
+          { label: "Machines" },
+        ]}
+        actions={
+          <div style={{ display: "flex", gap: "10px" }}>
+            <Link to="/plastic-erp">
+              <Button variant="secondary">ERP Dashboard</Button>
             </Link>
             {activeTab === "machines" && (
-              <button type="button" className="btn-primary" onClick={() => setShowMachineModal(true)}>
-                ➕ Add Machine
-              </button>
+              <Button variant="primary" onClick={() => setShowMachineModal(true)}>
+                + Add Machine
+              </Button>
             )}
             {activeTab === "downtime" && (
-              <button type="button" className="btn-primary" onClick={() => setShowDowntimeModal(true)}>
-                ➕ Log Downtime
-              </button>
+              <Button variant="primary" onClick={() => setShowDowntimeModal(true)}>
+                + Log Downtime
+              </Button>
             )}
             {activeTab === "maintenance" && (
-              <button type="button" className="btn-primary" onClick={() => setShowMntModal(true)}>
-                ➕ Schedule Maintenance
-              </button>
+              <Button variant="primary" onClick={() => setShowMntModal(true)}>
+                + Schedule Maintenance
+              </Button>
             )}
           </div>
-        </div>
+        }
+      />
 
-        {error && (
-          <div className="plastic-alert error">
-            <span>⚠️ {error}</span>
-            <button type="button" onClick={() => setError("")}>✕</button>
-          </div>
-        )}
+      {error && <AlertBanner type="error" message={error} onClose={() => setError("")} />}
+      {successMsg && <AlertBanner type="success" message={successMsg} onClose={() => setSuccessMsg("")} />}
 
-        {successMsg && (
-          <div className="plastic-alert success">
-            <span>✅ {successMsg}</span>
-            <button type="button" onClick={() => setSuccessMsg("")}>✕</button>
-          </div>
-        )}
+      {/* KPI Cards */}
+      <div className="sb-kpis-grid" style={{ marginBottom: "24px" }}>
+        <KpiCard
+          label="Total Machines"
+          value={`${machines.length} Units`}
+          subtext={`${totalCapacityKgHr.toLocaleString()} KG/HR capacity`}
+          accent="blue"
+        />
+        <KpiCard
+          label="Operating Active"
+          value={activeCount}
+          subtext={`${((activeCount / (machines.length || 1)) * 100).toFixed(0)}% running utilization`}
+          accent="teal"
+        />
+        <KpiCard
+          label="Under Breakdown"
+          value={breakdownCount}
+          subtext={`${downtimes.length} historical incidents`}
+          accent={breakdownCount > 0 ? "danger" : "navy"}
+        />
+      </div>
 
-        {/* Machine Stats Banner */}
-        <div className="wip-summary-cards">
-          <div className="summary-stat-card">
-            <span className="stat-label">Total Machines</span>
-            <strong className="stat-value text-blue">{machines.length} Units</strong>
-            <span className="stat-sub">{totalCapacityKgHr.toLocaleString()} KG/HR total rated capacity</span>
-          </div>
+      <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
 
-          <div className="summary-stat-card">
-            <span className="stat-label">Operating Active</span>
-            <strong className="stat-value text-green">{activeCount}</strong>
-            <span className="stat-sub">{((activeCount / (machines.length || 1)) * 100).toFixed(0)}% running utilization</span>
-          </div>
-
-          <div className="summary-stat-card">
-            <span className="stat-label">Under Breakdown / Repair</span>
-            <strong className="stat-value text-red">{breakdownCount}</strong>
-            <span className="stat-sub">{downtimes.length} historical downtime incidents</span>
-          </div>
-        </div>
-
-        {/* Tabs */}
-        <div className="plastic-tabs-nav">
-          <button
-            type="button"
-            className={`tab-btn ${activeTab === "machines" ? "active" : ""}`}
-            onClick={() => setActiveTab("machines")}
-          >
-            ⚙️ Machines ({machines.length})
-          </button>
-          <button
-            type="button"
-            className={`tab-btn ${activeTab === "downtime" ? "active" : ""}`}
-            onClick={() => setActiveTab("downtime")}
-          >
-            ⏱️ Downtime Logs ({downtimes.length})
-          </button>
-          <button
-            type="button"
-            className={`tab-btn ${activeTab === "maintenance" ? "active" : ""}`}
-            onClick={() => setActiveTab("maintenance")}
-          >
-            🔧 Maintenance ({maintenance.length})
-          </button>
-        </div>
-
-        {/* TAB 1: MACHINES MASTER */}
-        {activeTab === "machines" && (
-          <div className="machines-grid">
-            {machines.length === 0 ? (
-              <div className="plastic-card full-width empty-card">
-                <h3>No machines registered in the plant</h3>
-                <p>Click "Add Machine" to configure extruders, shredders, and pelletizers.</p>
-              </div>
-            ) : (
-              machines.map((m) => (
-                <div key={m.id} className={`machine-card status-${m.status?.toLowerCase()}`}>
-                  <div className="mch-header">
-                    <div>
-                      <span className="mch-code">{m.machine_code}</span>
-                      <h3 className="mch-name">{m.machine_name}</h3>
-                    </div>
-                    <span className={`badge mch-${m.status?.toLowerCase()}`}>{m.status}</span>
+      {/* TAB 1: MACHINES MASTER */}
+      {activeTab === "machines" && (
+        <div className="machines-grid">
+          {machines.length === 0 ? (
+            <Card style={{ gridColumn: "1 / -1", textAlign: "center", padding: "40px" }}>
+              <h3 style={{ color: "var(--sb-navy)", marginBottom: "8px" }}>No machines registered in the plant</h3>
+              <p style={{ color: "var(--sb-muted)", marginBottom: "16px" }}>Click &quot;Add Machine&quot; to configure extruders, shredders, and pelletizers.</p>
+              <Button variant="primary" onClick={() => setShowMachineModal(true)}>
+                + Add Machine
+              </Button>
+            </Card>
+          ) : (
+            machines.map((m) => (
+              <div key={m.id} className={`sb-machine-card status-${m.status?.toLowerCase()}`}>
+                <div className="mch-header">
+                  <div>
+                    <span className="mch-code">{m.machine_code}</span>
+                    <h3 className="mch-name">{m.machine_name}</h3>
                   </div>
+                  <StatusBadge status={m.status} />
+                </div>
 
-                  <div className="mch-details">
-                    <div className="detail-row">
-                      <span>Type:</span>
-                      <strong>{m.machine_type}</strong>
-                    </div>
-                    <div className="detail-row">
-                      <span>Capacity:</span>
-                      <strong>{Number(m.capacity).toLocaleString()} {m.unit}</strong>
-                    </div>
-                    <div className="detail-row">
-                      <span>Bay Location:</span>
-                      <strong>{m.location || "Main Plant Floor"}</strong>
-                    </div>
+                <div className="mch-details">
+                  <div className="mch-detail-row">
+                    <span>Type:</span>
+                    <strong>{m.machine_type}</strong>
                   </div>
-
-                  <div className="mch-footer">
-                    <button
-                      type="button"
-                      className="btn-log-dwn"
-                      onClick={() => {
-                        setDowntimeForm({ ...downtimeForm, machine_id: String(m.id) });
-                        setShowDowntimeModal(true);
-                      }}
-                    >
-                      Log Downtime ⏱️
-                    </button>
+                  <div className="mch-detail-row">
+                    <span>Capacity:</span>
+                    <strong>{Number(m.capacity).toLocaleString()} {m.unit}</strong>
+                  </div>
+                  <div className="mch-detail-row">
+                    <span>Bay Location:</span>
+                    <strong>{m.location || "Main Plant Floor"}</strong>
                   </div>
                 </div>
+
+                <div className="mch-footer">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => {
+                      setDowntimeForm({ ...downtimeForm, machine_id: String(m.id) });
+                      setShowDowntimeModal(true);
+                    }}
+                  >
+                    Log Downtime ⏱️
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* TAB 2: DOWNTIME LOGS */}
+      {activeTab === "downtime" && (
+        <Card noPadding>
+          <DataTable
+            headers={[
+              "Log No",
+              "Machine",
+              "Category",
+              "Duration",
+              "Reason",
+              "Action Taken",
+              "Start Time",
+            ]}
+          >
+            {downtimes.length === 0 ? (
+              <tr>
+                <td colSpan="7" style={{ textAlign: "center", padding: "32px", color: "var(--sb-muted)" }}>
+                  No downtime incidents recorded.
+                </td>
+              </tr>
+            ) : (
+              downtimes.map((d) => (
+                <tr key={d.id}>
+                  <td><strong>{d.downtime_no}</strong></td>
+                  <td>{d.machine_name} ({d.machine_code})</td>
+                  <td><span className="downtime-cat-badge">{d.category}</span></td>
+                  <td><strong>{d.duration_minutes} mins</strong></td>
+                  <td>{d.reason}</td>
+                  <td>{d.action_taken || "-"}</td>
+                  <td>{d.start_time?.split("T")[0]}</td>
+                </tr>
               ))
             )}
-          </div>
-        )}
+          </DataTable>
+        </Card>
+      )}
 
-        {/* TAB 2: DOWNTIME LOGS */}
-        {activeTab === "downtime" && (
-          <div className="plastic-card">
-            <div className="table-responsive">
-              <table className="plastic-table">
-                <thead>
-                  <tr>
-                    <th>Log No</th>
-                    <th>Machine</th>
-                    <th>Category</th>
-                    <th>Duration</th>
-                    <th>Reason</th>
-                    <th>Action Taken</th>
-                    <th>Start Time</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {downtimes.length === 0 ? (
-                    <tr>
-                      <td colSpan="7" className="empty-cell">No downtime incidents recorded.</td>
-                    </tr>
-                  ) : (
-                    downtimes.map((d) => (
-                      <tr key={d.id}>
-                        <td><strong>{d.downtime_no}</strong></td>
-                        <td>{d.machine_name} ({d.machine_code})</td>
-                        <td><span className="downtime-cat-badge">{d.category}</span></td>
-                        <td><strong>{d.duration_minutes} mins</strong></td>
-                        <td>{d.reason}</td>
-                        <td>{d.action_taken || "-"}</td>
-                        <td>{d.start_time?.split("T")[0]}</td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+      {/* TAB 3: MAINTENANCE RECORDS */}
+      {activeTab === "maintenance" && (
+        <Card noPadding>
+          <DataTable
+            headers={[
+              "Maintenance No",
+              "Machine",
+              "Title",
+              "Type",
+              "Scheduled Date",
+              "Estimated Cost",
+              "Technician",
+              "Status",
+            ]}
+          >
+            {maintenance.length === 0 ? (
+              <tr>
+                <td colSpan="8" style={{ textAlign: "center", padding: "32px", color: "var(--sb-muted)" }}>
+                  No maintenance schedules recorded.
+                </td>
+              </tr>
+            ) : (
+              maintenance.map((mnt) => (
+                <tr key={mnt.id}>
+                  <td><strong>{mnt.maintenance_no}</strong></td>
+                  <td>{mnt.machine_name}</td>
+                  <td>{mnt.title}</td>
+                  <td>{mnt.maintenance_type}</td>
+                  <td>{mnt.scheduled_date?.split("T")[0]}</td>
+                  <td>₹{Number(mnt.cost || 0).toLocaleString()}</td>
+                  <td>{mnt.technician_name || "Internal Plant Tech"}</td>
+                  <td>
+                    <StatusBadge status={mnt.status} />
+                  </td>
+                </tr>
+              ))
+            )}
+          </DataTable>
+        </Card>
+      )}
+
+      {/* MODAL: ADD MACHINE */}
+      <Modal
+        isOpen={showMachineModal}
+        onClose={() => setShowMachineModal(false)}
+        title="Add New Machine"
+      >
+        <form onSubmit={handleCreateMachine} className="sb-form">
+          <div className="sb-form-group">
+            <label className="sb-label">Machine Name *</label>
+            <input
+              type="text"
+              required
+              className="sb-input"
+              value={machineForm.machine_name}
+              onChange={(e) => setMachineForm({ ...machineForm, machine_name: e.target.value })}
+              placeholder="e.g. Twin Screw Extruder Line 02"
+            />
+          </div>
+
+          <div className="sb-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div className="sb-form-group">
+              <label className="sb-label">Machine Type *</label>
+              <select
+                className="sb-input"
+                value={machineForm.machine_type}
+                onChange={(e) => setMachineForm({ ...machineForm, machine_type: e.target.value })}
+              >
+                <option value="Extrusion Line">Extrusion Line</option>
+                <option value="Crusher / Granulator">Crusher / Granulator</option>
+                <option value="Friction Washer">Friction Washer</option>
+                <option value="Pelletizer">Pelletizer</option>
+                <option value="Agglomerator">Agglomerator</option>
+              </select>
+            </div>
+
+            <div className="sb-form-group">
+              <label className="sb-label">Rated Capacity (KG/HR)</label>
+              <input
+                type="number"
+                required
+                className="sb-input"
+                value={machineForm.capacity}
+                onChange={(e) => setMachineForm({ ...machineForm, capacity: e.target.value })}
+              />
             </div>
           </div>
-        )}
 
-        {/* TAB 3: MAINTENANCE RECORDS */}
-        {activeTab === "maintenance" && (
-          <div className="plastic-card">
-            <div className="table-responsive">
-              <table className="plastic-table">
-                <thead>
-                  <tr>
-                    <th>Maintenance No</th>
-                    <th>Machine</th>
-                    <th>Title</th>
-                    <th>Type</th>
-                    <th>Scheduled Date</th>
-                    <th>Estimated Cost</th>
-                    <th>Technician</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {maintenance.length === 0 ? (
-                    <tr>
-                      <td colSpan="8" className="empty-cell">No maintenance schedules recorded.</td>
-                    </tr>
-                  ) : (
-                    maintenance.map((mnt) => (
-                      <tr key={mnt.id}>
-                        <td><strong>{mnt.maintenance_no}</strong></td>
-                        <td>{mnt.machine_name}</td>
-                        <td>{mnt.title}</td>
-                        <td>{mnt.maintenance_type}</td>
-                        <td>{mnt.scheduled_date?.split("T")[0]}</td>
-                        <td>₹{Number(mnt.cost || 0).toLocaleString()}</td>
-                        <td>{mnt.technician_name || "Internal Plant Tech"}</td>
-                        <td>
-                          <span className={`badge status-${mnt.status?.toLowerCase()}`}>{mnt.status}</span>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+          <div className="sb-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div className="sb-form-group">
+              <label className="sb-label">Floor Location</label>
+              <input
+                type="text"
+                className="sb-input"
+                value={machineForm.location}
+                onChange={(e) => setMachineForm({ ...machineForm, location: e.target.value })}
+                placeholder="e.g. Plant Bay B"
+              />
+            </div>
+
+            <div className="sb-form-group">
+              <label className="sb-label">Initial Status</label>
+              <select
+                className="sb-input"
+                value={machineForm.status}
+                onChange={(e) => setMachineForm({ ...machineForm, status: e.target.value })}
+              >
+                <option value="ACTIVE">ACTIVE</option>
+                <option value="IDLE">IDLE</option>
+                <option value="MAINTENANCE">MAINTENANCE</option>
+                <option value="BREAKDOWN">BREAKDOWN</option>
+              </select>
             </div>
           </div>
-        )}
 
-        {/* MODAL: ADD MACHINE */}
-        {showMachineModal && (
-          <div className="plastic-modal-backdrop">
-            <div className="plastic-modal">
-              <div className="modal-header">
-                <h3>Add New Machine</h3>
-                <button type="button" onClick={() => setShowMachineModal(false)}>✕</button>
-              </div>
-              <form onSubmit={handleCreateMachine} className="modal-form">
-                <div className="form-group">
-                  <label>Machine Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={machineForm.machine_name}
-                    onChange={(e) => setMachineForm({ ...machineForm, machine_name: e.target.value })}
-                    placeholder="e.g. Twin Screw Extruder Line 02"
-                  />
-                </div>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "24px" }}>
+            <Button type="button" variant="secondary" onClick={() => setShowMachineModal(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary">
+              Save Machine
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Machine Type *</label>
-                    <select
-                      value={machineForm.machine_type}
-                      onChange={(e) => setMachineForm({ ...machineForm, machine_type: e.target.value })}
-                    >
-                      <option value="Extrusion Line">Extrusion Line</option>
-                      <option value="Crusher / Granulator">Crusher / Granulator</option>
-                      <option value="Friction Washer">Friction Washer</option>
-                      <option value="Pelletizer">Pelletizer</option>
-                      <option value="Agglomerator">Agglomerator</option>
-                    </select>
-                  </div>
+      {/* MODAL: LOG DOWNTIME */}
+      <Modal
+        isOpen={showDowntimeModal}
+        onClose={() => setShowDowntimeModal(false)}
+        title="Log Machine Downtime"
+      >
+        <form onSubmit={handleLogDowntime} className="sb-form">
+          <div className="sb-form-group">
+            <label className="sb-label">Machine *</label>
+            <select
+              required
+              className="sb-input"
+              value={downtimeForm.machine_id}
+              onChange={(e) => setDowntimeForm({ ...downtimeForm, machine_id: e.target.value })}
+            >
+              <option value="">Select Machine</option>
+              {machines.map((m) => (
+                <option key={m.id} value={m.id}>{m.machine_name} ({m.machine_code})</option>
+              ))}
+            </select>
+          </div>
 
-                  <div className="form-group">
-                    <label>Rated Capacity (KG/HR)</label>
-                    <input
-                      type="number"
-                      required
-                      value={machineForm.capacity}
-                      onChange={(e) => setMachineForm({ ...machineForm, capacity: e.target.value })}
-                    />
-                  </div>
-                </div>
+          <div className="sb-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div className="sb-form-group">
+              <label className="sb-label">Downtime Category</label>
+              <select
+                className="sb-input"
+                value={downtimeForm.category}
+                onChange={(e) => setDowntimeForm({ ...downtimeForm, category: e.target.value })}
+              >
+                <option value="BREAKDOWN">Machine Breakdown</option>
+                <option value="MAINTENANCE">Maintenance / Servicing</option>
+                <option value="MATERIAL_SHORTAGE">Material Shortage</option>
+                <option value="POWER_FAILURE">Power Failure / Grid Cut</option>
+                <option value="CHANGEOVER">Die Changeover / Cleaning</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
 
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Floor Location</label>
-                    <input
-                      type="text"
-                      value={machineForm.location}
-                      onChange={(e) => setMachineForm({ ...machineForm, location: e.target.value })}
-                      placeholder="e.g. Plant Bay B"
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label>Initial Status</label>
-                    <select
-                      value={machineForm.status}
-                      onChange={(e) => setMachineForm({ ...machineForm, status: e.target.value })}
-                    >
-                      <option value="ACTIVE">ACTIVE</option>
-                      <option value="IDLE">IDLE</option>
-                      <option value="MAINTENANCE">MAINTENANCE</option>
-                      <option value="BREAKDOWN">BREAKDOWN</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="modal-actions">
-                  <button type="button" className="btn-secondary" onClick={() => setShowMachineModal(false)}>
-                    Cancel
-                  </button>
-                  <button type="submit" className="btn-primary">
-                    Save Machine
-                  </button>
-                </div>
-              </form>
+            <div className="sb-form-group">
+              <label className="sb-label">Duration (Minutes) *</label>
+              <input
+                type="number"
+                required
+                min="1"
+                className="sb-input"
+                value={downtimeForm.duration_minutes}
+                onChange={(e) => setDowntimeForm({ ...downtimeForm, duration_minutes: e.target.value })}
+              />
             </div>
           </div>
-        )}
 
-        {/* MODAL: LOG DOWNTIME */}
-        {showDowntimeModal && (
-          <div className="plastic-modal-backdrop">
-            <div className="plastic-modal">
-              <div className="modal-header">
-                <h3>Log Machine Downtime</h3>
-                <button type="button" onClick={() => setShowDowntimeModal(false)}>✕</button>
-              </div>
-              <form onSubmit={handleLogDowntime} className="modal-form">
-                <div className="form-group">
-                  <label>Machine *</label>
-                  <select
-                    required
-                    value={downtimeForm.machine_id}
-                    onChange={(e) => setDowntimeForm({ ...downtimeForm, machine_id: e.target.value })}
-                  >
-                    <option value="">Select Machine</option>
-                    {machines.map((m) => (
-                      <option key={m.id} value={m.id}>{m.machine_name} ({m.machine_code})</option>
-                    ))}
-                  </select>
-                </div>
+          <div className="sb-form-group">
+            <label className="sb-label">Reason / Root Cause *</label>
+            <input
+              type="text"
+              required
+              className="sb-input"
+              value={downtimeForm.reason}
+              onChange={(e) => setDowntimeForm({ ...downtimeForm, reason: e.target.value })}
+              placeholder="e.g. Barrel temperature sensor fault or jammed conveyor"
+            />
+          </div>
 
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Downtime Category</label>
-                    <select
-                      value={downtimeForm.category}
-                      onChange={(e) => setDowntimeForm({ ...downtimeForm, category: e.target.value })}
-                    >
-                      <option value="BREAKDOWN">Machine Breakdown</option>
-                      <option value="MAINTENANCE">Maintenance / Servicing</option>
-                      <option value="MATERIAL_SHORTAGE">Material Shortage</option>
-                      <option value="POWER_FAILURE">Power Failure / Grid Cut</option>
-                      <option value="CHANGEOVER">Die Changeover / Cleaning</option>
-                      <option value="OTHER">Other</option>
-                    </select>
-                  </div>
+          <div className="sb-form-group">
+            <label className="sb-label">Corrective Action Taken</label>
+            <input
+              type="text"
+              className="sb-input"
+              value={downtimeForm.action_taken}
+              onChange={(e) => setDowntimeForm({ ...downtimeForm, action_taken: e.target.value })}
+              placeholder="e.g. Replaced thermocouple sensor and restarted extruder"
+            />
+          </div>
 
-                  <div className="form-group">
-                    <label>Duration (Minutes) *</label>
-                    <input
-                      type="number"
-                      required
-                      min="1"
-                      value={downtimeForm.duration_minutes}
-                      onChange={(e) => setDowntimeForm({ ...downtimeForm, duration_minutes: e.target.value })}
-                    />
-                  </div>
-                </div>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "24px" }}>
+            <Button type="button" variant="secondary" onClick={() => setShowDowntimeModal(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary">
+              Record Downtime
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
-                <div className="form-group">
-                  <label>Reason / Root Cause *</label>
-                  <input
-                    type="text"
-                    required
-                    value={downtimeForm.reason}
-                    onChange={(e) => setDowntimeForm({ ...downtimeForm, reason: e.target.value })}
-                    placeholder="e.g. Barrel temperature sensor fault or jammed conveyor"
-                  />
-                </div>
+      {/* MODAL: SCHEDULE MAINTENANCE */}
+      <Modal
+        isOpen={showMntModal}
+        onClose={() => setShowMntModal(false)}
+        title="Schedule Equipment Maintenance"
+      >
+        <form onSubmit={handleScheduleMnt} className="sb-form">
+          <div className="sb-form-group">
+            <label className="sb-label">Machine *</label>
+            <select
+              required
+              className="sb-input"
+              value={mntForm.machine_id}
+              onChange={(e) => setMntForm({ ...mntForm, machine_id: e.target.value })}
+            >
+              <option value="">Select Machine</option>
+              {machines.map((m) => (
+                <option key={m.id} value={m.id}>{m.machine_name} ({m.machine_code})</option>
+              ))}
+            </select>
+          </div>
 
-                <div className="form-group">
-                  <label>Corrective Action Taken</label>
-                  <input
-                    type="text"
-                    value={downtimeForm.action_taken}
-                    onChange={(e) => setDowntimeForm({ ...downtimeForm, action_taken: e.target.value })}
-                    placeholder="e.g. Replaced thermocouple sensor and restarted extruder"
-                  />
-                </div>
+          <div className="sb-form-group">
+            <label className="sb-label">Maintenance Title *</label>
+            <input
+              type="text"
+              required
+              className="sb-input"
+              value={mntForm.title}
+              onChange={(e) => setMntForm({ ...mntForm, title: e.target.value })}
+              placeholder="e.g. Monthly Gearbox Oil Change & Filter Replacement"
+            />
+          </div>
 
-                <div className="modal-actions">
-                  <button type="button" className="btn-secondary" onClick={() => setShowDowntimeModal(false)}>
-                    Cancel
-                  </button>
-                  <button type="submit" className="btn-primary">
-                    Record Downtime
-                  </button>
-                </div>
-              </form>
+          <div className="sb-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div className="sb-form-group">
+              <label className="sb-label">Type</label>
+              <select
+                className="sb-input"
+                value={mntForm.maintenance_type}
+                onChange={(e) => setMntForm({ ...mntForm, maintenance_type: e.target.value })}
+              >
+                <option value="PREVENTIVE">Preventive Maintenance</option>
+                <option value="BREAKDOWN">Breakdown Repair</option>
+                <option value="CORRECTIVE">Corrective Tuning</option>
+              </select>
+            </div>
+
+            <div className="sb-form-group">
+              <label className="sb-label">Scheduled Date *</label>
+              <input
+                type="date"
+                required
+                className="sb-input"
+                value={mntForm.scheduled_date}
+                onChange={(e) => setMntForm({ ...mntForm, scheduled_date: e.target.value })}
+              />
             </div>
           </div>
-        )}
 
-        {/* MODAL: SCHEDULE MAINTENANCE */}
-        {showMntModal && (
-          <div className="plastic-modal-backdrop">
-            <div className="plastic-modal">
-              <div className="modal-header">
-                <h3>Schedule Equipment Maintenance</h3>
-                <button type="button" onClick={() => setShowMntModal(false)}>✕</button>
-              </div>
-              <form onSubmit={handleScheduleMnt} className="modal-form">
-                <div className="form-group">
-                  <label>Machine *</label>
-                  <select
-                    required
-                    value={mntForm.machine_id}
-                    onChange={(e) => setMntForm({ ...mntForm, machine_id: e.target.value })}
-                  >
-                    <option value="">Select Machine</option>
-                    {machines.map((m) => (
-                      <option key={m.id} value={m.id}>{m.machine_name} ({m.machine_code})</option>
-                    ))}
-                  </select>
-                </div>
+          <div className="sb-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div className="sb-form-group">
+              <label className="sb-label">Estimated Cost (₹)</label>
+              <input
+                type="number"
+                className="sb-input"
+                value={mntForm.cost}
+                onChange={(e) => setMntForm({ ...mntForm, cost: e.target.value })}
+              />
+            </div>
 
-                <div className="form-group">
-                  <label>Maintenance Title *</label>
-                  <input
-                    type="text"
-                    required
-                    value={mntForm.title}
-                    onChange={(e) => setMntForm({ ...mntForm, title: e.target.value })}
-                    placeholder="e.g. Monthly Gearbox Oil Change & Filter Replacement"
-                  />
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Type</label>
-                    <select
-                      value={mntForm.maintenance_type}
-                      onChange={(e) => setMntForm({ ...mntForm, maintenance_type: e.target.value })}
-                    >
-                      <option value="PREVENTIVE">Preventive Maintenance</option>
-                      <option value="BREAKDOWN">Breakdown Repair</option>
-                      <option value="CORRECTIVE">Corrective Tuning</option>
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label>Scheduled Date *</label>
-                    <input
-                      type="date"
-                      required
-                      value={mntForm.scheduled_date}
-                      onChange={(e) => setMntForm({ ...mntForm, scheduled_date: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Estimated Cost (₹)</label>
-                    <input
-                      type="number"
-                      value={mntForm.cost}
-                      onChange={(e) => setMntForm({ ...mntForm, cost: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label>Technician Name</label>
-                    <input
-                      type="text"
-                      value={mntForm.technician_name}
-                      onChange={(e) => setMntForm({ ...mntForm, technician_name: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className="modal-actions">
-                  <button type="button" className="btn-secondary" onClick={() => setShowMntModal(false)}>
-                    Cancel
-                  </button>
-                  <button type="submit" className="btn-primary">
-                    Save Schedule
-                  </button>
-                </div>
-              </form>
+            <div className="sb-form-group">
+              <label className="sb-label">Technician Name</label>
+              <input
+                type="text"
+                className="sb-input"
+                value={mntForm.technician_name}
+                onChange={(e) => setMntForm({ ...mntForm, technician_name: e.target.value })}
+              />
             </div>
           </div>
-        )}
-      </div>
+
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "24px" }}>
+            <Button type="button" variant="secondary" onClick={() => setShowMntModal(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary">
+              Save Schedule
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

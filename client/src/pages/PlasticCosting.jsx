@@ -1,8 +1,16 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import API from "../api/axios";
-import PlasticNavbar from "../components/PlasticNavbar";
 import LoadingScreen from "../components/LoadingScreen";
+import {
+  PageHeader,
+  KpiCard,
+  Card,
+  DataTable,
+  Modal,
+  Button,
+  AlertBanner,
+} from "../components";
 import "./PlasticCosting.css";
 
 function PlasticCosting() {
@@ -62,7 +70,6 @@ function PlasticCosting() {
   }, [selectedBatchId]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
   }, [fetchData]);
 
@@ -88,297 +95,260 @@ function PlasticCosting() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="plastic-cost-page">
-        <PlasticNavbar />
-        <LoadingScreen message="Loading costing metrics..." />
-      </div>
-    );
-  }
+  if (loading) return <LoadingScreen message="Loading costing metrics..." />;
 
   return (
-    <div className="plastic-cost-page">
-      <PlasticNavbar />
+    <div className="sb-page-container">
+      <PageHeader
+        title="Production Costing & Variance"
+        subtitle="Detailed cost analysis: Raw material, regrind credit, machine runtime, labour, and overhead per KG/ton."
+        breadcrumbs={[
+          { label: "ERP", to: "/plastic-erp" },
+          { label: "Production", to: "/plastic-erp/production" },
+          { label: "Costing" },
+        ]}
+        actions={
+          <div style={{ display: "flex", gap: "10px" }}>
+            <Link to="/plastic-erp">
+              <Button variant="secondary">ERP Dashboard</Button>
+            </Link>
+            <Button variant="primary" onClick={() => setShowCostModal(true)}>
+              + Calculate Batch Cost
+            </Button>
+          </div>
+        }
+      />
 
-      <main className="plastic-cost-container">
-        {/* Header */}
-        <div className="plastic-cost-header">
+      {error && <AlertBanner type="error" message={error} onClose={() => setError("")} />}
+      {successMsg && <AlertBanner type="success" message={successMsg} onClose={() => setSuccessMsg("")} />}
+
+      {/* KPI Cards */}
+      <div className="sb-kpis-grid" style={{ marginBottom: "24px" }}>
+        <KpiCard
+          label="Total Batches Costed"
+          value={summary.totalBatchesCosted}
+          subtext="Tracked in plant operations"
+          accent="navy"
+        />
+        <KpiCard
+          label="Total Production Expense"
+          value={`₹${Number(summary.totalProductionExpense).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`}
+          subtext="Direct & Indirect Costs"
+          accent="blue"
+        />
+        <KpiCard
+          label="Total Plant Output"
+          value={`${Number(summary.totalOutputKg).toLocaleString("en-IN")} KG`}
+          subtext={`${(Number(summary.totalOutputKg) / 1000).toFixed(2)} Metric Tons`}
+          accent="teal"
+        />
+        <KpiCard
+          label="Avg Production Cost"
+          value={`₹${summary.avgCostPerKg} / KG`}
+          subtext={`₹${(summary.avgCostPerKg * 1000).toLocaleString("en-IN")} / Ton`}
+          accent="navy"
+        />
+      </div>
+
+      {/* Main Costing Table Card */}
+      <Card noPadding>
+        <div style={{ padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--sb-border)" }}>
           <div>
-            <span className="plastic-cost-badge">FINANCIAL & MARGIN CONTROL</span>
-            <h1 className="plastic-cost-title">Production Costing & Variance</h1>
-            <p className="plastic-cost-subtitle">
-              Detailed cost analysis: Raw material, regrind credit, machine runtime, labour, and overhead per KG/ton.
+            <h3 style={{ margin: "0 0 4px 0", fontSize: "16px", fontWeight: 700, color: "var(--sb-navy)" }}>
+              Batch Cost Breakdown & Standard Variance
+            </h3>
+            <p style={{ margin: 0, fontSize: "13px", color: "var(--sb-muted)" }}>
+              Comprehensive breakdown of actual input costs vs standard benchmarks.
             </p>
           </div>
-          <div className="plastic-cost-header-actions">
-            <Link to="/plastic-erp" className="btn-secondary-link">
-              ← ERP Dashboard
-            </Link>
-            <button
-              className="btn-primary-cost"
-              onClick={() => setShowCostModal(true)}
-            >
-              + Calculate Batch Cost
-            </button>
-          </div>
+          <Button variant="secondary" size="sm" onClick={() => setShowCostModal(true)}>
+            + Compute New Batch
+          </Button>
         </div>
 
-        {/* Notifications */}
-        {error && (
-          <div className="cost-alert cost-alert-danger">
-            <span>{error}</span>
-            <button onClick={() => setError("")}>×</button>
-          </div>
-        )}
-        {successMsg && (
-          <div className="cost-alert cost-alert-success">
-            <span>{successMsg}</span>
-            <button onClick={() => setSuccessMsg("")}>×</button>
-          </div>
-        )}
-
-        {/* KPI Cards */}
-        <div className="plastic-cost-stats-grid">
-          <div className="cost-stat-card">
-            <span className="cost-stat-label">Total Batches Costed</span>
-            <span className="cost-stat-val">{summary.totalBatchesCosted}</span>
-            <span className="cost-stat-sub">Tracked in plant operations</span>
-          </div>
-          <div className="cost-stat-card">
-            <span className="cost-stat-label">Total Production Expense</span>
-            <span className="cost-stat-val text-blue">
-              ₹{Number(summary.totalProductionExpense).toLocaleString("en-IN", { maximumFractionDigits: 2 })}
-            </span>
-            <span className="cost-stat-sub">Direct & Indirect Costs</span>
-          </div>
-          <div className="cost-stat-card">
-            <span className="cost-stat-label">Total Plant Output</span>
-            <span className="cost-stat-val text-green">
-              {Number(summary.totalOutputKg).toLocaleString("en-IN")} KG
-            </span>
-            <span className="cost-stat-sub">
-              {(Number(summary.totalOutputKg) / 1000).toFixed(2)} Metric Tons
-            </span>
-          </div>
-          <div className="cost-stat-card">
-            <span className="cost-stat-label">Avg Production Cost</span>
-            <span className="cost-stat-val text-purple">
-              ₹{summary.avgCostPerKg} <span className="val-unit">/ KG</span>
-            </span>
-            <span className="cost-stat-sub">
-              ₹{(summary.avgCostPerKg * 1000).toLocaleString("en-IN")} / Ton
-            </span>
-          </div>
-        </div>
-
-        {/* Main Costing Table Card */}
-        <div className="plastic-cost-card">
-          <div className="card-top-bar">
-            <div>
-              <h3>Batch Cost Breakdown & Standard Variance</h3>
-              <p className="card-desc">Comprehensive breakdown of actual input costs vs standard benchmarks.</p>
-            </div>
-            <button
-              className="btn-outline-sm"
-              onClick={() => setShowCostModal(true)}
-            >
-              + Compute New Batch
-            </button>
-          </div>
-
-          <div className="cost-table-responsive">
-            <table className="cost-table">
-              <thead>
-                <tr>
-                  <th>Batch No</th>
-                  <th>Product</th>
-                  <th>Output (KG)</th>
-                  <th>Raw Material</th>
-                  <th>Regrind Credit</th>
-                  <th>Labour</th>
-                  <th>Machine / Power</th>
-                  <th>Overhead</th>
-                  <th>Total Cost</th>
-                  <th>Cost / KG</th>
-                  <th>Std / KG</th>
-                  <th>Variance</th>
-                  <th>Calculated</th>
+        <DataTable
+          headers={[
+            "Batch No",
+            "Product",
+            "Output (KG)",
+            "Raw Material",
+            "Regrind Credit",
+            "Labour",
+            "Machine / Power",
+            "Overhead",
+            "Total Cost",
+            "Cost / KG",
+            "Std / KG",
+            "Variance",
+            "Calculated",
+          ]}
+        >
+          {costs.length === 0 ? (
+            <tr>
+              <td colSpan="13" style={{ textAlign: "center", padding: "32px", color: "var(--sb-muted)" }}>
+                No batch costing analyses found. Click &quot;+ Calculate Batch Cost&quot; to compute costs for a batch.
+              </td>
+            </tr>
+          ) : (
+            costs.map((c) => {
+              const isFavorable = Number(c.variance_amount) <= 0;
+              return (
+                <tr key={c.id}>
+                  <td>
+                    <Link
+                      to={`/plastic-erp/traceability?batch=${encodeURIComponent(c.batch_no)}`}
+                      style={{ color: "var(--sb-ocean)", fontWeight: 600 }}
+                    >
+                      <code>{c.batch_no}</code>
+                    </Link>
+                  </td>
+                  <td><strong>{c.product_name}</strong></td>
+                  <td>{c.output_quantity} KG</td>
+                  <td>₹{Number(c.raw_material_cost).toFixed(2)}</td>
+                  <td>
+                    {Number(c.regrind_cost) > 0 ? (
+                      <span style={{ color: "var(--sb-success)", fontWeight: 600 }}>-₹{Number(c.regrind_cost).toFixed(2)}</span>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td>₹{Number(c.labour_cost).toFixed(2)}</td>
+                  <td>₹{Number(c.machine_cost).toFixed(2)}</td>
+                  <td>₹{Number(c.overhead_cost).toFixed(2)}</td>
+                  <td><strong>₹{Number(c.total_cost).toFixed(2)}</strong></td>
+                  <td>
+                    <span className="cost-per-kg-badge">
+                      ₹{Number(c.cost_per_kg).toFixed(2)}
+                    </span>
+                  </td>
+                  <td style={{ color: "var(--sb-muted)" }}>₹{Number(c.standard_cost_per_kg).toFixed(2)}</td>
+                  <td>
+                    <span
+                      className={`variance-pill ${
+                        isFavorable ? "variance-favorable" : "variance-adverse"
+                      }`}
+                    >
+                      {isFavorable ? "▼" : "▲"} ₹{Math.abs(Number(c.variance_amount)).toFixed(2)} ({c.variance_percent}%)
+                    </span>
+                  </td>
+                  <td style={{ color: "var(--sb-muted)", fontSize: "12px" }}>
+                    {new Date(c.calculated_at).toLocaleDateString()}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {costs.length === 0 ? (
-                  <tr>
-                    <td colSpan="13" className="text-center py-5 text-muted">
-                      No batch costing analyses found. Click &quot;+ Calculate Batch Cost&quot; to compute costs for a batch.
-                    </td>
-                  </tr>
-                ) : (
-                  costs.map((c) => {
-                    const isFavorable = Number(c.variance_amount) <= 0;
-                    return (
-                      <tr key={c.id}>
-                        <td>
-                          <Link
-                            to={`/plastic-erp/traceability?batch=${encodeURIComponent(c.batch_no)}`}
-                            className="batch-link"
-                          >
-                            <code>{c.batch_no}</code>
-                          </Link>
-                        </td>
-                        <td><strong>{c.product_name}</strong></td>
-                        <td>{c.output_quantity} KG</td>
-                        <td>₹{Number(c.raw_material_cost).toFixed(2)}</td>
-                        <td>
-                          {Number(c.regrind_cost) > 0 ? (
-                            <span className="text-green">-₹{Number(c.regrind_cost).toFixed(2)}</span>
-                          ) : (
-                            "—"
-                          )}
-                        </td>
-                        <td>₹{Number(c.labour_cost).toFixed(2)}</td>
-                        <td>₹{Number(c.machine_cost).toFixed(2)}</td>
-                        <td>₹{Number(c.overhead_cost).toFixed(2)}</td>
-                        <td><strong>₹{Number(c.total_cost).toFixed(2)}</strong></td>
-                        <td>
-                          <span className="cost-per-kg-badge">
-                            ₹{Number(c.cost_per_kg).toFixed(2)}
-                          </span>
-                        </td>
-                        <td className="text-muted">₹{Number(c.standard_cost_per_kg).toFixed(2)}</td>
-                        <td>
-                          <span
-                            className={`variance-pill ${
-                              isFavorable ? "variance-favorable" : "variance-adverse"
-                            }`}
-                          >
-                            {isFavorable ? "▼" : "▲"} ₹{Math.abs(Number(c.variance_amount)).toFixed(2)} ({c.variance_percent}%)
-                          </span>
-                        </td>
-                        <td className="text-muted font-sm">
-                          {new Date(c.calculated_at).toLocaleDateString()}
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </main>
+              );
+            })
+          )}
+        </DataTable>
+      </Card>
 
       {/* CALCULATE BATCH COST MODAL */}
-      {showCostModal && (
-        <div className="cost-modal-backdrop">
-          <div className="cost-modal-box">
-            <div className="cost-modal-header">
-              <h2>Calculate Batch Production Cost</h2>
-              <button onClick={() => setShowCostModal(false)}>×</button>
-            </div>
-            <form onSubmit={handleCalculateCost} className="cost-modal-form">
-              <div className="form-group">
-                <label>Select Production Batch *</label>
-                <select
-                  required
-                  value={selectedBatchId}
-                  onChange={(e) => setSelectedBatchId(e.target.value)}
-                >
-                  <option value="">-- Choose Batch --</option>
-                  {batches.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.batch_no} — {b.product_name} ({b.status}, {b.actual_quantity || b.planned_quantity} KG)
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-grid-2">
-                <div className="form-group">
-                  <label>Labour Rate (₹/Hour)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    required
-                    value={costParams.labour_rate_per_hour}
-                    onChange={(e) =>
-                      setCostParams({
-                        ...costParams,
-                        labour_rate_per_hour: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Machine & Power Rate (₹/Hour)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    required
-                    value={costParams.machine_rate_per_hour}
-                    onChange={(e) =>
-                      setCostParams({
-                        ...costParams,
-                        machine_rate_per_hour: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-              </div>
-
-              <div className="form-grid-2">
-                <div className="form-group">
-                  <label>Overhead Allocation (%)</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    required
-                    value={costParams.overhead_percent}
-                    onChange={(e) =>
-                      setCostParams({
-                        ...costParams,
-                        overhead_percent: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Standard Benchmark (₹/KG)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    required
-                    value={costParams.standard_cost_per_kg}
-                    onChange={(e) =>
-                      setCostParams({
-                        ...costParams,
-                        standard_cost_per_kg: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-              </div>
-
-              <div className="modal-info-note">
-                💡 Raw material consumptions and regrind usage are automatically fetched from this batch&apos;s shop floor logs.
-              </div>
-
-              <div className="cost-modal-actions">
-                <button
-                  type="button"
-                  className="btn-modal-cancel"
-                  onClick={() => setShowCostModal(false)}
-                >
-                  Cancel
-                </button>
-                <button type="submit" className="btn-modal-submit">
-                  Run Cost Calculation
-                </button>
-              </div>
-            </form>
+      <Modal
+        isOpen={showCostModal}
+        onClose={() => setShowCostModal(false)}
+        title="Calculate Batch Production Cost"
+      >
+        <form onSubmit={handleCalculateCost} className="sb-form">
+          <div className="sb-form-group">
+            <label className="sb-label">Select Production Batch *</label>
+            <select
+              required
+              className="sb-input"
+              value={selectedBatchId}
+              onChange={(e) => setSelectedBatchId(e.target.value)}
+            >
+              <option value="">-- Choose Batch --</option>
+              {batches.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.batch_no} — {b.product_name} ({b.status}, {b.actual_quantity || b.planned_quantity} KG)
+                </option>
+              ))}
+            </select>
           </div>
-        </div>
-      )}
+
+          <div className="sb-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div className="sb-form-group">
+              <label className="sb-label">Labour Rate (₹/Hour)</label>
+              <input
+                type="number"
+                step="0.01"
+                required
+                className="sb-input"
+                value={costParams.labour_rate_per_hour}
+                onChange={(e) =>
+                  setCostParams({
+                    ...costParams,
+                    labour_rate_per_hour: e.target.value,
+                  })
+                }
+              />
+            </div>
+            <div className="sb-form-group">
+              <label className="sb-label">Machine & Power Rate (₹/Hour)</label>
+              <input
+                type="number"
+                step="0.01"
+                required
+                className="sb-input"
+                value={costParams.machine_rate_per_hour}
+                onChange={(e) =>
+                  setCostParams({
+                    ...costParams,
+                    machine_rate_per_hour: e.target.value,
+                  })
+                }
+              />
+            </div>
+          </div>
+
+          <div className="sb-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div className="sb-form-group">
+              <label className="sb-label">Overhead Allocation (%)</label>
+              <input
+                type="number"
+                step="0.1"
+                required
+                className="sb-input"
+                value={costParams.overhead_percent}
+                onChange={(e) =>
+                  setCostParams({
+                    ...costParams,
+                    overhead_percent: e.target.value,
+                  })
+                }
+              />
+            </div>
+            <div className="sb-form-group">
+              <label className="sb-label">Standard Benchmark (₹/KG)</label>
+              <input
+                type="number"
+                step="0.01"
+                required
+                className="sb-input"
+                value={costParams.standard_cost_per_kg}
+                onChange={(e) =>
+                  setCostParams({
+                    ...costParams,
+                    standard_cost_per_kg: e.target.value,
+                  })
+                }
+              />
+            </div>
+          </div>
+
+          <div style={{ background: "var(--sb-canvas)", border: "1px dashed var(--sb-border)", padding: "10px 14px", borderRadius: "6px", fontSize: "12.5px", color: "var(--sb-muted)" }}>
+            💡 Raw material consumptions and regrind usage are automatically fetched from this batch&apos;s shop floor logs.
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "24px" }}>
+            <Button type="button" variant="secondary" onClick={() => setShowCostModal(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary">
+              Run Cost Calculation
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

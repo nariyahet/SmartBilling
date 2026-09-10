@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import API from "../api/axios";
 import PlasticNavbar from "../components/PlasticNavbar";
 import LoadingScreen from "../components/LoadingScreen";
+import { PageHeader, Card, KpiCard, Modal, Button, StatusBadge } from "../components";
 import "./PlasticLeaveManagement.css";
 
 function PlasticLeaveManagement() {
@@ -86,12 +87,8 @@ function PlasticLeaveManagement() {
   }, [activeTab, fetchData, fetchBalances]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadLeaveData();
   }, [loadLeaveData]);
-
-
-
 
   // Recalculate days when start/end changes
   const handleDateChange = (field, val) => {
@@ -165,104 +162,107 @@ function PlasticLeaveManagement() {
   const approvedCount = leaveRequests.filter((r) => r.status === "APPROVED").length;
   const rejectedCount = leaveRequests.filter((r) => r.status === "REJECTED").length;
 
+  const getLeaveStatusVariant = (status) => {
+    switch (status) {
+      case "APPROVED":
+        return "success";
+      case "REJECTED":
+        return "danger";
+      case "PENDING":
+        return "warning";
+      default:
+        return "default";
+    }
+  };
+
   return (
     <div className="plastic-page">
       <PlasticNavbar />
-      <main className="plastic-container">
+      <div className="plastic-container sb-page-container">
         {/* Header */}
-        <div className="plastic-header-row">
-          <div>
-            <span className="plastic-breadcrumb">Plastic ERP / HR & Payroll</span>
-            <h1 className="plastic-title">🏖️ Leave Management & Balances</h1>
-            <p className="plastic-subtitle">
-              Manage employee leave applications, approvals, paid quota balances, and factory holiday allocations.
-            </p>
-          </div>
-          <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-            <div className="tab-pills">
-              <button
-                type="button"
-                className={`pill-btn ${activeTab === "REQUESTS" ? "active" : ""}`}
-                onClick={() => setActiveTab("REQUESTS")}
-              >
-                📋 Leave Applications
-              </button>
-              <button
-                type="button"
-                className={`pill-btn ${activeTab === "BALANCES" ? "active" : ""}`}
-                onClick={() => setActiveTab("BALANCES")}
-              >
-                📊 Annual Quotas
-              </button>
+        <PageHeader
+          title="Leave Management & Balances"
+          subtitle="Manage employee leave applications, approvals, paid quota balances, and factory holiday allocations."
+          badge="HR & ATTENDANCE"
+          actions={
+            <div className="pleave-header-actions">
+              <div className="tab-pills">
+                <button
+                  type="button"
+                  className={`pill-btn ${activeTab === "REQUESTS" ? "active" : ""}`}
+                  onClick={() => setActiveTab("REQUESTS")}
+                >
+                  📋 Leave Applications
+                </button>
+                <button
+                  type="button"
+                  className={`pill-btn ${activeTab === "BALANCES" ? "active" : ""}`}
+                  onClick={() => setActiveTab("BALANCES")}
+                >
+                  📊 Annual Quotas
+                </button>
+              </div>
+              {activeTab === "REQUESTS" ? (
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="md"
+                  onClick={() => setApplyModalOpen(true)}
+                >
+                  + Apply Leave
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="md"
+                  onClick={() => setInitModalOpen(true)}
+                >
+                  ⚙️ Initialize {selectedYear} Balances
+                </Button>
+              )}
             </div>
-            {activeTab === "REQUESTS" ? (
-              <button
-                type="button"
-                className="plastic-btn plastic-btn-primary"
-                onClick={() => setApplyModalOpen(true)}
-              >
-                + Apply Leave
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="plastic-btn plastic-btn-secondary"
-                onClick={() => setInitModalOpen(true)}
-              >
-                ⚙️ Initialize {selectedYear} Balances
-              </button>
-            )}
-          </div>
-        </div>
+          }
+        />
 
         {/* Requests Tab View */}
         {activeTab === "REQUESTS" && (
           <>
             {/* KPI Cards */}
-            <div className="plastic-kpi-grid">
-              <div className="plastic-kpi-card">
-                <span className="plastic-kpi-icon" style={{ background: "#fef3c7", color: "#b45309" }}>⏳</span>
-                <div>
-                  <span className="plastic-kpi-label">Pending Reviews</span>
-                  <h3 className="plastic-kpi-val">{pendingCount}</h3>
-                  <small className="plastic-kpi-sub">Awaiting manager signoff</small>
-                </div>
-              </div>
-              <div className="plastic-kpi-card">
-                <span className="plastic-kpi-icon" style={{ background: "#ecfdf5", color: "#059669" }}>✅</span>
-                <div>
-                  <span className="plastic-kpi-label">Approved</span>
-                  <h3 className="plastic-kpi-val">{approvedCount}</h3>
-                  <small className="plastic-kpi-sub">Sanctioned leaves</small>
-                </div>
-              </div>
-              <div className="plastic-kpi-card">
-                <span className="plastic-kpi-icon" style={{ background: "#fee2e2", color: "#b91c1c" }}>❌</span>
-                <div>
-                  <span className="plastic-kpi-label">Rejected</span>
-                  <h3 className="plastic-kpi-val">{rejectedCount}</h3>
-                  <small className="plastic-kpi-sub">Declined applications</small>
-                </div>
-              </div>
-              <div className="plastic-kpi-card">
-                <span className="plastic-kpi-icon" style={{ background: "#eff6ff", color: "#2563eb" }}>🏷️</span>
-                <div>
-                  <span className="plastic-kpi-label">Leave Types</span>
-                  <h3 className="plastic-kpi-val">{leaveTypes.length}</h3>
-                  <small className="plastic-kpi-sub">Configured policies (CL, SL, EL, LWP)</small>
-                </div>
-              </div>
+            <div className="pleave-kpis">
+              <KpiCard
+                title="Pending Reviews"
+                value={pendingCount}
+                subtitle="Awaiting manager signoff"
+                variant="warning"
+              />
+              <KpiCard
+                title="Approved"
+                value={approvedCount}
+                subtitle="Sanctioned leaves"
+                variant="success"
+              />
+              <KpiCard
+                title="Rejected"
+                value={rejectedCount}
+                subtitle="Declined applications"
+                variant="danger"
+              />
+              <KpiCard
+                title="Leave Types"
+                value={leaveTypes.length}
+                subtitle="Configured policies (CL, SL, EL, LWP)"
+                variant="info"
+              />
             </div>
 
             {/* Filter Bar */}
-            <div className="plastic-filter-card">
+            <Card className="pleave-filter-card">
               <div className="filter-form-inline">
-                <label htmlFor="leave-status-select" style={{ fontWeight: "700", fontSize: "0.85rem", color: "#475569" }}>
-                  Filter Status:
-                </label>
+                <label htmlFor="leave-status-select">Filter Status:</label>
                 <select
                   id="leave-status-select"
-                  className="plastic-select"
+                  className="sb-select"
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
                 >
@@ -272,38 +272,34 @@ function PlasticLeaveManagement() {
                   <option value="REJECTED">Rejected Only</option>
                 </select>
               </div>
-            </div>
+            </Card>
 
             {/* Leave Requests Table */}
-            {loading ? (
-              <LoadingScreen />
-            ) : (
-              <div className="plastic-table-container">
-                <table className="plastic-table">
-                  <thead>
-                    <tr>
-                      <th>Employee</th>
-                      <th>Leave Type</th>
-                      <th>Duration</th>
-                      <th>Days</th>
-                      <th>Reason / Remarks</th>
-                      <th>Status</th>
-                      <th style={{ textAlign: "right" }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {leaveRequests.length === 0 ? (
+            <Card title={`Leave Applications (${leaveRequests.length})`}>
+              {loading ? (
+                <LoadingScreen message="Loading leave applications..." />
+              ) : leaveRequests.length === 0 ? (
+                <div className="pleave-empty">No leave applications found.</div>
+              ) : (
+                <div className="pleave-table-wrap">
+                  <table className="pleave-table">
+                    <thead>
                       <tr>
-                        <td colSpan="7" style={{ textAlign: "center", padding: "2.5rem" }}>
-                          No leave applications found.
-                        </td>
+                        <th>Employee</th>
+                        <th>Leave Type</th>
+                        <th>Duration</th>
+                        <th>Days</th>
+                        <th>Reason / Remarks</th>
+                        <th>Status</th>
+                        <th className="text-right">Actions</th>
                       </tr>
-                    ) : (
-                      leaveRequests.map((r) => (
+                    </thead>
+                    <tbody>
+                      {leaveRequests.map((r) => (
                         <tr key={r.id}>
                           <td>
                             <strong>{r.full_name}</strong>
-                            <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
+                            <div className="text-muted text-sm">
                               {r.employee_code} • {r.department}
                             </div>
                           </td>
@@ -312,7 +308,7 @@ function PlasticLeaveManagement() {
                           </td>
                           <td>
                             <div>{new Date(r.start_date).toLocaleDateString("en-IN")} - {new Date(r.end_date).toLocaleDateString("en-IN")}</div>
-                            <small style={{ color: "var(--text-muted)" }}>Applied: {new Date(r.created_at).toLocaleDateString("en-IN")}</small>
+                            <small className="text-muted">Applied: {new Date(r.created_at).toLocaleDateString("en-IN")}</small>
                           </td>
                           <td>
                             <strong>{r.total_days} day(s)</strong>
@@ -320,63 +316,64 @@ function PlasticLeaveManagement() {
                           <td>
                             <div>{r.reason || "Not specified"}</div>
                             {r.approval_notes && (
-                              <div style={{ fontSize: "0.75rem", color: "#059669", fontStyle: "italic" }}>
+                              <div className="approval-notes-text">
                                 Note: {r.approval_notes}
                               </div>
                             )}
                           </td>
                           <td>
-                            <span className={`plastic-status-tag tag-${r.status.toLowerCase()}`}>
-                              {r.status}
-                            </span>
+                            <StatusBadge
+                              status={r.status}
+                              variant={getLeaveStatusVariant(r.status)}
+                            />
                           </td>
-                          <td style={{ textAlign: "right" }}>
+                          <td className="text-right">
                             {r.status === "PENDING" ? (
-                              <div className="plastic-table-actions">
-                                <button
+                              <div className="pleave-table-actions">
+                                <Button
                                   type="button"
-                                  className="btn-action btn-approve"
+                                  variant="primary"
+                                  size="sm"
                                   title="Approve Leave"
                                   onClick={() => handleStatusUpdate(r.id, "APPROVED")}
                                 >
-                                  ✅ Approve
-                                </button>
-                                <button
+                                  Approve
+                                </Button>
+                                <Button
                                   type="button"
-                                  className="btn-action btn-reject"
+                                  variant="secondary"
+                                  size="sm"
                                   title="Reject Leave"
                                   onClick={() => handleStatusUpdate(r.id, "REJECTED")}
                                 >
-                                  ❌ Reject
-                                </button>
+                                  Reject
+                                </Button>
                               </div>
                             ) : (
-                              <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
+                              <span className="text-muted text-sm">
                                 {r.status === "APPROVED" ? `Approved by ${r.approved_by_name || "Admin"}` : "Declined"}
                               </span>
                             )}
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </Card>
           </>
         )}
 
         {/* Balances Tab View */}
         {activeTab === "BALANCES" && (
           <div className="balances-view">
-            <div className="plastic-filter-card">
+            <Card className="pleave-filter-card">
               <div className="filter-form-inline">
-                <label htmlFor="leave-year-select" style={{ fontWeight: "700", fontSize: "0.85rem", color: "#475569" }}>
-                  Calendar Year:
-                </label>
+                <label htmlFor="leave-year-select">Calendar Year:</label>
                 <select
                   id="leave-year-select"
-                  className="plastic-select"
+                  className="sb-select"
                   value={selectedYear}
                   onChange={(e) => setSelectedYear(Number(e.target.value))}
                 >
@@ -385,202 +382,200 @@ function PlasticLeaveManagement() {
                   <option value={2027}>2027</option>
                 </select>
               </div>
-            </div>
+            </Card>
 
-            {loading ? (
-              <LoadingScreen />
-            ) : (
-              <div className="plastic-table-container">
-                <table className="plastic-table">
-                  <thead>
-                    <tr>
-                      <th>Emp Code</th>
-                      <th>Employee Name</th>
-                      <th>Department</th>
-                      <th>Leave Type</th>
-                      <th>Annual Allocated</th>
-                      <th>Availed / Used</th>
-                      <th>Remaining Balance</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {balances.length === 0 ? (
+            <Card title={`Leave Quotas for ${selectedYear} (${balances.length} Allocations)`}>
+              {loading ? (
+                <LoadingScreen message="Loading leave quotas..." />
+              ) : balances.length === 0 ? (
+                <div className="pleave-empty">
+                  No leave quotas initialized for {selectedYear}. Click &quot;Initialize {selectedYear} Balances&quot; above to allocate standard quotas.
+                </div>
+              ) : (
+                <div className="pleave-table-wrap">
+                  <table className="pleave-table">
+                    <thead>
                       <tr>
-                        <td colSpan="7" style={{ textAlign: "center", padding: "2.5rem" }}>
-                          No leave quotas initialized for {selectedYear}. Click &quot;Initialize {selectedYear} Balances&quot; above to allocate standard quotas.
-                        </td>
+                        <th>Emp Code</th>
+                        <th>Employee Name</th>
+                        <th>Department</th>
+                        <th>Leave Type</th>
+                        <th className="text-right">Annual Allocated</th>
+                        <th className="text-right">Availed / Used</th>
+                        <th className="text-right">Remaining Balance</th>
                       </tr>
-                    ) : (
-                      balances.map((b) => (
+                    </thead>
+                    <tbody>
+                      {balances.map((b) => (
                         <tr key={b.id}>
-                          <td><span className="plastic-code-badge">{b.employee_code}</span></td>
+                          <td><span className="pemp-code-badge">{b.employee_code}</span></td>
                           <td><strong>{b.full_name}</strong></td>
-                          <td><span className="plastic-chip">{b.department}</span></td>
+                          <td><span className="pemp-chip">{b.department}</span></td>
                           <td><span className="leave-type-badge">{b.leave_type_name} ({b.leave_type_code})</span></td>
-                          <td>{b.total_allocated} days</td>
-                          <td style={{ color: "#b91c1c", fontWeight: "700" }}>{b.used_days} days</td>
-                          <td><strong style={{ color: "#059669", fontSize: "1rem" }}>{b.remaining_days} days</strong></td>
+                          <td className="text-right">{b.total_allocated} days</td>
+                          <td className="text-right font-bold text-danger">{b.used_days} days</td>
+                          <td className="text-right font-bold text-success">{b.remaining_days} days</td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </Card>
           </div>
         )}
 
         {/* Modal: Apply Leave */}
         {applyModalOpen && (
-          <div className="plastic-modal-backdrop" onClick={() => !submitting && setApplyModalOpen(false)}>
-            <div className="plastic-modal" onClick={(e) => e.stopPropagation()}>
-              <div className="plastic-modal-header">
-                <h3>🏖️ Apply Leave Application</h3>
-                <button type="button" className="btn-close" onClick={() => setApplyModalOpen(false)}>✕</button>
+          <Modal
+            isOpen={applyModalOpen}
+            onClose={() => !submitting && setApplyModalOpen(false)}
+            title="🏖️ Apply Leave Application"
+            size="md"
+          >
+            <form onSubmit={handleApplySubmit} className="pleave-modal-form">
+              <div className="form-grid-2">
+                <div className="form-field">
+                  <label>Select Employee *</label>
+                  <select
+                    className="sb-select"
+                    value={applyForm.employee_id}
+                    onChange={(e) => setApplyForm({ ...applyForm, employee_id: e.target.value })}
+                    required
+                  >
+                    {employees.map((emp) => (
+                      <option key={emp.id} value={emp.id}>
+                        {emp.full_name} ({emp.employee_code} - {emp.department})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-field">
+                  <label>Leave Category / Policy *</label>
+                  <select
+                    className="sb-select"
+                    value={applyForm.leave_type_id}
+                    onChange={(e) => setApplyForm({ ...applyForm, leave_type_id: e.target.value })}
+                    required
+                  >
+                    {leaveTypes.map((lt) => (
+                      <option key={lt.id} value={lt.id}>
+                        {lt.name} ({lt.code}) — {lt.is_paid ? "Paid" : "Unpaid"}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
-              <form onSubmit={handleApplySubmit}>
-                <div className="plastic-modal-body">
-                  <div className="form-grid-2">
-                    <div className="form-field">
-                      <label>Select Employee *</label>
-                      <select
-                        className="plastic-select"
-                        value={applyForm.employee_id}
-                        onChange={(e) => setApplyForm({ ...applyForm, employee_id: e.target.value })}
-                        required
-                      >
-                        {employees.map((emp) => (
-                          <option key={emp.id} value={emp.id}>
-                            {emp.full_name} ({emp.employee_code} - {emp.department})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="form-field">
-                      <label>Leave Category / Policy *</label>
-                      <select
-                        className="plastic-select"
-                        value={applyForm.leave_type_id}
-                        onChange={(e) => setApplyForm({ ...applyForm, leave_type_id: e.target.value })}
-                        required
-                      >
-                        {leaveTypes.map((lt) => (
-                          <option key={lt.id} value={lt.id}>
-                            {lt.name} ({lt.code}) — {lt.is_paid ? "Paid" : "Unpaid"}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
 
-                  <div className="form-grid-3">
-                    <div className="form-field">
-                      <label>From Date *</label>
-                      <input
-                        type="date"
-                        className="plastic-input"
-                        value={applyForm.start_date}
-                        onChange={(e) => handleDateChange("start_date", e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div className="form-field">
-                      <label>To Date *</label>
-                      <input
-                        type="date"
-                        className="plastic-input"
-                        value={applyForm.end_date}
-                        onChange={(e) => handleDateChange("end_date", e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div className="form-field">
-                      <label>Total Days *</label>
-                      <input
-                        type="number"
-                        className="plastic-input"
-                        value={applyForm.total_days}
-                        min="0.5"
-                        step="0.5"
-                        onChange={(e) => setApplyForm({ ...applyForm, total_days: Number(e.target.value) })}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="form-field">
-                    <label>Reason for Leave *</label>
-                    <textarea
-                      className="plastic-textarea"
-                      rows="3"
-                      placeholder="e.g. Family medical emergency, festival visit..."
-                      value={applyForm.reason}
-                      onChange={(e) => setApplyForm({ ...applyForm, reason: e.target.value })}
-                      required
-                    />
-                  </div>
+              <div className="form-grid-3">
+                <div className="form-field">
+                  <label>From Date *</label>
+                  <input
+                    type="date"
+                    className="sb-input"
+                    value={applyForm.start_date}
+                    onChange={(e) => handleDateChange("start_date", e.target.value)}
+                    required
+                  />
                 </div>
-
-                <div className="plastic-modal-footer">
-                  <button
-                    type="button"
-                    className="plastic-btn plastic-btn-ghost"
-                    onClick={() => setApplyModalOpen(false)}
-                    disabled={submitting}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="plastic-btn plastic-btn-primary"
-                    disabled={submitting}
-                  >
-                    {submitting ? "Submitting..." : "Submit Application"}
-                  </button>
+                <div className="form-field">
+                  <label>To Date *</label>
+                  <input
+                    type="date"
+                    className="sb-input"
+                    value={applyForm.end_date}
+                    onChange={(e) => handleDateChange("end_date", e.target.value)}
+                    required
+                  />
                 </div>
-              </form>
-            </div>
-          </div>
+                <div className="form-field">
+                  <label>Total Days *</label>
+                  <input
+                    type="number"
+                    className="sb-input"
+                    value={applyForm.total_days}
+                    min="0.5"
+                    step="0.5"
+                    onChange={(e) => setApplyForm({ ...applyForm, total_days: Number(e.target.value) })}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="form-field">
+                <label>Reason for Leave *</label>
+                <textarea
+                  className="sb-textarea"
+                  rows="3"
+                  placeholder="e.g. Family medical emergency, festival visit..."
+                  value={applyForm.reason}
+                  onChange={(e) => setApplyForm({ ...applyForm, reason: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="modal-footer-actions">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="md"
+                  onClick={() => setApplyModalOpen(false)}
+                  disabled={submitting}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="md"
+                  disabled={submitting}
+                >
+                  {submitting ? "Submitting..." : "Submit Application"}
+                </Button>
+              </div>
+            </form>
+          </Modal>
         )}
 
         {/* Modal: Initialize Quotas */}
         {initModalOpen && (
-          <div className="plastic-modal-backdrop" onClick={() => !submitting && setInitModalOpen(false)}>
-            <div className="plastic-modal" style={{ maxWidth: "500px" }} onClick={(e) => e.stopPropagation()}>
-              <div className="plastic-modal-header">
-                <h3>⚙️ Initialize Leave Balances for {selectedYear}</h3>
-                <button type="button" className="btn-close" onClick={() => setInitModalOpen(false)}>✕</button>
-              </div>
-              <div className="plastic-modal-body">
-                <p>
-                  This action will allocate standard leave quotas (Casual: 12 days, Sick: 10 days, Earned: 15 days) for all currently active employees who do not already have records for year <strong>{selectedYear}</strong>.
-                </p>
-                <p style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
-                  Existing records will not be overwritten.
-                </p>
-              </div>
-              <div className="plastic-modal-footer">
-                <button
-                  type="button"
-                  className="plastic-btn plastic-btn-ghost"
-                  onClick={() => setInitModalOpen(false)}
-                  disabled={submitting}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="plastic-btn plastic-btn-primary"
-                  onClick={handleInitializeBalances}
-                  disabled={submitting}
-                >
-                  {submitting ? "Allocating..." : "Confirm Allocation"}
-                </button>
-              </div>
+          <Modal
+            isOpen={initModalOpen}
+            onClose={() => !submitting && setInitModalOpen(false)}
+            title={`⚙️ Initialize Leave Balances for ${selectedYear}`}
+            size="md"
+          >
+            <div className="init-modal-content">
+              <p>
+                This action will allocate standard leave quotas (Casual: 12 days, Sick: 10 days, Earned: 15 days) for all currently active employees who do not already have records for year <strong>{selectedYear}</strong>.
+              </p>
+              <p className="text-muted text-sm">
+                Existing records will not be overwritten.
+              </p>
             </div>
-          </div>
+            <div className="modal-footer-actions">
+              <Button
+                type="button"
+                variant="secondary"
+                size="md"
+                onClick={() => setInitModalOpen(false)}
+                disabled={submitting}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                size="md"
+                onClick={handleInitializeBalances}
+                disabled={submitting}
+              >
+                {submitting ? "Allocating..." : "Confirm Allocation"}
+              </Button>
+            </div>
+          </Modal>
         )}
-      </main>
+      </div>
     </div>
   );
 }

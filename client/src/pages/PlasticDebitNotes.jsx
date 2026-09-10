@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import API from "../api/axios";
 import PlasticNavbar from "../components/PlasticNavbar";
 import LoadingScreen from "../components/LoadingScreen";
+import { PageHeader, Card, KpiCard, Modal, Button, StatusBadge } from "../components";
 import "./PlasticDebitNotes.css";
 
 function PlasticDebitNotes() {
@@ -58,7 +59,6 @@ function PlasticDebitNotes() {
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
   }, []);
 
@@ -172,72 +172,71 @@ function PlasticDebitNotes() {
   return (
     <div className="plastic-page">
       <PlasticNavbar />
-      <div className="plastic-container">
+      <div className="plastic-container sb-page-container">
         {/* Header */}
-        <div className="pdn-header">
-          <div>
-            <span className="pdn-badge">SUPPLEMENTARY INVOICING</span>
-            <h1 className="pdn-title">Debit Notes (DN)</h1>
-            <p className="pdn-subtitle">
-              Issue Supplementary Debit Notes for unbilled freight, upward price revisions, or interest penalties.
-            </p>
-          </div>
-          <div className="pdn-header-actions">
-            <Link to="/plastic-erp/finance/receivables" className="pdn-btn pdn-btn-outline">
-              Receivables Dashboard
-            </Link>
-            <Link to="/plastic-erp/finance/credit-notes" className="pdn-btn pdn-btn-outline">
-              Credit Notes
-            </Link>
-            <button className="pdn-btn pdn-btn-primary" onClick={() => setCreateModalOpen(true)}>
-              + Issue Debit Note
-            </button>
-          </div>
-        </div>
+        <PageHeader
+          title="Debit Notes (DN)"
+          subtitle="Issue Supplementary Debit Notes for unbilled freight, upward price revisions, or interest penalties."
+          badge="SUPPLEMENTARY INVOICING"
+          actions={
+            <div className="pdn-header-actions">
+              <Link to="/plastic-erp/finance/receivables" className="sb-link-btn">
+                <Button variant="secondary" size="md">Receivables Dashboard</Button>
+              </Link>
+              <Link to="/plastic-erp/finance/credit-notes" className="sb-link-btn">
+                <Button variant="secondary" size="md">Credit Notes</Button>
+              </Link>
+              <Button variant="primary" size="md" onClick={() => setCreateModalOpen(true)}>
+                + Issue Debit Note
+              </Button>
+            </div>
+          }
+        />
 
         {/* KPIs */}
         <div className="pdn-kpis">
-          <div className="pdn-kpi-card">
-            <div className="pdn-kpi-val">{totalNotesCount}</div>
-            <div className="pdn-kpi-lbl">Debit Notes Issued</div>
-          </div>
-          <div className="pdn-kpi-card primary">
-            <div className="pdn-kpi-val">
-              ₹{totalDebitIssued.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-            </div>
-            <div className="pdn-kpi-lbl">Total Supplementary Value</div>
-          </div>
+          <KpiCard
+            title="Debit Notes Issued"
+            value={totalNotesCount}
+            subtitle="Registered supplementary billings"
+            variant="default"
+          />
+          <KpiCard
+            title="Total Supplementary Value"
+            value={`₹${totalDebitIssued.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`}
+            subtitle="Direct customer debits"
+            variant="primary"
+          />
         </div>
 
         {/* Filters */}
-        <div className="pdn-filters">
-          <input
-            type="text"
-            className="pdn-search"
-            placeholder="Search Debit Note #, Customer..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+        <Card className="pdn-filters-card">
+          <div className="pdn-filters">
+            <input
+              type="text"
+              className="sb-input pdn-search"
+              placeholder="Search Debit Note #, Customer..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
 
-          <select
-            className="pdn-select"
-            value={customerFilter}
-            onChange={(e) => setCustomerFilter(e.target.value)}
-          >
-            <option value="">All Customers</option>
-            {customers.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </div>
+            <select
+              className="sb-select pdn-select"
+              value={customerFilter}
+              onChange={(e) => setCustomerFilter(e.target.value)}
+            >
+              <option value="">All Customers</option>
+              {customers.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </Card>
 
         {/* Notes Table */}
-        <div className="pdn-card">
-          <div className="pdn-card-header">
-            <h3>Debit Notes ({filteredNotes.length})</h3>
-          </div>
+        <Card title={`Debit Notes (${filteredNotes.length})`}>
           {filteredNotes.length === 0 ? (
             <div className="pdn-empty">No debit notes found.</div>
           ) : (
@@ -275,15 +274,19 @@ function PlasticDebitNotes() {
                         ₹{Number(dn.total || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                       </td>
                       <td>
-                        <span className="dn-status-pill">{dn.status}</span>
+                        <StatusBadge
+                          status={dn.status || "ISSUED"}
+                          variant={dn.status === "CANCELLED" ? "danger" : "info"}
+                        />
                       </td>
                       <td>
-                        <button
-                          className="btn-action view"
+                        <Button
+                          variant="secondary"
+                          size="sm"
                           onClick={() => handleViewPreview(dn.id)}
                         >
                           Print / View
-                        </button>
+                        </Button>
                       </td>
                     </tr>
                   ))}
@@ -291,293 +294,297 @@ function PlasticDebitNotes() {
               </table>
             </div>
           )}
-        </div>
+        </Card>
       </div>
 
       {/* CREATE MODAL */}
       {createModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-container large">
-            <div className="modal-header">
-              <h2>Issue Debit Note</h2>
-              <button className="close-btn" onClick={() => setCreateModalOpen(false)}>
-                &times;
-              </button>
-            </div>
-            <form onSubmit={handleCreateDebitNote} className="modal-form">
-              <div className="form-row">
-                <div className="form-col">
-                  <label>Customer *</label>
-                  <select
-                    value={formData.customer_id}
-                    onChange={(e) => setFormData({ ...formData, customer_id: e.target.value })}
-                    required
-                  >
-                    <option value="">Select Customer</option>
-                    {customers.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="form-col">
-                  <label>Date *</label>
-                  <input
-                    type="date"
-                    value={formData.debit_note_date}
-                    onChange={(e) =>
-                      setFormData({ ...formData, debit_note_date: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-              </div>
-
+        <Modal
+          isOpen={createModalOpen}
+          onClose={() => setCreateModalOpen(false)}
+          title="Issue Debit Note"
+          size="lg"
+        >
+          <form onSubmit={handleCreateDebitNote} className="modal-form">
+            <div className="form-row">
               <div className="form-col">
-                <label>Reason for Debit Note</label>
+                <label>Customer *</label>
                 <select
-                  value={formData.reason}
-                  onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+                  className="sb-select"
+                  value={formData.customer_id}
+                  onChange={(e) => setFormData({ ...formData, customer_id: e.target.value })}
+                  required
                 >
-                  <option value="PRICE_DIFFERENCE">Rate Revision / Price Increase</option>
-                  <option value="UNBILLED_FREIGHT">Unbilled Freight & Transport Charges</option>
-                  <option value="INTEREST_OVERDUE">Late Payment Interest Charges</option>
-                  <option value="OTHER">Other Supplementary Charge</option>
+                  <option value="">Select Customer</option>
+                  {customers.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
                 </select>
               </div>
 
-              {/* Items Section */}
-              <div className="modal-section-title">Debit Line Items</div>
-              <div className="item-builder">
-                <div className="builder-field flex-2">
-                  <label>Particulars / Charge Description *</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Freight surcharge for heavy vehicle delivery"
-                    value={newItem.description}
-                    onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
-                  />
-                </div>
+              <div className="form-col">
+                <label>Date *</label>
+                <input
+                  type="date"
+                  className="sb-input"
+                  value={formData.debit_note_date}
+                  onChange={(e) =>
+                    setFormData({ ...formData, debit_note_date: e.target.value })
+                  }
+                  required
+                />
+              </div>
+            </div>
 
-                <div className="builder-field">
-                  <label>Quantity</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={newItem.quantity}
-                    onChange={(e) => setNewItem({ ...newItem, quantity: e.target.value })}
-                  />
-                </div>
+            <div className="form-col mt-3">
+              <label>Reason for Debit Note</label>
+              <select
+                className="sb-select"
+                value={formData.reason}
+                onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+              >
+                <option value="PRICE_DIFFERENCE">Rate Revision / Price Increase</option>
+                <option value="UNBILLED_FREIGHT">Unbilled Freight & Transport Charges</option>
+                <option value="INTEREST_OVERDUE">Late Payment Interest Charges</option>
+                <option value="OTHER">Other Supplementary Charge</option>
+              </select>
+            </div>
 
-                <div className="builder-field">
-                  <label>Rate (₹) *</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={newItem.rate}
-                    onChange={(e) => setNewItem({ ...newItem, rate: e.target.value })}
-                  />
-                </div>
-
-                <div className="builder-field">
-                  <label>GST Rate (%)</label>
-                  <select
-                    value={newItem.tax_rate}
-                    onChange={(e) => setNewItem({ ...newItem, tax_rate: e.target.value })}
-                  >
-                    <option value="0">0% (Nil)</option>
-                    <option value="5">5%</option>
-                    <option value="12">12%</option>
-                    <option value="18">18% (Standard)</option>
-                    <option value="28">28%</option>
-                  </select>
-                </div>
-
-                <button type="button" className="btn-add-item" onClick={handleAddItem}>
-                  + Add Line
-                </button>
+            {/* Items Section */}
+            <div className="modal-section-title mt-4">Debit Line Items</div>
+            <div className="item-builder">
+              <div className="builder-field flex-2">
+                <label>Particulars / Charge Description *</label>
+                <input
+                  type="text"
+                  className="sb-input"
+                  placeholder="e.g. Freight surcharge for heavy vehicle delivery"
+                  value={newItem.description}
+                  onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
+                />
               </div>
 
-              <div className="item-table-wrap">
-                <table className="challan-item-table">
-                  <thead>
+              <div className="builder-field">
+                <label>Quantity</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="sb-input"
+                  value={newItem.quantity}
+                  onChange={(e) => setNewItem({ ...newItem, quantity: e.target.value })}
+                />
+              </div>
+
+              <div className="builder-field">
+                <label>Rate (₹) *</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="sb-input"
+                  value={newItem.rate}
+                  onChange={(e) => setNewItem({ ...newItem, rate: e.target.value })}
+                />
+              </div>
+
+              <div className="builder-field">
+                <label>GST Rate (%)</label>
+                <select
+                  className="sb-select"
+                  value={newItem.tax_rate}
+                  onChange={(e) => setNewItem({ ...newItem, tax_rate: e.target.value })}
+                >
+                  <option value="0">0% (Nil)</option>
+                  <option value="5">5%</option>
+                  <option value="12">12%</option>
+                  <option value="18">18% (Standard)</option>
+                  <option value="28">28%</option>
+                </select>
+              </div>
+
+              <Button type="button" variant="secondary" size="md" onClick={handleAddItem} className="btn-add-item-align">
+                + Add Line
+              </Button>
+            </div>
+
+            <div className="item-table-wrap">
+              <table className="challan-item-table">
+                <thead>
+                  <tr>
+                    <th>Description</th>
+                    <th>Qty</th>
+                    <th>Rate (₹)</th>
+                    <th>Tax (%)</th>
+                    <th>Total (₹)</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {formData.items.length === 0 ? (
                     <tr>
-                      <th>Description</th>
-                      <th>Qty</th>
-                      <th>Rate (₹)</th>
-                      <th>Tax (%)</th>
-                      <th>Total (₹)</th>
-                      <th></th>
+                      <td colSpan="6" className="text-center text-muted">
+                        No charges added yet.
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {formData.items.length === 0 ? (
-                      <tr>
-                        <td colSpan="6" className="text-center text-muted">
-                          No charges added yet.
+                  ) : (
+                    formData.items.map((it, idx) => (
+                      <tr key={idx}>
+                        <td>{it.description}</td>
+                        <td>{it.quantity}</td>
+                        <td>₹{Number(it.rate).toFixed(2)}</td>
+                        <td>{it.tax_rate}%</td>
+                        <td>
+                          <strong>₹{Number(it.amount).toFixed(2)}</strong>
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            className="btn-del"
+                            onClick={() => handleRemoveItem(idx)}
+                          >
+                            &times;
+                          </button>
                         </td>
                       </tr>
-                    ) : (
-                      formData.items.map((it, idx) => (
-                        <tr key={idx}>
-                          <td>{it.description}</td>
-                          <td>{it.quantity}</td>
-                          <td>₹{Number(it.rate).toFixed(2)}</td>
-                          <td>{it.tax_rate}%</td>
-                          <td>
-                            <strong>₹{Number(it.amount).toFixed(2)}</strong>
-                          </td>
-                          <td>
-                            <button
-                              type="button"
-                              className="btn-del"
-                              onClick={() => handleRemoveItem(idx)}
-                            >
-                              &times;
-                            </button>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
 
-              <div className="form-col mt-3">
-                <label>Remarks</label>
-                <textarea
-                  rows="2"
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                ></textarea>
-              </div>
+            <div className="form-col mt-3">
+              <label>Remarks</label>
+              <textarea
+                rows="2"
+                className="sb-textarea"
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              ></textarea>
+            </div>
 
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="pdn-btn pdn-btn-outline"
-                  onClick={() => setCreateModalOpen(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="pdn-btn pdn-btn-primary"
-                  disabled={submitting}
-                >
-                  {submitting ? "Issuing..." : "Issue Debit Note"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+            <div className="modal-footer-actions">
+              <Button
+                type="button"
+                variant="secondary"
+                size="md"
+                onClick={() => setCreateModalOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                size="md"
+                disabled={submitting}
+              >
+                {submitting ? "Issuing..." : "Issue Debit Note"}
+              </Button>
+            </div>
+          </form>
+        </Modal>
       )}
 
       {/* PREVIEW & PRINT MODAL */}
       {previewModalOpen && selectedNote && (
-        <div className="modal-overlay">
-          <div className="modal-container print-modal">
-            <div className="no-print modal-header">
-              <h2>Debit Note: {selectedNote.debit_note_no}</h2>
-              <div className="header-buttons">
-                <button className="pdn-btn pdn-btn-primary" onClick={() => window.print()}>
-                  🖨️ Print Note
-                </button>
-                <button className="close-btn" onClick={() => setPreviewModalOpen(false)}>
-                  &times;
-                </button>
+        <Modal
+          isOpen={previewModalOpen}
+          onClose={() => setPreviewModalOpen(false)}
+          title={`Debit Note: ${selectedNote.debit_note_no}`}
+          size="lg"
+        >
+          <div className="preview-action-row no-print">
+            <Button variant="primary" size="md" onClick={() => window.print()}>
+              🖨️ Print Note
+            </Button>
+          </div>
+
+          <div className="challan-print-document">
+            <div className="challan-doc-header">
+              <div className="company-info">
+                <h2>{companyInfo?.company_name || "PLASTIC RECYCLING & COMPOUNDING ERP"}</h2>
+                <p>{companyInfo?.address || "Industrial Area, MIDC Phase II"}</p>
+                <p>
+                  GSTIN: <strong>{companyInfo?.gstin || "27AAAAA0000A1Z5"}</strong>
+                </p>
+              </div>
+              <div className="challan-title-block">
+                <div className="title-tag text-primary">DEBIT NOTE</div>
+                <div className="title-sub">(Section 34 of CGST Act)</div>
+                <div className="doc-num">DN No: <span>{selectedNote.debit_note_no}</span></div>
+                <div className="doc-date">Date: <span>{selectedNote.debit_note_date ? new Date(selectedNote.debit_note_date).toLocaleDateString() : ""}</span></div>
               </div>
             </div>
 
-            <div className="challan-print-document">
-              <div className="challan-doc-header">
-                <div className="company-info">
-                  <h2>{companyInfo?.company_name || "PLASTIC RECYCLING & COMPOUNDING ERP"}</h2>
-                  <p>{companyInfo?.address || "Industrial Area, MIDC Phase II"}</p>
-                  <p>
-                    GSTIN: <strong>{companyInfo?.gstin || "27AAAAA0000A1Z5"}</strong>
-                  </p>
-                </div>
-                <div className="challan-title-block">
-                  <div className="title-tag text-primary">DEBIT NOTE</div>
-                  <div className="title-sub">(Section 34 of CGST Act)</div>
-                  <div className="doc-num">DN No: <span>{selectedNote.debit_note_no}</span></div>
-                  <div className="doc-date">Date: <span>{selectedNote.debit_note_date ? new Date(selectedNote.debit_note_date).toLocaleDateString() : ""}</span></div>
+            <div className="challan-meta-grid">
+              <div className="meta-box">
+                <div className="meta-box-title">DEBIT ISSUED TO</div>
+                <div className="meta-val bold">{selectedNote.customer_name}</div>
+                <div className="meta-val">{selectedNote.customer_address}</div>
+                <div className="meta-val">Mobile: {selectedNote.customer_mobile || "—"}</div>
+              </div>
+              <div className="meta-box">
+                <div className="meta-box-title">REASON / PARTICULARS</div>
+                <div className="meta-row">
+                  <span>Charge Type:</span>
+                  <strong>{selectedNote.reason}</strong>
                 </div>
               </div>
+            </div>
 
-              <div className="challan-meta-grid">
-                <div className="meta-box">
-                  <div className="meta-box-title">DEBIT ISSUED TO</div>
-                  <div className="meta-val bold">{selectedNote.customer_name}</div>
-                  <div className="meta-val">{selectedNote.customer_address}</div>
-                  <div className="meta-val">Mobile: {selectedNote.customer_mobile || "—"}</div>
-                </div>
-                <div className="meta-box">
-                  <div className="meta-box-title">REASON / PARTICULARS</div>
-                  <div className="meta-row">
-                    <span>Charge Type:</span>
-                    <strong>{selectedNote.reason}</strong>
-                  </div>
-                </div>
-              </div>
-
-              <table className="doc-items-table">
-                <thead>
-                  <tr>
-                    <th>S.N.</th>
-                    <th>Particulars</th>
-                    <th style={{ textAlign: "right" }}>Qty</th>
-                    <th style={{ textAlign: "right" }}>Rate (₹)</th>
-                    <th style={{ textAlign: "right" }}>Subtotal (₹)</th>
-                    <th style={{ textAlign: "right" }}>GST Rate</th>
-                    <th style={{ textAlign: "right" }}>Total (₹)</th>
+            <table className="doc-items-table">
+              <thead>
+                <tr>
+                  <th>S.N.</th>
+                  <th>Particulars</th>
+                  <th style={{ textAlign: "right" }}>Qty</th>
+                  <th style={{ textAlign: "right" }}>Rate (₹)</th>
+                  <th style={{ textAlign: "right" }}>Subtotal (₹)</th>
+                  <th style={{ textAlign: "right" }}>GST Rate</th>
+                  <th style={{ textAlign: "right" }}>Total (₹)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(selectedNote.items || []).map((it, idx) => (
+                  <tr key={idx}>
+                    <td>{idx + 1}</td>
+                    <td>{it.description}</td>
+                    <td style={{ textAlign: "right" }}>{it.quantity}</td>
+                    <td style={{ textAlign: "right" }}>₹{Number(it.rate).toFixed(2)}</td>
+                    <td style={{ textAlign: "right" }}>₹{Number(it.subtotal || it.quantity * it.rate).toFixed(2)}</td>
+                    <td style={{ textAlign: "right" }}>{it.tax_rate}%</td>
+                    <td style={{ textAlign: "right", fontWeight: 700 }}>₹{Number(it.amount).toFixed(2)}</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {(selectedNote.items || []).map((it, idx) => (
-                    <tr key={idx}>
-                      <td>{idx + 1}</td>
-                      <td>{it.description}</td>
-                      <td style={{ textAlign: "right" }}>{it.quantity}</td>
-                      <td style={{ textAlign: "right" }}>₹{Number(it.rate).toFixed(2)}</td>
-                      <td style={{ textAlign: "right" }}>₹{Number(it.subtotal || it.quantity * it.rate).toFixed(2)}</td>
-                      <td style={{ textAlign: "right" }}>{it.tax_rate}%</td>
-                      <td style={{ textAlign: "right", fontWeight: 700 }}>₹{Number(it.amount).toFixed(2)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr>
-                    <td colSpan="6" style={{ textAlign: "right", fontWeight: 700 }}>
-                      Grand Total Debit:
-                    </td>
-                    <td style={{ textAlign: "right", fontWeight: 800, color: "#2563eb" }}>
-                      ₹{Number(selectedNote.total || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colSpan="6" style={{ textAlign: "right", fontWeight: 700 }}>
+                    Grand Total Debit:
+                  </td>
+                  <td style={{ textAlign: "right", fontWeight: 800, color: "var(--sb-primary, #0879d1)" }}>
+                    ₹{Number(selectedNote.total || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
 
-              <div className="challan-declaration mt-4">
-                <p>
-                  This supplementary debit note increases taxable value and tax. The customer ledger has been debited accordingly.
-                </p>
-              </div>
+            <div className="challan-declaration mt-4">
+              <p>
+                This supplementary debit note increases taxable value and tax. The customer ledger has been debited accordingly.
+              </p>
+            </div>
 
-              <div className="challan-signatures">
-                <div></div>
-                <div></div>
-                <div className="sig-box">
-                  <div className="sig-line"></div>
-                  <span>Authorized Signatory</span>
-                </div>
+            <div className="challan-signatures">
+              <div></div>
+              <div></div>
+              <div className="sig-box">
+                <div className="sig-line"></div>
+                <span>Authorized Signatory</span>
               </div>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

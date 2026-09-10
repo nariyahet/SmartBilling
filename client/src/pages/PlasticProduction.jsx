@@ -1,8 +1,18 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import API from "../api/axios";
-import PlasticNavbar from "../components/PlasticNavbar";
 import LoadingScreen from "../components/LoadingScreen";
+import {
+  PageHeader,
+  KpiCard,
+  Card,
+  Button,
+  StatusBadge,
+  DataTable,
+  Modal,
+  Tabs,
+  AlertBanner,
+} from "../components";
 import "./PlasticProduction.css";
 
 function PlasticProduction() {
@@ -95,13 +105,13 @@ function PlasticProduction() {
           API.get("/plastic-erp/plant/operators"),
         ]);
 
-      if (ordersRes.status === "fulfilled") setOrders(ordersRes.value.data.orders || []);
-      if (plansRes.status === "fulfilled") setPlans(plansRes.value.data.plans || []);
-      if (batchesRes.status === "fulfilled") setBatches(batchesRes.value.data.batches || []);
-      if (recipesRes.status === "fulfilled") setRecipes(recipesRes.value.data.recipes || []);
-      if (machinesRes.status === "fulfilled") setMachines(machinesRes.value.data.machines || []);
-      if (shiftsRes.status === "fulfilled") setShifts(shiftsRes.value.data.shifts || []);
-      if (opsRes.status === "fulfilled") setOperators(opsRes.value.data.operators || []);
+      if (ordersRes.status === "fulfilled") setOrders(ordersRes.value.data?.orders || []);
+      if (plansRes.status === "fulfilled") setPlans(plansRes.value.data?.plans || []);
+      if (batchesRes.status === "fulfilled") setBatches(batchesRes.value.data?.batches || []);
+      if (recipesRes.status === "fulfilled") setRecipes(recipesRes.value.data?.recipes || []);
+      if (machinesRes.status === "fulfilled") setMachines(machinesRes.value.data?.machines || []);
+      if (shiftsRes.status === "fulfilled") setShifts(shiftsRes.value.data?.shifts || []);
+      if (opsRes.status === "fulfilled") setOperators(opsRes.value.data?.operators || []);
     } catch (err) {
       console.error(err);
       setError("Failed to load production data.");
@@ -111,7 +121,6 @@ function PlasticProduction() {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
   }, [fetchData]);
 
@@ -209,686 +218,820 @@ function PlasticProduction() {
     }
   };
 
-  if (loading) return <LoadingScreen message="Loading Production Management..." />;
+  if (loading && orders.length === 0 && batches.length === 0) {
+    return <LoadingScreen title="Loading Production..." subtitle="Fetching shop floor schedules and batches..." />;
+  }
+
+  // KPIs
+  const activeBatchesCount = batches.filter((b) => ["PLANNED", "RUNNING", "PAUSED"].includes(b.status)).length;
+  const completedBatchesCount = batches.filter((b) => b.status === "COMPLETED").length;
+  const totalPlannedQty = orders.reduce((sum, o) => sum + Number(o.planned_quantity || 0), 0);
+
+  const productionTabs = [
+    { id: "orders", label: "Work Orders", count: orders.length, icon: "📑" },
+    { id: "shopfloor", label: "Live Shop Floor", count: activeBatchesCount, icon: "⚡" },
+    { id: "batches", label: "Batches", count: batches.length, icon: "🏷️" },
+    { id: "plans", label: "Planning", count: plans.length, icon: "📅" },
+  ];
+
+  const orderColumns = [
+    {
+      key: "production_order_no",
+      title: "Order No",
+      render: (val) => <span className="sb-font-semibold sb-text-primary">{val}</span>,
+    },
+    {
+      key: "product_name",
+      title: "Product",
+      render: (val) => <strong>{val}</strong>,
+    },
+    {
+      key: "recipe_name",
+      title: "Recipe",
+      render: (val) => val || "-",
+    },
+    {
+      key: "planned_quantity",
+      title: "Planned Qty",
+      render: (val, row) => `${Number(val).toLocaleString()} ${row.unit}`,
+    },
+    {
+      key: "target_date",
+      title: "Target Date",
+      render: (val) => val?.split("T")[0] || "-",
+    },
+    {
+      key: "priority",
+      title: "Priority",
+      render: (val) => {
+        const variant = val === "URGENT" ? "danger" : val === "HIGH" ? "warning" : "neutral";
+        return <StatusBadge status={val} variant={variant} />;
+      },
+    },
+    {
+      key: "machine_name",
+      title: "Machine",
+      render: (val) => val || "Any Machine",
+    },
+    {
+      key: "status",
+      title: "Status",
+      render: (val) => <StatusBadge status={val} />,
+    },
+  ];
+
+  const batchColumns = [
+    {
+      key: "batch_no",
+      title: "Batch No",
+      render: (val) => <span className="sb-font-semibold sb-text-primary">{val}</span>,
+    },
+    {
+      key: "product_name",
+      title: "Product",
+      render: (val) => <strong>{val}</strong>,
+    },
+    {
+      key: "batch_date",
+      title: "Date",
+      render: (val) => val?.split("T")[0] || "-",
+    },
+    {
+      key: "planned_quantity",
+      title: "Planned",
+      render: (val, row) => `${Number(val).toLocaleString()} ${row.unit}`,
+    },
+    {
+      key: "actual_quantity",
+      title: "Actual Output",
+      render: (val, row) => `${Number(val || 0).toLocaleString()} ${row.unit}`,
+    },
+    {
+      key: "scrap_quantity",
+      title: "Scrap",
+      render: (val, row) => `${Number(val || 0).toLocaleString()} ${row.unit}`,
+    },
+    {
+      key: "efficiency_percent",
+      title: "Efficiency",
+      render: (val) => <strong>{Number(val || 0).toFixed(1)}%</strong>,
+    },
+    {
+      key: "qc_status",
+      title: "QC Status",
+      render: (val) => <StatusBadge status={val} />,
+    },
+    {
+      key: "status",
+      title: "Status",
+      render: (val) => <StatusBadge status={val} />,
+    },
+    {
+      key: "actions",
+      title: "Trace",
+      render: (_, b) => (
+        <Link to={`/plastic-erp/traceability?batch=${b.batch_no}`}>
+          <Button size="sm" variant="secondary" icon="🔍">
+            Trace
+          </Button>
+        </Link>
+      ),
+    },
+  ];
+
+  const planColumns = [
+    {
+      key: "plan_code",
+      title: "Plan Code",
+      render: (val) => <span className="sb-font-semibold sb-text-primary">{val}</span>,
+    },
+    {
+      key: "plan_type",
+      title: "Type",
+      render: (val) => <span className="sb-badge sb-badge-blue">{val}</span>,
+    },
+    {
+      key: "start_date",
+      title: "Start Date",
+      render: (val) => val?.split("T")[0] || "-",
+    },
+    {
+      key: "end_date",
+      title: "End Date",
+      render: (val) => val?.split("T")[0] || "-",
+    },
+    {
+      key: "target_quantity",
+      title: "Target Qty",
+      render: (val, row) => `${Number(val).toLocaleString()} ${row.unit}`,
+    },
+    {
+      key: "machine_name",
+      title: "Machine",
+      render: (val) => val || "All Machines",
+    },
+    {
+      key: "shift_name",
+      title: "Shift",
+      render: (val) => val || "All Shifts",
+    },
+    {
+      key: "status",
+      title: "Status",
+      render: (val) => <StatusBadge status={val} />,
+    },
+  ];
 
   return (
-    <div className="plastic-page-container">
-      <PlasticNavbar />
-
-      <div className="plastic-content-wrap">
-        <div className="plastic-page-header">
-          <div>
-            <h1 className="plastic-page-title">🏭 Production Operations</h1>
-            <p className="plastic-page-subtitle">Work Orders, Batch Execution, Planning & Shop Floor Controls</p>
-          </div>
-
-          <div className="plastic-page-actions">
-            <Link to="/plastic-erp" className="btn-dashboard-nav">
-              📊 ERP Dashboard
-            </Link>
+    <div className="sb-page-container">
+      <PageHeader
+        title="Production Operations"
+        subtitle="Work orders, batch execution, planning schedules & live shop floor controls"
+        badge="MANUFACTURING PLANT"
+        actions={
+          <div className="sb-header-actions">
+            <Button variant="secondary" size="md" onClick={fetchData} icon="🔄">
+              Refresh
+            </Button>
             {activeTab === "orders" && (
-              <button type="button" className="btn-primary" onClick={() => setShowOrderModal(true)}>
-                ➕ Create Work Order
-              </button>
+              <Button
+                variant="primary"
+                size="md"
+                icon="+"
+                onClick={() => setShowOrderModal(true)}
+              >
+                Create Work Order
+              </Button>
             )}
             {activeTab === "plans" && (
-              <button type="button" className="btn-primary" onClick={() => setShowPlanModal(true)}>
-                ➕ New Production Plan
-              </button>
+              <Button
+                variant="primary"
+                size="md"
+                icon="+"
+                onClick={() => setShowPlanModal(true)}
+              >
+                New Production Plan
+              </Button>
             )}
             {activeTab === "batches" && (
-              <button type="button" className="btn-primary" onClick={() => setShowBatchModal(true)}>
-                ➕ Create Production Batch
-              </button>
+              <Button
+                variant="primary"
+                size="md"
+                icon="+"
+                onClick={() => setShowBatchModal(true)}
+              >
+                Create Production Batch
+              </Button>
+            )}
+            {activeTab === "shopfloor" && (
+              <Button
+                variant="primary"
+                size="md"
+                icon="+"
+                onClick={() => setShowBatchModal(true)}
+              >
+                Launch New Batch
+              </Button>
             )}
           </div>
-        </div>
+        }
+      />
 
-        {error && (
-          <div className="plastic-alert error">
-            <span>⚠️ {error}</span>
-            <button type="button" onClick={() => setError("")}>✕</button>
-          </div>
-        )}
+      {error && (
+        <AlertBanner variant="danger" onDismiss={() => setError("")} className="mb-4">
+          {error}
+        </AlertBanner>
+      )}
 
-        {successMsg && (
-          <div className="plastic-alert success">
-            <span>✅ {successMsg}</span>
-            <button type="button" onClick={() => setSuccessMsg("")}>✕</button>
-          </div>
-        )}
+      {successMsg && (
+        <AlertBanner variant="success" onDismiss={() => setSuccessMsg("")} className="mb-4">
+          {successMsg}
+        </AlertBanner>
+      )}
 
-        {/* Tab Navigation */}
-        <div className="plastic-tabs-nav">
-          <button
-            type="button"
-            className={`tab-btn ${activeTab === "orders" ? "active" : ""}`}
-            onClick={() => switchTab("orders")}
-          >
-            📑 Work Orders ({orders.length})
-          </button>
-          <button
-            type="button"
-            className={`tab-btn ${activeTab === "shopfloor" ? "active" : ""}`}
-            onClick={() => switchTab("shopfloor")}
-          >
-            ⚡ Live Shop Floor
-          </button>
-          <button
-            type="button"
-            className={`tab-btn ${activeTab === "batches" ? "active" : ""}`}
-            onClick={() => switchTab("batches")}
-          >
-            🏷️ Batches ({batches.length})
-          </button>
-          <button
-            type="button"
-            className={`tab-btn ${activeTab === "plans" ? "active" : ""}`}
-            onClick={() => switchTab("plans")}
-          >
-            📅 Planning ({plans.length})
-          </button>
-        </div>
-
-        {/* TAB 1: WORK ORDERS */}
-        {activeTab === "orders" && (
-          <div className="plastic-card">
-            <div className="table-responsive">
-              <table className="plastic-table">
-                <thead>
-                  <tr>
-                    <th>Order No</th>
-                    <th>Product</th>
-                    <th>Recipe</th>
-                    <th>Planned Qty</th>
-                    <th>Target Date</th>
-                    <th>Priority</th>
-                    <th>Machine</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {orders.length === 0 ? (
-                    <tr>
-                      <td colSpan="8" className="empty-cell">No production orders found. Click "Create Work Order" to start.</td>
-                    </tr>
-                  ) : (
-                    orders.map((order) => (
-                      <tr key={order.id}>
-                        <td><strong>{order.production_order_no}</strong></td>
-                        <td>{order.product_name}</td>
-                        <td>{order.recipe_name || "-"}</td>
-                        <td>{Number(order.planned_quantity).toLocaleString()} {order.unit}</td>
-                        <td>{order.target_date?.split("T")[0]}</td>
-                        <td>
-                          <span className={`badge priority-${order.priority?.toLowerCase()}`}>
-                            {order.priority}
-                          </span>
-                        </td>
-                        <td>{order.machine_name || "Any"}</td>
-                        <td>
-                          <span className={`badge status-${order.status?.toLowerCase()}`}>
-                            {order.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 2: LIVE SHOP FLOOR */}
-        {activeTab === "shopfloor" && (
-          <div className="shopfloor-grid">
-            {batches.filter((b) => ["PLANNED", "RUNNING", "PAUSED"].includes(b.status)).length === 0 ? (
-              <div className="plastic-card full-width empty-card">
-                <h3>No active batches on the shop floor</h3>
-                <p>All batches are completed or create a new batch to launch production.</p>
-                <button type="button" className="btn-primary" onClick={() => setShowBatchModal(true)}>
-                  ➕ Create Production Batch
-                </button>
-              </div>
-            ) : (
-              batches
-                .filter((b) => ["PLANNED", "RUNNING", "PAUSED"].includes(b.status))
-                .map((batch) => (
-                  <div key={batch.id} className={`shopfloor-card status-${batch.status?.toLowerCase()}`}>
-                    <div className="sf-card-header">
-                      <div>
-                        <span className="sf-batch-tag">{batch.batch_no}</span>
-                        <h3 className="sf-product-title">{batch.product_name}</h3>
-                      </div>
-                      <span className={`badge status-${batch.status?.toLowerCase()}`}>{batch.status}</span>
-                    </div>
-
-                    <div className="sf-card-details">
-                      <div className="detail-row">
-                        <span>Machine:</span>
-                        <strong>{batch.machine_name || "Unassigned"}</strong>
-                      </div>
-                      <div className="detail-row">
-                        <span>Target Output:</span>
-                        <strong>{Number(batch.planned_quantity).toLocaleString()} {batch.unit}</strong>
-                      </div>
-                      <div className="detail-row">
-                        <span>Shift / Operator:</span>
-                        <strong>{batch.shift_name || "General"} • {batch.operator_name || "Team"}</strong>
-                      </div>
-                    </div>
-
-                    <div className="sf-card-actions">
-                      {batch.status === "PLANNED" && (
-                        <button
-                          type="button"
-                          className="btn-start"
-                          onClick={() => handleStartBatch(batch.id)}
-                        >
-                          ▶️ Start Batch
-                        </button>
-                      )}
-                      {batch.status === "RUNNING" && (
-                        <>
-                          <button
-                            type="button"
-                            className="btn-pause"
-                            onClick={() => handlePauseBatch(batch.id)}
-                          >
-                            ⏸️ Pause
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-complete"
-                            onClick={() => openCompleteModal(batch)}
-                          >
-                            ✅ Complete Output
-                          </button>
-                        </>
-                      )}
-                      {batch.status === "PAUSED" && (
-                        <button
-                          type="button"
-                          className="btn-resume"
-                          onClick={() => handleResumeBatch(batch.id)}
-                        >
-                          ▶️ Resume
-                        </button>
-                      )}
-                      <Link to={`/plastic-erp/traceability?batch=${batch.batch_no}`} className="btn-trace">
-                        🔍 Trace
-                      </Link>
-                    </div>
-                  </div>
-                ))
-            )}
-          </div>
-        )}
-
-        {/* TAB 3: BATCHES */}
-        {activeTab === "batches" && (
-          <div className="plastic-card">
-            <div className="table-responsive">
-              <table className="plastic-table">
-                <thead>
-                  <tr>
-                    <th>Batch No</th>
-                    <th>Product</th>
-                    <th>Date</th>
-                    <th>Planned</th>
-                    <th>Actual Output</th>
-                    <th>Scrap</th>
-                    <th>Efficiency</th>
-                    <th>QC Status</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {batches.length === 0 ? (
-                    <tr>
-                      <td colSpan="10" className="empty-cell">No batches found.</td>
-                    </tr>
-                  ) : (
-                    batches.map((b) => (
-                      <tr key={b.id}>
-                        <td><strong>{b.batch_no}</strong></td>
-                        <td>{b.product_name}</td>
-                        <td>{b.batch_date?.split("T")[0]}</td>
-                        <td>{Number(b.planned_quantity).toLocaleString()} {b.unit}</td>
-                        <td>{Number(b.actual_quantity || 0).toLocaleString()} {b.unit}</td>
-                        <td>{Number(b.scrap_quantity || 0).toLocaleString()} {b.unit}</td>
-                        <td>
-                          <strong>{Number(b.efficiency_percent || 0).toFixed(1)}%</strong>
-                        </td>
-                        <td>
-                          <span className={`badge qc-${b.qc_status?.toLowerCase()}`}>{b.qc_status}</span>
-                        </td>
-                        <td>
-                          <span className={`badge status-${b.status?.toLowerCase()}`}>{b.status}</span>
-                        </td>
-                        <td>
-                          <Link to={`/plastic-erp/traceability?batch=${b.batch_no}`} className="action-link">
-                            Trace 🔍
-                          </Link>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 4: PLANNING */}
-        {activeTab === "plans" && (
-          <div className="plastic-card">
-            <div className="table-responsive">
-              <table className="plastic-table">
-                <thead>
-                  <tr>
-                    <th>Plan Code</th>
-                    <th>Type</th>
-                    <th>Start Date</th>
-                    <th>End Date</th>
-                    <th>Target Qty</th>
-                    <th>Machine</th>
-                    <th>Shift</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {plans.length === 0 ? (
-                    <tr>
-                      <td colSpan="8" className="empty-cell">No production plans recorded.</td>
-                    </tr>
-                  ) : (
-                    plans.map((p) => (
-                      <tr key={p.id}>
-                        <td><strong>{p.plan_code}</strong></td>
-                        <td>{p.plan_type}</td>
-                        <td>{p.start_date?.split("T")[0]}</td>
-                        <td>{p.end_date?.split("T")[0]}</td>
-                        <td>{Number(p.target_quantity).toLocaleString()} {p.unit}</td>
-                        <td>{p.machine_name || "All"}</td>
-                        <td>{p.shift_name || "All"}</td>
-                        <td>
-                          <span className={`badge status-${p.status?.toLowerCase()}`}>{p.status}</span>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* MODAL: CREATE WORK ORDER */}
-        {showOrderModal && (
-          <div className="plastic-modal-backdrop">
-            <div className="plastic-modal">
-              <div className="modal-header">
-                <h3>Create New Work Order</h3>
-                <button type="button" onClick={() => setShowOrderModal(false)}>✕</button>
-              </div>
-              <form onSubmit={handleCreateOrder} className="modal-form">
-                <div className="form-group">
-                  <label>Product Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={orderForm.product_name}
-                    onChange={(e) => setOrderForm({ ...orderForm, product_name: e.target.value })}
-                    placeholder="e.g. Recycled PP Granules Grade A"
-                  />
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>BOM / Recipe</label>
-                    <select
-                      value={orderForm.recipe_id}
-                      onChange={(e) => setOrderForm({ ...orderForm, recipe_id: e.target.value })}
-                    >
-                      <option value="">Select Recipe (Optional)</option>
-                      {recipes.map((r) => (
-                        <option key={r.id} value={r.id}>{r.recipe_name} ({r.version})</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label>Planned Quantity (KG) *</label>
-                    <input
-                      type="number"
-                      required
-                      min="1"
-                      value={orderForm.planned_quantity}
-                      onChange={(e) => setOrderForm({ ...orderForm, planned_quantity: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Target Date *</label>
-                    <input
-                      type="date"
-                      required
-                      value={orderForm.target_date}
-                      onChange={(e) => setOrderForm({ ...orderForm, target_date: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label>Priority</label>
-                    <select
-                      value={orderForm.priority}
-                      onChange={(e) => setOrderForm({ ...orderForm, priority: e.target.value })}
-                    >
-                      <option value="LOW">Low</option>
-                      <option value="NORMAL">Normal</option>
-                      <option value="HIGH">High</option>
-                      <option value="URGENT">Urgent</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Assigned Machine</label>
-                    <select
-                      value={orderForm.machine_id}
-                      onChange={(e) => setOrderForm({ ...orderForm, machine_id: e.target.value })}
-                    >
-                      <option value="">Any Machine</option>
-                      {machines.map((m) => (
-                        <option key={m.id} value={m.id}>{m.machine_name} ({m.machine_code})</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label>Assigned Shift</label>
-                    <select
-                      value={orderForm.shift_id}
-                      onChange={(e) => setOrderForm({ ...orderForm, shift_id: e.target.value })}
-                    >
-                      <option value="">Any Shift</option>
-                      {shifts.map((s) => (
-                        <option key={s.id} value={s.id}>{s.shift_name}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="modal-actions">
-                  <button type="button" className="btn-secondary" onClick={() => setShowOrderModal(false)}>
-                    Cancel
-                  </button>
-                  <button type="submit" className="btn-primary">
-                    Create Work Order
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* MODAL: CREATE PRODUCTION PLAN */}
-        {showPlanModal && (
-          <div className="plastic-modal-backdrop">
-            <div className="plastic-modal">
-              <div className="modal-header">
-                <h3>New Production Plan</h3>
-                <button type="button" onClick={() => setShowPlanModal(false)}>✕</button>
-              </div>
-              <form onSubmit={handleCreatePlan} className="modal-form">
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Plan Type</label>
-                    <select
-                      value={planForm.plan_type}
-                      onChange={(e) => setPlanForm({ ...planForm, plan_type: e.target.value })}
-                    >
-                      <option value="DAILY">Daily Plan</option>
-                      <option value="WEEKLY">Weekly Plan</option>
-                      <option value="MONTHLY">Monthly Plan</option>
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label>Target Quantity (KG) *</label>
-                    <input
-                      type="number"
-                      required
-                      min="1"
-                      value={planForm.target_quantity}
-                      onChange={(e) => setPlanForm({ ...planForm, target_quantity: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Start Date *</label>
-                    <input
-                      type="date"
-                      required
-                      value={planForm.start_date}
-                      onChange={(e) => setPlanForm({ ...planForm, start_date: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label>End Date *</label>
-                    <input
-                      type="date"
-                      required
-                      value={planForm.end_date}
-                      onChange={(e) => setPlanForm({ ...planForm, end_date: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className="modal-actions">
-                  <button type="button" className="btn-secondary" onClick={() => setShowPlanModal(false)}>
-                    Cancel
-                  </button>
-                  <button type="submit" className="btn-primary">
-                    Save Plan
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* MODAL: CREATE PRODUCTION BATCH */}
-        {showBatchModal && (
-          <div className="plastic-modal-backdrop">
-            <div className="plastic-modal">
-              <div className="modal-header">
-                <h3>Create Production Batch</h3>
-                <button type="button" onClick={() => setShowBatchModal(false)}>✕</button>
-              </div>
-              <form onSubmit={handleCreateBatch} className="modal-form">
-                <div className="form-group">
-                  <label>Linked Work Order</label>
-                  <select
-                    value={batchForm.production_order_id}
-                    onChange={(e) => {
-                      const selOrder = orders.find((o) => String(o.id) === e.target.value);
-                      setBatchForm({
-                        ...batchForm,
-                        production_order_id: e.target.value,
-                        product_name: selOrder ? selOrder.product_name : batchForm.product_name,
-                        recipe_id: selOrder ? selOrder.recipe_id || "" : batchForm.recipe_id,
-                        planned_quantity: selOrder ? selOrder.planned_quantity : batchForm.planned_quantity,
-                      });
-                    }}
-                  >
-                    <option value="">None (Independent Batch)</option>
-                    {orders.map((o) => (
-                      <option key={o.id} value={o.id}>{o.production_order_no} - {o.product_name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label>Product Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={batchForm.product_name}
-                    onChange={(e) => setBatchForm({ ...batchForm, product_name: e.target.value })}
-                    placeholder="e.g. Recycled PP Granules"
-                  />
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Planned Batch Qty (KG) *</label>
-                    <input
-                      type="number"
-                      required
-                      min="1"
-                      value={batchForm.planned_quantity}
-                      onChange={(e) => setBatchForm({ ...batchForm, planned_quantity: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label>Machine</label>
-                    <select
-                      value={batchForm.machine_id}
-                      onChange={(e) => setBatchForm({ ...batchForm, machine_id: e.target.value })}
-                    >
-                      <option value="">Select Machine</option>
-                      {machines.map((m) => (
-                        <option key={m.id} value={m.id}>{m.machine_name} ({m.capacity} KG/HR)</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Shift</label>
-                    <select
-                      value={batchForm.shift_id}
-                      onChange={(e) => setBatchForm({ ...batchForm, shift_id: e.target.value })}
-                    >
-                      <option value="">Select Shift</option>
-                      {shifts.map((s) => (
-                        <option key={s.id} value={s.id}>{s.shift_name}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label>Operator</label>
-                    <select
-                      value={batchForm.operator_id}
-                      onChange={(e) => setBatchForm({ ...batchForm, operator_id: e.target.value })}
-                    >
-                      <option value="">Select Operator</option>
-                      {operators.map((op) => (
-                        <option key={op.id} value={op.id}>{op.name} ({op.skill_level})</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="modal-actions">
-                  <button type="button" className="btn-secondary" onClick={() => setShowBatchModal(false)}>
-                    Cancel
-                  </button>
-                  <button type="submit" className="btn-primary">
-                    Create Batch
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* MODAL: COMPLETE BATCH & RECORD OUTPUT */}
-        {showCompleteModal && selectedBatch && (
-          <div className="plastic-modal-backdrop">
-            <div className="plastic-modal">
-              <div className="modal-header">
-                <h3>Complete Output: {selectedBatch.batch_no}</h3>
-                <button type="button" onClick={() => setShowCompleteModal(false)}>✕</button>
-              </div>
-              <form onSubmit={handleCompleteBatch} className="modal-form">
-                <p className="modal-notice">
-                  Recording output will complete the batch, update WIP, add to Finished Goods stock, and generate scrap records.
-                </p>
-
-                <div className="form-group">
-                  <label>Actual Finished Goods Produced (KG) *</label>
-                  <input
-                    type="number"
-                    required
-                    min="0"
-                    step="0.01"
-                    value={completeForm.actual_quantity}
-                    onChange={(e) => setCompleteForm({ ...completeForm, actual_quantity: e.target.value })}
-                  />
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Process Scrap Generated (KG)</label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={completeForm.scrap_quantity}
-                      onChange={(e) => setCompleteForm({ ...completeForm, scrap_quantity: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label>Regrind Generated (KG)</label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={completeForm.regrind_quantity}
-                      onChange={(e) => setCompleteForm({ ...completeForm, regrind_quantity: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label>Rejected Output (KG)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={completeForm.rejected_quantity}
-                    onChange={(e) => setCompleteForm({ ...completeForm, rejected_quantity: e.target.value })}
-                  />
-                </div>
-
-                <div className="modal-actions">
-                  <button type="button" className="btn-secondary" onClick={() => setShowCompleteModal(false)}>
-                    Cancel
-                  </button>
-                  <button type="submit" className="btn-primary">
-                    Confirm Completion
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
+      {/* KPI Cards Grid */}
+      <div className="sb-kpi-grid">
+        <KpiCard
+          title="Total Work Orders"
+          value={orders.length}
+          accent="blue"
+          icon="📑"
+          supportingText="Active manufacturing pipeline"
+        />
+        <KpiCard
+          title="Live Shopfloor Batches"
+          value={activeBatchesCount}
+          accent="teal"
+          icon="⚡"
+          supportingText="Currently running on machines"
+        />
+        <KpiCard
+          title="Completed Batches"
+          value={completedBatchesCount}
+          accent="green"
+          icon="✅"
+          supportingText="Finished goods transferred"
+        />
+        <KpiCard
+          title="Total Planned Output"
+          value={`${totalPlannedQty.toLocaleString()} KG`}
+          accent="navy"
+          icon="📦"
+          supportingText="Target volume commitment"
+        />
       </div>
+
+      {/* Tab Navigation */}
+      <div style={{ marginBottom: "20px" }}>
+        <Tabs
+          tabs={productionTabs}
+          activeTab={activeTab}
+          onChange={switchTab}
+          variant="pills"
+        />
+      </div>
+
+      {/* TAB 1: WORK ORDERS */}
+      {activeTab === "orders" && (
+        <Card noPadding>
+          <DataTable
+            columns={orderColumns}
+            data={orders}
+            loading={loading}
+            emptyMessage="No production orders found. Click 'Create Work Order' to start."
+          />
+        </Card>
+      )}
+
+      {/* TAB 2: LIVE SHOP FLOOR */}
+      {activeTab === "shopfloor" && (
+        <div className="sb-shopfloor-grid">
+          {batches.filter((b) => ["PLANNED", "RUNNING", "PAUSED"].includes(b.status)).length === 0 ? (
+            <Card>
+              <div style={{ textAlign: "center", padding: "40px 20px" }}>
+                <h3 className="sb-text-navy" style={{ margin: "0 0 8px 0" }}>No active batches on the shop floor</h3>
+                <p className="sb-text-muted" style={{ margin: "0 0 20px 0" }}>All batches are completed. Launch a new batch to start machinery.</p>
+                <Button variant="primary" icon="+" onClick={() => setShowBatchModal(true)}>
+                  Create Production Batch
+                </Button>
+              </div>
+            </Card>
+          ) : (
+            batches
+              .filter((b) => ["PLANNED", "RUNNING", "PAUSED"].includes(b.status))
+              .map((batch) => (
+                <div key={batch.id} className={`sb-shopfloor-card status-${batch.status?.toLowerCase()}`}>
+                  <div className="sb-sf-header">
+                    <div>
+                      <span className="sb-sf-batch-tag">{batch.batch_no}</span>
+                      <h3 className="sb-sf-product-title">{batch.product_name}</h3>
+                    </div>
+                    <StatusBadge status={batch.status} />
+                  </div>
+
+                  <div className="sb-sf-details">
+                    <div className="sb-sf-row">
+                      <span>Machine:</span>
+                      <strong>{batch.machine_name || "Unassigned"}</strong>
+                    </div>
+                    <div className="sb-sf-row">
+                      <span>Target Output:</span>
+                      <strong>{Number(batch.planned_quantity).toLocaleString()} {batch.unit}</strong>
+                    </div>
+                    <div className="sb-sf-row">
+                      <span>Shift / Operator:</span>
+                      <strong>{batch.shift_name || "General"} • {batch.operator_name || "Plant Team"}</strong>
+                    </div>
+                  </div>
+
+                  <div className="sb-sf-actions">
+                    {batch.status === "PLANNED" && (
+                      <Button
+                        size="sm"
+                        variant="success"
+                        icon="▶️"
+                        onClick={() => handleStartBatch(batch.id)}
+                      >
+                        Start Batch
+                      </Button>
+                    )}
+                    {batch.status === "RUNNING" && (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="warning"
+                          icon="⏸️"
+                          onClick={() => handlePauseBatch(batch.id)}
+                        >
+                          Pause
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="teal"
+                          icon="✅"
+                          onClick={() => openCompleteModal(batch)}
+                        >
+                          Complete Output
+                        </Button>
+                      </>
+                    )}
+                    {batch.status === "PAUSED" && (
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        icon="▶️"
+                        onClick={() => handleResumeBatch(batch.id)}
+                      >
+                        Resume
+                      </Button>
+                    )}
+                    <Link to={`/plastic-erp/traceability?batch=${batch.batch_no}`}>
+                      <Button size="sm" variant="secondary" icon="🔍">
+                        Trace
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              ))
+          )}
+        </div>
+      )}
+
+      {/* TAB 3: BATCHES */}
+      {activeTab === "batches" && (
+        <Card noPadding>
+          <DataTable
+            columns={batchColumns}
+            data={batches}
+            loading={loading}
+            emptyMessage="No production batches found."
+          />
+        </Card>
+      )}
+
+      {/* TAB 4: PLANNING */}
+      {activeTab === "plans" && (
+        <Card noPadding>
+          <DataTable
+            columns={planColumns}
+            data={plans}
+            loading={loading}
+            emptyMessage="No production plans recorded."
+          />
+        </Card>
+      )}
+
+      {/* MODAL: CREATE WORK ORDER */}
+      <Modal
+        isOpen={showOrderModal}
+        onClose={() => setShowOrderModal(false)}
+        title="Create Work Order"
+        subtitle="Schedule new production order with planned quantity, target completion date and recipe"
+        size="md"
+        footer={
+          <div className="sb-modal-footer-actions">
+            <Button variant="secondary" onClick={() => setShowOrderModal(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={handleCreateOrder}>
+              Create Work Order
+            </Button>
+          </div>
+        }
+      >
+        <form onSubmit={handleCreateOrder}>
+          <div className="sb-form-group">
+            <label>Product Name *</label>
+            <input
+              type="text"
+              required
+              value={orderForm.product_name}
+              onChange={(e) => setOrderForm({ ...orderForm, product_name: e.target.value })}
+              placeholder="e.g. Recycled PP Granules Grade A"
+              className="sb-input"
+            />
+          </div>
+
+          <div className="sb-form-grid-3" style={{ gridTemplateColumns: "1fr 1fr" }}>
+            <div className="sb-form-group">
+              <label>BOM / Recipe</label>
+              <select
+                value={orderForm.recipe_id}
+                onChange={(e) => setOrderForm({ ...orderForm, recipe_id: e.target.value })}
+                className="sb-select"
+              >
+                <option value="">Select Recipe (Optional)</option>
+                {recipes.map((r) => (
+                  <option key={r.id} value={r.id}>{r.recipe_name} ({r.version})</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="sb-form-group">
+              <label>Planned Quantity (KG) *</label>
+              <input
+                type="number"
+                required
+                min="1"
+                value={orderForm.planned_quantity}
+                onChange={(e) => setOrderForm({ ...orderForm, planned_quantity: e.target.value })}
+                className="sb-input"
+              />
+            </div>
+          </div>
+
+          <div className="sb-form-grid-3" style={{ gridTemplateColumns: "1fr 1fr" }}>
+            <div className="sb-form-group">
+              <label>Target Date *</label>
+              <input
+                type="date"
+                required
+                value={orderForm.target_date}
+                onChange={(e) => setOrderForm({ ...orderForm, target_date: e.target.value })}
+                className="sb-input"
+              />
+            </div>
+
+            <div className="sb-form-group">
+              <label>Priority</label>
+              <select
+                value={orderForm.priority}
+                onChange={(e) => setOrderForm({ ...orderForm, priority: e.target.value })}
+                className="sb-select"
+              >
+                <option value="LOW">Low</option>
+                <option value="NORMAL">Normal</option>
+                <option value="HIGH">High</option>
+                <option value="URGENT">Urgent</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="sb-form-grid-3" style={{ gridTemplateColumns: "1fr 1fr" }}>
+            <div className="sb-form-group">
+              <label>Assigned Machine</label>
+              <select
+                value={orderForm.machine_id}
+                onChange={(e) => setOrderForm({ ...orderForm, machine_id: e.target.value })}
+                className="sb-select"
+              >
+                <option value="">Any Machine</option>
+                {machines.map((m) => (
+                  <option key={m.id} value={m.id}>{m.machine_name} ({m.machine_code})</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="sb-form-group">
+              <label>Assigned Shift</label>
+              <select
+                value={orderForm.shift_id}
+                onChange={(e) => setOrderForm({ ...orderForm, shift_id: e.target.value })}
+                className="sb-select"
+              >
+                <option value="">Any Shift</option>
+                {shifts.map((s) => (
+                  <option key={s.id} value={s.id}>{s.shift_name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </form>
+      </Modal>
+
+      {/* MODAL: CREATE PRODUCTION PLAN */}
+      <Modal
+        isOpen={showPlanModal}
+        onClose={() => setShowPlanModal(false)}
+        title="New Production Plan"
+        subtitle="Plan factory throughput for daily, weekly or monthly plant target"
+        size="md"
+        footer={
+          <div className="sb-modal-footer-actions">
+            <Button variant="secondary" onClick={() => setShowPlanModal(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={handleCreatePlan}>
+              Save Plan
+            </Button>
+          </div>
+        }
+      >
+        <form onSubmit={handleCreatePlan}>
+          <div className="sb-form-grid-3" style={{ gridTemplateColumns: "1fr 1fr" }}>
+            <div className="sb-form-group">
+              <label>Plan Type</label>
+              <select
+                value={planForm.plan_type}
+                onChange={(e) => setPlanForm({ ...planForm, plan_type: e.target.value })}
+                className="sb-select"
+              >
+                <option value="DAILY">Daily Plan</option>
+                <option value="WEEKLY">Weekly Plan</option>
+                <option value="MONTHLY">Monthly Plan</option>
+              </select>
+            </div>
+
+            <div className="sb-form-group">
+              <label>Target Quantity (KG) *</label>
+              <input
+                type="number"
+                required
+                min="1"
+                value={planForm.target_quantity}
+                onChange={(e) => setPlanForm({ ...planForm, target_quantity: e.target.value })}
+                className="sb-input"
+              />
+            </div>
+          </div>
+
+          <div className="sb-form-grid-3" style={{ gridTemplateColumns: "1fr 1fr" }}>
+            <div className="sb-form-group">
+              <label>Start Date *</label>
+              <input
+                type="date"
+                required
+                value={planForm.start_date}
+                onChange={(e) => setPlanForm({ ...planForm, start_date: e.target.value })}
+                className="sb-input"
+              />
+            </div>
+
+            <div className="sb-form-group">
+              <label>End Date *</label>
+              <input
+                type="date"
+                required
+                value={planForm.end_date}
+                onChange={(e) => setPlanForm({ ...planForm, end_date: e.target.value })}
+                className="sb-input"
+              />
+            </div>
+          </div>
+
+          <div className="sb-form-grid-3" style={{ gridTemplateColumns: "1fr 1fr" }}>
+            <div className="sb-form-group">
+              <label>Machine</label>
+              <select
+                value={planForm.machine_id}
+                onChange={(e) => setPlanForm({ ...planForm, machine_id: e.target.value })}
+                className="sb-select"
+              >
+                <option value="">All Machines</option>
+                {machines.map((m) => (
+                  <option key={m.id} value={m.id}>{m.machine_name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="sb-form-group">
+              <label>Shift</label>
+              <select
+                value={planForm.shift_id}
+                onChange={(e) => setPlanForm({ ...planForm, shift_id: e.target.value })}
+                className="sb-select"
+              >
+                <option value="">All Shifts</option>
+                {shifts.map((s) => (
+                  <option key={s.id} value={s.id}>{s.shift_name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </form>
+      </Modal>
+
+      {/* MODAL: CREATE PRODUCTION BATCH */}
+      <Modal
+        isOpen={showBatchModal}
+        onClose={() => setShowBatchModal(false)}
+        title="Create Production Batch"
+        subtitle="Initiate shop floor extrusion / pelleting batch with assigned operator and machine"
+        size="md"
+        footer={
+          <div className="sb-modal-footer-actions">
+            <Button variant="secondary" onClick={() => setShowBatchModal(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={handleCreateBatch}>
+              Create Batch
+            </Button>
+          </div>
+        }
+      >
+        <form onSubmit={handleCreateBatch}>
+          <div className="sb-form-group">
+            <label>Linked Work Order</label>
+            <select
+              value={batchForm.production_order_id}
+              onChange={(e) => {
+                const selOrder = orders.find((o) => String(o.id) === e.target.value);
+                setBatchForm({
+                  ...batchForm,
+                  production_order_id: e.target.value,
+                  product_name: selOrder ? selOrder.product_name : batchForm.product_name,
+                  recipe_id: selOrder ? selOrder.recipe_id || "" : batchForm.recipe_id,
+                  planned_quantity: selOrder ? selOrder.planned_quantity : batchForm.planned_quantity,
+                });
+              }}
+              className="sb-select"
+            >
+              <option value="">None (Independent Batch)</option>
+              {orders.map((o) => (
+                <option key={o.id} value={o.id}>{o.production_order_no} - {o.product_name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="sb-form-group">
+            <label>Product Name *</label>
+            <input
+              type="text"
+              required
+              value={batchForm.product_name}
+              onChange={(e) => setBatchForm({ ...batchForm, product_name: e.target.value })}
+              placeholder="e.g. Recycled PP Granules"
+              className="sb-input"
+            />
+          </div>
+
+          <div className="sb-form-grid-3" style={{ gridTemplateColumns: "1fr 1fr" }}>
+            <div className="sb-form-group">
+              <label>Planned Batch Qty (KG) *</label>
+              <input
+                type="number"
+                required
+                min="1"
+                value={batchForm.planned_quantity}
+                onChange={(e) => setBatchForm({ ...batchForm, planned_quantity: e.target.value })}
+                className="sb-input"
+              />
+            </div>
+
+            <div className="sb-form-group">
+              <label>Machine</label>
+              <select
+                value={batchForm.machine_id}
+                onChange={(e) => setBatchForm({ ...batchForm, machine_id: e.target.value })}
+                className="sb-select"
+              >
+                <option value="">Select Machine</option>
+                {machines.map((m) => (
+                  <option key={m.id} value={m.id}>{m.machine_name} ({m.capacity} KG/HR)</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="sb-form-grid-3" style={{ gridTemplateColumns: "1fr 1fr" }}>
+            <div className="sb-form-group">
+              <label>Shift</label>
+              <select
+                value={batchForm.shift_id}
+                onChange={(e) => setBatchForm({ ...batchForm, shift_id: e.target.value })}
+                className="sb-select"
+              >
+                <option value="">Select Shift</option>
+                {shifts.map((s) => (
+                  <option key={s.id} value={s.id}>{s.shift_name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="sb-form-group">
+              <label>Operator</label>
+              <select
+                value={batchForm.operator_id}
+                onChange={(e) => setBatchForm({ ...batchForm, operator_id: e.target.value })}
+                className="sb-select"
+              >
+                <option value="">Select Operator</option>
+                {operators.map((op) => (
+                  <option key={op.id} value={op.id}>{op.name} ({op.skill_level})</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </form>
+      </Modal>
+
+      {/* MODAL: COMPLETE BATCH & RECORD OUTPUT */}
+      <Modal
+        isOpen={showCompleteModal && Boolean(selectedBatch)}
+        onClose={() => setShowCompleteModal(false)}
+        title={`Complete Output: ${selectedBatch?.batch_no || ""}`}
+        subtitle="Record finished goods output, process scrap generated and regrind recovery"
+        size="md"
+        footer={
+          <div className="sb-modal-footer-actions">
+            <Button variant="secondary" onClick={() => setShowCompleteModal(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={handleCompleteBatch}>
+              Confirm Completion
+            </Button>
+          </div>
+        }
+      >
+        {selectedBatch && (
+          <form onSubmit={handleCompleteBatch}>
+            <p className="sb-text-muted" style={{ marginBottom: "16px" }}>
+              Recording output will complete the batch, update WIP, add to Finished Goods stock, and generate scrap records.
+            </p>
+
+            <div className="sb-form-group">
+              <label>Actual Finished Goods Produced (KG) *</label>
+              <input
+                type="number"
+                required
+                min="0"
+                step="0.01"
+                value={completeForm.actual_quantity}
+                onChange={(e) => setCompleteForm({ ...completeForm, actual_quantity: e.target.value })}
+                className="sb-input"
+              />
+            </div>
+
+            <div className="sb-form-grid-3" style={{ gridTemplateColumns: "1fr 1fr" }}>
+              <div className="sb-form-group">
+                <label>Process Scrap Generated (KG)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={completeForm.scrap_quantity}
+                  onChange={(e) => setCompleteForm({ ...completeForm, scrap_quantity: e.target.value })}
+                  className="sb-input"
+                />
+              </div>
+
+              <div className="sb-form-group">
+                <label>Regrind Generated (KG)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={completeForm.regrind_quantity}
+                  onChange={(e) => setCompleteForm({ ...completeForm, regrind_quantity: e.target.value })}
+                  className="sb-input"
+                />
+              </div>
+            </div>
+
+            <div className="sb-form-group">
+              <label>Rejected Output (KG)</label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={completeForm.rejected_quantity}
+                onChange={(e) => setCompleteForm({ ...completeForm, rejected_quantity: e.target.value })}
+                className="sb-input"
+              />
+            </div>
+          </form>
+        )}
+      </Modal>
     </div>
   );
 }

@@ -1,8 +1,18 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import API from "../api/axios";
-import PlasticNavbar from "../components/PlasticNavbar";
 import LoadingScreen from "../components/LoadingScreen";
+import {
+  PageHeader,
+  KpiCard,
+  Card,
+  Tabs,
+  DataTable,
+  Modal,
+  Button,
+  StatusBadge,
+  AlertBanner,
+} from "../components";
 import "./PlasticOperations.css";
 
 function PlasticOperations() {
@@ -56,7 +66,6 @@ function PlasticOperations() {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
   }, [fetchData]);
 
@@ -98,427 +107,317 @@ function PlasticOperations() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="plastic-ops-page">
-        <PlasticNavbar />
-        <LoadingScreen message="Loading plant operations..." />
-      </div>
-    );
-  }
+  if (loading) return <LoadingScreen message="Loading plant operations..." />;
 
   const activeShiftsCount = shifts.filter((s) => s.status === "ACTIVE").length;
   const activeOpsCount = operators.filter((o) => o.status === "ACTIVE").length;
 
-  return (
-    <div className="plastic-ops-page">
-      <PlasticNavbar />
+  const tabs = [
+    { id: "shifts", label: "⏰ Plant Shifts", count: shifts.length },
+    { id: "operators", label: "👷 Machine Operators", count: operators.length },
+  ];
 
-      <main className="plastic-ops-container">
-        {/* Header */}
-        <div className="plastic-ops-header">
-          <div>
-            <span className="plastic-ops-badge">PLANT OPERATIONS</span>
-            <h1 className="plastic-ops-title">Shifts & Operator Management</h1>
-            <p className="plastic-ops-subtitle">
-              Manage work shifts, plant timings, machine operators, and skill proficiencies.
-            </p>
-          </div>
-          <div className="plastic-ops-header-actions">
-            <Link to="/plastic-erp" className="btn-secondary-link">
-              ← ERP Dashboard
+  return (
+    <div className="sb-page-container">
+      <PageHeader
+        title="Plant Operations & Workforce"
+        subtitle="Manage work shifts, plant timings, machine operators, and skill proficiencies."
+        breadcrumbs={[
+          { label: "ERP", to: "/plastic-erp" },
+          { label: "Production", to: "/plastic-erp/production" },
+          { label: "Plant Operations" },
+        ]}
+        actions={
+          <div style={{ display: "flex", gap: "10px" }}>
+            <Link to="/plastic-erp">
+              <Button variant="secondary">ERP Dashboard</Button>
             </Link>
             {activeTab === "shifts" ? (
-              <button
-                className="btn-primary-ops"
-                onClick={() => setShowShiftModal(true)}
-              >
+              <Button variant="primary" onClick={() => setShowShiftModal(true)}>
                 + Add Shift
-              </button>
+              </Button>
             ) : (
-              <button
-                className="btn-primary-ops"
-                onClick={() => setShowOperatorModal(true)}
-              >
+              <Button variant="primary" onClick={() => setShowOperatorModal(true)}>
                 + Add Operator
-              </button>
+              </Button>
             )}
           </div>
-        </div>
+        }
+      />
 
-        {/* Notifications */}
-        {error && (
-          <div className="ops-alert ops-alert-danger">
-            <span>{error}</span>
-            <button onClick={() => setError("")}>×</button>
-          </div>
-        )}
-        {successMsg && (
-          <div className="ops-alert ops-alert-success">
-            <span>{successMsg}</span>
-            <button onClick={() => setSuccessMsg("")}>×</button>
-          </div>
-        )}
+      {error && <AlertBanner type="error" message={error} onClose={() => setError("")} />}
+      {successMsg && <AlertBanner type="success" message={successMsg} onClose={() => setSuccessMsg("")} />}
 
-        {/* Quick KPI Stats */}
-        <div className="plastic-ops-stats-grid">
-          <div className="ops-stat-card">
-            <span className="ops-stat-label">Total Shifts</span>
-            <span className="ops-stat-val">{shifts.length}</span>
-            <span className="ops-stat-sub">{activeShiftsCount} Active in Rotation</span>
-          </div>
-          <div className="ops-stat-card">
-            <span className="ops-stat-label">Active Operators</span>
-            <span className="ops-stat-val text-green">{activeOpsCount}</span>
-            <span className="ops-stat-sub">Across all plant bays</span>
-          </div>
-          <div className="ops-stat-card">
-            <span className="ops-stat-label">Total Workforce</span>
-            <span className="ops-stat-val">{operators.length}</span>
-            <span className="ops-stat-sub">Registered Staff</span>
-          </div>
-          <div className="ops-stat-card">
-            <span className="ops-stat-label">Plant Operating Hours</span>
-            <span className="ops-stat-val text-blue">24 / 7</span>
-            <span className="ops-stat-sub">Multi-shift coverage</span>
-          </div>
-        </div>
+      {/* KPI Cards */}
+      <div className="sb-kpis-grid" style={{ marginBottom: "24px" }}>
+        <KpiCard
+          label="Total Shifts"
+          value={shifts.length}
+          subtext={`${activeShiftsCount} Active in Rotation`}
+          accent="blue"
+        />
+        <KpiCard
+          label="Active Operators"
+          value={activeOpsCount}
+          subtext="Across all plant bays"
+          accent="teal"
+        />
+        <KpiCard
+          label="Total Workforce"
+          value={operators.length}
+          subtext="Registered Staff"
+          accent="navy"
+        />
+        <KpiCard
+          label="Plant Coverage"
+          value="24 / 7"
+          subtext="Multi-shift operations"
+          accent="blue"
+        />
+      </div>
 
-        {/* Tab Navigation */}
-        <div className="plastic-ops-tabs">
-          <button
-            className={`ops-tab-btn ${activeTab === "shifts" ? "active" : ""}`}
-            onClick={() => setActiveTab("shifts")}
+      <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
+
+      {/* TAB 1: SHIFTS */}
+      {activeTab === "shifts" && (
+        <Card noPadding>
+          <DataTable
+            headers={[
+              "Shift Name",
+              "Start Time",
+              "End Time",
+              "Break Duration",
+              "Status",
+              "Created",
+            ]}
           >
-            ⏰ Shifts ({shifts.length})
-          </button>
-          <button
-            className={`ops-tab-btn ${activeTab === "operators" ? "active" : ""}`}
-            onClick={() => setActiveTab("operators")}
+            {shifts.length === 0 ? (
+              <tr>
+                <td colSpan="6" style={{ textAlign: "center", padding: "32px", color: "var(--sb-muted)" }}>
+                  No shifts configured yet. Click &quot;+ Add Shift&quot; to create your first shift.
+                </td>
+              </tr>
+            ) : (
+              shifts.map((s) => (
+                <tr key={s.id}>
+                  <td><strong>{s.shift_name}</strong></td>
+                  <td><span className="ops-time-badge">{s.start_time}</span></td>
+                  <td><span className="ops-time-badge">{s.end_time}</span></td>
+                  <td>{s.break_duration_minutes} mins</td>
+                  <td>
+                    <StatusBadge status={s.status} />
+                  </td>
+                  <td style={{ color: "var(--sb-muted)" }}>
+                    {new Date(s.created_at).toLocaleDateString()}
+                  </td>
+                </tr>
+              ))
+            )}
+          </DataTable>
+        </Card>
+      )}
+
+      {/* TAB 2: OPERATORS */}
+      {activeTab === "operators" && (
+        <Card noPadding>
+          <DataTable
+            headers={[
+              "Code",
+              "Full Name",
+              "Skill Level",
+              "Contact Mobile",
+              "Status",
+              "Created",
+            ]}
           >
-            👷 Operators ({operators.length})
-          </button>
-        </div>
-
-        {/* TAB 1: SHIFTS */}
-        {activeTab === "shifts" && (
-          <div className="plastic-ops-card">
-            <div className="card-top-bar">
-              <h3>Configured Shifts</h3>
-              <button
-                className="btn-outline-sm"
-                onClick={() => setShowShiftModal(true)}
-              >
-                + New Shift
-              </button>
-            </div>
-            <div className="ops-table-responsive">
-              <table className="ops-table">
-                <thead>
-                  <tr>
-                    <th>Shift Name</th>
-                    <th>Start Time</th>
-                    <th>End Time</th>
-                    <th>Break Duration</th>
-                    <th>Status</th>
-                    <th>Created</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {shifts.length === 0 ? (
-                    <tr>
-                      <td colSpan="6" className="text-center py-4 text-muted">
-                        No shifts configured yet. Click &quot;+ Add Shift&quot; to create your first shift.
-                      </td>
-                    </tr>
-                  ) : (
-                    shifts.map((s) => (
-                      <tr key={s.id}>
-                        <td><strong>{s.shift_name}</strong></td>
-                        <td><span className="time-badge">{s.start_time}</span></td>
-                        <td><span className="time-badge">{s.end_time}</span></td>
-                        <td>{s.break_duration_minutes} mins</td>
-                        <td>
-                          <span
-                            className={`badge ${
-                              s.status === "ACTIVE" ? "badge-success" : "badge-neutral"
-                            }`}
-                          >
-                            {s.status}
-                          </span>
-                        </td>
-                        <td className="text-muted">
-                          {new Date(s.created_at).toLocaleDateString()}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 2: OPERATORS */}
-        {activeTab === "operators" && (
-          <div className="plastic-ops-card">
-            <div className="card-top-bar">
-              <h3>Shop Floor Operators</h3>
-              <button
-                className="btn-outline-sm"
-                onClick={() => setShowOperatorModal(true)}
-              >
-                + New Operator
-              </button>
-            </div>
-            <div className="ops-table-responsive">
-              <table className="ops-table">
-                <thead>
-                  <tr>
-                    <th>Code</th>
-                    <th>Full Name</th>
-                    <th>Skill Level</th>
-                    <th>Contact Mobile</th>
-                    <th>Status</th>
-                    <th>Created</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {operators.length === 0 ? (
-                    <tr>
-                      <td colSpan="6" className="text-center py-4 text-muted">
-                        No operators recorded yet. Click &quot;+ Add Operator&quot; to register personnel.
-                      </td>
-                    </tr>
-                  ) : (
-                    operators.map((op) => (
-                      <tr key={op.id}>
-                        <td><code>{op.operator_code}</code></td>
-                        <td><strong>{op.name}</strong></td>
-                        <td>
-                          <span className="skill-badge">{op.skill_level}</span>
-                        </td>
-                        <td>{op.mobile || "—"}</td>
-                        <td>
-                          <span
-                            className={`badge ${
-                              op.status === "ACTIVE" ? "badge-success" : "badge-neutral"
-                            }`}
-                          >
-                            {op.status}
-                          </span>
-                        </td>
-                        <td className="text-muted">
-                          {new Date(op.created_at).toLocaleDateString()}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-      </main>
+            {operators.length === 0 ? (
+              <tr>
+                <td colSpan="6" style={{ textAlign: "center", padding: "32px", color: "var(--sb-muted)" }}>
+                  No operators recorded yet. Click &quot;+ Add Operator&quot; to register personnel.
+                </td>
+              </tr>
+            ) : (
+              operators.map((op) => (
+                <tr key={op.id}>
+                  <td><code>{op.operator_code}</code></td>
+                  <td><strong>{op.name}</strong></td>
+                  <td>
+                    <span className="ops-skill-badge">{op.skill_level}</span>
+                  </td>
+                  <td>{op.mobile || "—"}</td>
+                  <td>
+                    <StatusBadge status={op.status} />
+                  </td>
+                  <td style={{ color: "var(--sb-muted)" }}>
+                    {new Date(op.created_at).toLocaleDateString()}
+                  </td>
+                </tr>
+              ))
+            )}
+          </DataTable>
+        </Card>
+      )}
 
       {/* CREATE SHIFT MODAL */}
-      {showShiftModal && (
-        <div className="ops-modal-backdrop">
-          <div className="ops-modal-box">
-            <div className="ops-modal-header">
-              <h2>Add Plant Shift</h2>
-              <button onClick={() => setShowShiftModal(false)}>×</button>
-            </div>
-            <form onSubmit={handleCreateShift} className="ops-modal-form">
-              <div className="form-group">
-                <label>Shift Name *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Morning Shift A, Night Shift"
-                  value={shiftForm.shift_name}
-                  onChange={(e) =>
-                    setShiftForm({ ...shiftForm, shift_name: e.target.value })
-                  }
-                />
-              </div>
-
-              <div className="form-grid-2">
-                <div className="form-group">
-                  <label>Start Time (HH:MM:SS) *</label>
-                  <input
-                    type="time"
-                    step="1"
-                    required
-                    value={shiftForm.start_time}
-                    onChange={(e) =>
-                      setShiftForm({ ...shiftForm, start_time: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="form-group">
-                  <label>End Time (HH:MM:SS) *</label>
-                  <input
-                    type="time"
-                    step="1"
-                    required
-                    value={shiftForm.end_time}
-                    onChange={(e) =>
-                      setShiftForm({ ...shiftForm, end_time: e.target.value })
-                    }
-                  />
-                </div>
-              </div>
-
-              <div className="form-grid-2">
-                <div className="form-group">
-                  <label>Break Duration (minutes)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={shiftForm.break_duration_minutes}
-                    onChange={(e) =>
-                      setShiftForm({
-                        ...shiftForm,
-                        break_duration_minutes: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Status</label>
-                  <select
-                    value={shiftForm.status}
-                    onChange={(e) =>
-                      setShiftForm({ ...shiftForm, status: e.target.value })
-                    }
-                  >
-                    <option value="ACTIVE">ACTIVE</option>
-                    <option value="INACTIVE">INACTIVE</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="ops-modal-actions">
-                <button
-                  type="button"
-                  className="btn-modal-cancel"
-                  onClick={() => setShowShiftModal(false)}
-                >
-                  Cancel
-                </button>
-                <button type="submit" className="btn-modal-submit">
-                  Save Shift
-                </button>
-              </div>
-            </form>
+      <Modal
+        isOpen={showShiftModal}
+        onClose={() => setShowShiftModal(false)}
+        title="Add Plant Shift"
+      >
+        <form onSubmit={handleCreateShift} className="sb-form">
+          <div className="sb-form-group">
+            <label className="sb-label">Shift Name *</label>
+            <input
+              type="text"
+              required
+              className="sb-input"
+              placeholder="e.g. Morning Shift A, Night Shift"
+              value={shiftForm.shift_name}
+              onChange={(e) => setShiftForm({ ...shiftForm, shift_name: e.target.value })}
+            />
           </div>
-        </div>
-      )}
+
+          <div className="sb-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div className="sb-form-group">
+              <label className="sb-label">Start Time (HH:MM:SS) *</label>
+              <input
+                type="time"
+                step="1"
+                required
+                className="sb-input"
+                value={shiftForm.start_time}
+                onChange={(e) => setShiftForm({ ...shiftForm, start_time: e.target.value })}
+              />
+            </div>
+            <div className="sb-form-group">
+              <label className="sb-label">End Time (HH:MM:SS) *</label>
+              <input
+                type="time"
+                step="1"
+                required
+                className="sb-input"
+                value={shiftForm.end_time}
+                onChange={(e) => setShiftForm({ ...shiftForm, end_time: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div className="sb-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div className="sb-form-group">
+              <label className="sb-label">Break Duration (minutes)</label>
+              <input
+                type="number"
+                min="0"
+                className="sb-input"
+                value={shiftForm.break_duration_minutes}
+                onChange={(e) => setShiftForm({ ...shiftForm, break_duration_minutes: e.target.value })}
+              />
+            </div>
+            <div className="sb-form-group">
+              <label className="sb-label">Status</label>
+              <select
+                className="sb-input"
+                value={shiftForm.status}
+                onChange={(e) => setShiftForm({ ...shiftForm, status: e.target.value })}
+              >
+                <option value="ACTIVE">ACTIVE</option>
+                <option value="INACTIVE">INACTIVE</option>
+              </select>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "24px" }}>
+            <Button type="button" variant="secondary" onClick={() => setShowShiftModal(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary">
+              Save Shift
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
       {/* CREATE OPERATOR MODAL */}
-      {showOperatorModal && (
-        <div className="ops-modal-backdrop">
-          <div className="ops-modal-box">
-            <div className="ops-modal-header">
-              <h2>Add Operator / Technician</h2>
-              <button onClick={() => setShowOperatorModal(false)}>×</button>
+      <Modal
+        isOpen={showOperatorModal}
+        onClose={() => setShowOperatorModal(false)}
+        title="Add Operator / Technician"
+      >
+        <form onSubmit={handleCreateOperator} className="sb-form">
+          <div className="sb-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div className="sb-form-group">
+              <label className="sb-label">Operator Code (Optional)</label>
+              <input
+                type="text"
+                className="sb-input"
+                placeholder="Leave blank for auto OP-100X"
+                value={operatorForm.operator_code}
+                onChange={(e) => setOperatorForm({ ...operatorForm, operator_code: e.target.value })}
+              />
             </div>
-            <form onSubmit={handleCreateOperator} className="ops-modal-form">
-              <div className="form-grid-2">
-                <div className="form-group">
-                  <label>Operator Code (Optional)</label>
-                  <input
-                    type="text"
-                    placeholder="Leave blank for auto OP-100X"
-                    value={operatorForm.operator_code}
-                    onChange={(e) =>
-                      setOperatorForm({
-                        ...operatorForm,
-                        operator_code: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Full Name *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Ramesh Patel"
-                    value={operatorForm.name}
-                    onChange={(e) =>
-                      setOperatorForm({ ...operatorForm, name: e.target.value })
-                    }
-                  />
-                </div>
-              </div>
-
-              <div className="form-grid-2">
-                <div className="form-group">
-                  <label>Mobile Number</label>
-                  <input
-                    type="tel"
-                    placeholder="e.g. 9876543210"
-                    value={operatorForm.mobile}
-                    onChange={(e) =>
-                      setOperatorForm({
-                        ...operatorForm,
-                        mobile: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Skill Level</label>
-                  <select
-                    value={operatorForm.skill_level}
-                    onChange={(e) =>
-                      setOperatorForm({
-                        ...operatorForm,
-                        skill_level: e.target.value,
-                      })
-                    }
-                  >
-                    <option value="Lead Operator">Lead Operator</option>
-                    <option value="Senior Operator">Senior Operator</option>
-                    <option value="Operator">Operator</option>
-                    <option value="Junior Operator">Junior Operator</option>
-                    <option value="Maintenance Technician">Maintenance Technician</option>
-                    <option value="QC Inspector">QC Inspector</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label>Status</label>
-                <select
-                  value={operatorForm.status}
-                  onChange={(e) =>
-                    setOperatorForm({ ...operatorForm, status: e.target.value })
-                  }
-                >
-                  <option value="ACTIVE">ACTIVE</option>
-                  <option value="INACTIVE">INACTIVE</option>
-                </select>
-              </div>
-
-              <div className="ops-modal-actions">
-                <button
-                  type="button"
-                  className="btn-modal-cancel"
-                  onClick={() => setShowOperatorModal(false)}
-                >
-                  Cancel
-                </button>
-                <button type="submit" className="btn-modal-submit">
-                  Register Operator
-                </button>
-              </div>
-            </form>
+            <div className="sb-form-group">
+              <label className="sb-label">Full Name *</label>
+              <input
+                type="text"
+                required
+                className="sb-input"
+                placeholder="e.g. Ramesh Patel"
+                value={operatorForm.name}
+                onChange={(e) => setOperatorForm({ ...operatorForm, name: e.target.value })}
+              />
+            </div>
           </div>
-        </div>
-      )}
+
+          <div className="sb-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div className="sb-form-group">
+              <label className="sb-label">Mobile Number</label>
+              <input
+                type="tel"
+                className="sb-input"
+                placeholder="e.g. 9876543210"
+                value={operatorForm.mobile}
+                onChange={(e) => setOperatorForm({ ...operatorForm, mobile: e.target.value })}
+              />
+            </div>
+            <div className="sb-form-group">
+              <label className="sb-label">Skill Level</label>
+              <select
+                className="sb-input"
+                value={operatorForm.skill_level}
+                onChange={(e) => setOperatorForm({ ...operatorForm, skill_level: e.target.value })}
+              >
+                <option value="Lead Operator">Lead Operator</option>
+                <option value="Senior Operator">Senior Operator</option>
+                <option value="Operator">Operator</option>
+                <option value="Junior Operator">Junior Operator</option>
+                <option value="Maintenance Technician">Maintenance Technician</option>
+                <option value="QC Inspector">QC Inspector</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="sb-form-group">
+            <label className="sb-label">Status</label>
+            <select
+              className="sb-input"
+              value={operatorForm.status}
+              onChange={(e) => setOperatorForm({ ...operatorForm, status: e.target.value })}
+            >
+              <option value="ACTIVE">ACTIVE</option>
+              <option value="INACTIVE">INACTIVE</option>
+            </select>
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "24px" }}>
+            <Button type="button" variant="secondary" onClick={() => setShowOperatorModal(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary">
+              Register Operator
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

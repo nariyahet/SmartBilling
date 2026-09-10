@@ -10,3 +10,4 @@ export { default as ConfirmDialog } from "./ConfirmDialog";
 export { default as AlertBanner } from "./AlertBanner";
 export { default as EmptyState } from "./EmptyState";
 export { default as SearchInput } from "./SearchInput";
+export { default as Tabs } from "./Tabs";

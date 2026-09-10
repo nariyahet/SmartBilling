@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import API from "../api/axios";
 import PlasticNavbar from "../components/PlasticNavbar";
 import LoadingScreen from "../components/LoadingScreen";
+import { PageHeader, Card, KpiCard, Button, StatusBadge, Tabs } from "../components";
 import "./PlasticHrReports.css";
 
 function PlasticHrReports() {
@@ -108,73 +109,66 @@ function PlasticHrReports() {
   }, [activeTab, fetchSalaryRegister, fetchExpenseReport, fetchLabourCostReport, fetchAdvanceReport]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadReportData();
   }, [loadReportData]);
-
-
-
 
   const monthNames = [
     "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December",
   ];
 
+  const tabItems = [
+    { key: "SALARY", label: "Salary Register", icon: "📑" },
+    { key: "EXPENSES", label: "Expense Analytics", icon: "🧾" },
+    { key: "LABOUR_COST", label: "Labour Cost / Kg", icon: "🏭" },
+    { key: "ADVANCES", label: "Advance Recovery", icon: "💳" },
+  ];
+
   return (
-    <div className="plastic-page">
+    <div className="sb-page-container">
       <PlasticNavbar />
-      <main className="plastic-container">
-        {/* Header */}
-        <div className="plastic-header-row">
-          <div>
-            <span className="plastic-breadcrumb">Plastic ERP / HR & Payroll</span>
-            <h1 className="plastic-title">📊 HR, Payroll & Plant Expense Reports</h1>
-            <p className="plastic-subtitle">
-              Detailed salary registers, monthly operational overhead summaries, advance recoveries, and production labour costing.
-            </p>
-          </div>
-          <div className="tab-pills">
-            <button
-              type="button"
-              className={`pill-btn ${activeTab === "SALARY" ? "active" : ""}`}
-              onClick={() => setActiveTab("SALARY")}
-            >
-              📑 Salary Register
-            </button>
-            <button
-              type="button"
-              className={`pill-btn ${activeTab === "EXPENSES" ? "active" : ""}`}
-              onClick={() => setActiveTab("EXPENSES")}
-            >
-              🧾 Expense Analytics
-            </button>
-            <button
-              type="button"
-              className={`pill-btn ${activeTab === "LABOUR_COST" ? "active" : ""}`}
-              onClick={() => setActiveTab("LABOUR_COST")}
-            >
-              🏭 Labour Cost / Kg
-            </button>
-            <button
-              type="button"
-              className={`pill-btn ${activeTab === "ADVANCES" ? "active" : ""}`}
-              onClick={() => setActiveTab("ADVANCES")}
-            >
-              💳 Advance Recovery
-            </button>
-          </div>
+      <main className="sb-main-content">
+        <PageHeader
+          title="HR, Payroll & Expense Reports"
+          subtitle="Detailed salary registers, monthly operational overhead summaries, advance recoveries, and production labour costing"
+          breadcrumbs={[
+            { label: "Plastic ERP", to: "/plastic-erp" },
+            { label: "HR & Workforce", to: "/plastic-erp/hr" },
+            { label: "Reports & Analytics" },
+          ]}
+          actions={
+            <div className="hr-rep-actions">
+              <Button
+                variant="outline"
+                icon="🖨️"
+                onClick={() => window.print()}
+              >
+                Print Current View
+              </Button>
+            </div>
+          }
+        />
+
+        {/* Tab Navigation */}
+        <div className="hr-rep-tabs-wrap">
+          <Tabs
+            items={tabItems}
+            activeKey={activeTab}
+            onChange={(key) => setActiveTab(key)}
+          />
         </div>
 
         {/* Tab 1: Salary Register */}
         {activeTab === "SALARY" && (
-          <div>
-            <div className="plastic-filter-card">
-              <div className="attendance-controls-row">
-                <div className="filter-group">
-                  <label htmlFor="sal-month">Month</label>
+          <div className="hr-tab-content">
+            {/* Filter Card */}
+            <Card className="hr-filter-card">
+              <div className="hr-filter-grid">
+                <div className="filter-item">
+                  <label htmlFor="sal-month">Payroll Month</label>
                   <select
                     id="sal-month"
-                    className="plastic-select"
+                    className="sb-select"
                     value={salaryMonth}
                     onChange={(e) => setSalaryMonth(Number(e.target.value))}
                   >
@@ -183,11 +177,11 @@ function PlasticHrReports() {
                     ))}
                   </select>
                 </div>
-                <div className="filter-group">
-                  <label htmlFor="sal-year">Year</label>
+                <div className="filter-item">
+                  <label htmlFor="sal-year">Payroll Year</label>
                   <select
                     id="sal-year"
-                    className="plastic-select"
+                    className="sb-select"
                     value={salaryYear}
                     onChange={(e) => setSalaryYear(Number(e.target.value))}
                   >
@@ -196,441 +190,504 @@ function PlasticHrReports() {
                     <option value={2027}>2027</option>
                   </select>
                 </div>
-                <div className="attendance-actions-right">
-                  <button
-                    type="button"
-                    className="plastic-btn plastic-btn-secondary"
-                    onClick={() => window.print()}
-                  >
-                    🖨️ Print Register
-                  </button>
-                  <button
-                    type="button"
-                    className="plastic-btn plastic-btn-primary"
+                <div className="filter-item filter-btn-end">
+                  <Button
+                    variant="primary"
+                    icon="🔍"
                     onClick={fetchSalaryRegister}
                   >
-                    🔍 Generate Register
-                  </button>
+                    Generate Register
+                  </Button>
                 </div>
               </div>
+            </Card>
+
+            {/* Summary KPIs */}
+            <div className="hr-kpi-grid">
+              <KpiCard
+                title="Paid Staff"
+                value={salaryData.summary?.totalEmployees || 0}
+                subtitle="Payslips issued"
+                icon="👥"
+                color="navy"
+              />
+              <KpiCard
+                title="Total Gross"
+                value={`₹${Number(salaryData.summary?.totalGross || 0).toLocaleString("en-IN")}`}
+                subtitle="Basic + OT + Allowances"
+                icon="💰"
+                color="blue"
+              />
+              <KpiCard
+                title="Total Deductions"
+                value={`₹${Number(salaryData.summary?.totalDeductions || 0).toLocaleString("en-IN")}`}
+                subtitle="Advances + PF + Tax"
+                icon="📉"
+                color="amber"
+              />
+              <KpiCard
+                title="Net Disbursed"
+                value={`₹${Number(salaryData.summary?.totalNet || 0).toLocaleString("en-IN")}`}
+                subtitle="Net bank & cash paid"
+                icon="💵"
+                color="teal"
+              />
             </div>
 
-            {/* Summary Cards */}
-            <div className="plastic-kpi-grid">
-              <div className="plastic-kpi-card">
-                <span className="plastic-kpi-icon" style={{ background: "#eff6ff", color: "#2563eb" }}>👥</span>
-                <div>
-                  <span className="plastic-kpi-label">Paid Staff</span>
-                  <h3 className="plastic-kpi-val">{salaryData.summary?.totalEmployees || 0}</h3>
-                  <small className="plastic-kpi-sub">Total payslips issued</small>
-                </div>
-              </div>
-              <div className="plastic-kpi-card">
-                <span className="plastic-kpi-icon">💰</span>
-                <div>
-                  <span className="plastic-kpi-label">Total Gross</span>
-                  <h3 className="plastic-kpi-val">₹{Number(salaryData.summary?.totalGross || 0).toLocaleString("en-IN")}</h3>
-                  <small className="plastic-kpi-sub">Basic + Allowances + OT</small>
-                </div>
-              </div>
-              <div className="plastic-kpi-card">
-                <span className="plastic-kpi-icon" style={{ background: "#fef3c7", color: "#b45309" }}>📉</span>
-                <div>
-                  <span className="plastic-kpi-label">Total Deductions</span>
-                  <h3 className="plastic-kpi-val">₹{Number(salaryData.summary?.totalDeductions || 0).toLocaleString("en-IN")}</h3>
-                  <small className="plastic-kpi-sub">Advances + PF + ESIC + PT</small>
-                </div>
-              </div>
-              <div className="plastic-kpi-card">
-                <span className="plastic-kpi-icon" style={{ background: "#ecfdf5", color: "#059669" }}>💵</span>
-                <div>
-                  <span className="plastic-kpi-label">Net Disbursed</span>
-                  <h3 className="plastic-kpi-val">₹{Number(salaryData.summary?.totalNet || 0).toLocaleString("en-IN")}</h3>
-                  <small className="plastic-kpi-sub">Total bank/cash disbursed</small>
-                </div>
-              </div>
-            </div>
-
-            {loading ? (
-              <LoadingScreen />
-            ) : (
-              <div className="plastic-table-container">
-                <table className="plastic-table">
-                  <thead>
-                    <tr>
-                      <th>Emp Code</th>
-                      <th>Employee Name</th>
-                      <th>Department & Role</th>
-                      <th>Present / HD</th>
-                      <th>Basic</th>
-                      <th>OT Amount</th>
-                      <th>Gross</th>
-                      <th>Adv Rec</th>
-                      <th>Total Ded</th>
-                      <th>Net Pay</th>
-                      <th>Bank & Account</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {salaryData.register.length === 0 ? (
+            {/* Table */}
+            <Card
+              title={`Salary Register — ${monthNames[salaryMonth - 1]} ${salaryYear}`}
+              subtitle="Breakdown of gross earnings, deductions, and net payouts"
+            >
+              {loading ? (
+                <LoadingScreen />
+              ) : (
+                <div className="hr-table-wrapper">
+                  <table className="hr-table">
+                    <thead>
                       <tr>
-                        <td colSpan="11" style={{ textAlign: "center", padding: "2.5rem" }}>
-                          No salary register generated for {monthNames[salaryMonth - 1]} {salaryYear}. Please run monthly payroll first.
-                        </td>
+                        <th>Emp Code</th>
+                        <th>Employee Name</th>
+                        <th>Department & Role</th>
+                        <th>Present / HD</th>
+                        <th className="cell-right">Basic</th>
+                        <th className="cell-right">OT Pay</th>
+                        <th className="cell-right">Gross</th>
+                        <th className="cell-right">Adv Rec</th>
+                        <th className="cell-right">Total Ded</th>
+                        <th className="cell-right">Net Pay</th>
+                        <th>Bank / Payout</th>
                       </tr>
-                    ) : (
-                      salaryData.register.map((r) => (
-                        <tr key={r.item_id}>
-                          <td><span className="plastic-code-badge">{r.employee_code}</span></td>
-                          <td><strong>{r.full_name}</strong></td>
-                          <td>
-                            <span className="plastic-chip">{r.department}</span>
-                            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{r.designation}</div>
-                          </td>
-                          <td>{r.present_days} / {r.half_days} HD</td>
-                          <td>₹{Number(r.earned_basic || 0).toLocaleString("en-IN")}</td>
-                          <td style={{ color: "#2563eb" }}>₹{Number(r.overtime_amount || 0).toLocaleString("en-IN")}</td>
-                          <td><strong>₹{Number(r.gross_salary || 0).toLocaleString("en-IN")}</strong></td>
-                          <td style={{ color: "#b45309" }}>-₹{Number(r.advance_recovery || 0).toLocaleString("en-IN")}</td>
-                          <td style={{ color: "#b91c1c" }}>-₹{Number(r.total_deductions || 0).toLocaleString("en-IN")}</td>
-                          <td>
-                            <strong style={{ color: "#047857", fontSize: "0.95rem" }}>
-                              ₹{Number(r.net_salary || 0).toLocaleString("en-IN")}
-                            </strong>
-                          </td>
-                          <td>
-                            <div style={{ fontSize: "0.8rem" }}>{r.bank_name || "Cash"}</div>
-                            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{r.account_number || ""}</div>
+                    </thead>
+                    <tbody>
+                      {salaryData.register.length === 0 ? (
+                        <tr>
+                          <td colSpan="11" className="hr-table-empty">
+                            <div className="empty-state">
+                              <span className="empty-icon">📑</span>
+                              <p>No salary register generated for {monthNames[salaryMonth - 1]} {salaryYear}. Please run monthly payroll first.</p>
+                            </div>
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                      ) : (
+                        salaryData.register.map((r) => (
+                          <tr key={r.item_id}>
+                            <td>
+                              <span className="emp-code-badge">{r.employee_code}</span>
+                            </td>
+                            <td>
+                              <strong>{r.full_name}</strong>
+                            </td>
+                            <td>
+                              <span className="dept-chip">{r.department}</span>
+                              <div className="sub-text">{r.designation}</div>
+                            </td>
+                            <td>
+                              <span>{r.present_days} P / {r.half_days} HD</span>
+                            </td>
+                            <td className="cell-right">
+                              ₹{Number(r.earned_basic || 0).toLocaleString("en-IN")}
+                            </td>
+                            <td className="cell-right text-blue">
+                              ₹{Number(r.overtime_amount || 0).toLocaleString("en-IN")}
+                            </td>
+                            <td className="cell-right">
+                              <strong>₹{Number(r.gross_salary || 0).toLocaleString("en-IN")}</strong>
+                            </td>
+                            <td className="cell-right text-amber">
+                              -₹{Number(r.advance_recovery || 0).toLocaleString("en-IN")}
+                            </td>
+                            <td className="cell-right text-danger">
+                              -₹{Number(r.total_deductions || 0).toLocaleString("en-IN")}
+                            </td>
+                            <td className="cell-right">
+                              <strong className="text-teal">
+                                ₹{Number(r.net_salary || 0).toLocaleString("en-IN")}
+                              </strong>
+                            </td>
+                            <td>
+                              <div className="bank-name">{r.bank_name || "Cash"}</div>
+                              {r.account_number && (
+                                <div className="sub-text">{r.account_number}</div>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </Card>
           </div>
         )}
 
         {/* Tab 2: Expense Analytics */}
         {activeTab === "EXPENSES" && (
-          <div>
-            <div className="plastic-filter-card">
-              <div className="attendance-controls-row">
-                <div className="filter-group">
+          <div className="hr-tab-content">
+            {/* Filter Card */}
+            <Card className="hr-filter-card">
+              <div className="hr-filter-grid">
+                <div className="filter-item">
                   <label htmlFor="exp-rep-from">From Date</label>
                   <input
                     id="exp-rep-from"
                     type="date"
-                    className="plastic-input"
+                    className="sb-input"
                     value={expFrom}
                     onChange={(e) => setExpFrom(e.target.value)}
                   />
                 </div>
-                <div className="filter-group">
+                <div className="filter-item">
                   <label htmlFor="exp-rep-to">To Date</label>
                   <input
                     id="exp-rep-to"
                     type="date"
-                    className="plastic-input"
+                    className="sb-input"
                     value={expTo}
                     onChange={(e) => setExpTo(e.target.value)}
                   />
                 </div>
-                <div className="attendance-actions-right">
-                  <button
-                    type="button"
-                    className="plastic-btn plastic-btn-primary"
+                <div className="filter-item filter-btn-end">
+                  <Button
+                    variant="primary"
+                    icon="🔍"
                     onClick={fetchExpenseReport}
                   >
-                    🔍 Generate Analytics
-                  </button>
+                    Generate Analytics
+                  </Button>
                 </div>
               </div>
-            </div>
+            </Card>
 
             {/* Total Expense KPI */}
-            <div className="plastic-kpi-card" style={{ marginBottom: "20px" }}>
-              <span className="plastic-kpi-icon" style={{ background: "#ecfdf5", color: "#059669" }}>🧾</span>
-              <div>
-                <span className="plastic-kpi-label">Total Plant Overhead Expenditure</span>
-                <h3 className="plastic-kpi-val">
-                  ₹{Number(expenseReport.overallTotal || 0).toLocaleString("en-IN")}
-                </h3>
-                <small className="plastic-kpi-sub">
-                  Period: {new Date(expFrom).toLocaleDateString("en-IN")} to {new Date(expTo).toLocaleDateString("en-IN")}
-                </small>
-              </div>
+            <div className="hr-single-kpi">
+              <KpiCard
+                title="Total Plant Overhead Expenditure"
+                value={`₹${Number(expenseReport.overallTotal || 0).toLocaleString("en-IN")}`}
+                subtitle={`Period: ${new Date(expFrom).toLocaleDateString("en-IN")} to ${new Date(expTo).toLocaleDateString("en-IN")}`}
+                icon="🧾"
+                color="teal"
+              />
             </div>
 
             {/* Grid: Category Breakdown and Top Vendors */}
-            <div className="rep-two-col">
-              <div className="rep-card">
-                <h3>🏷️ Expense Breakdown by Category</h3>
-                <div className="plastic-table-container">
-                  <table className="plastic-table">
+            <div className="rep-two-col-grid">
+              <Card title="Expense Breakdown by Category" subtitle="Expenditure grouped by plant cost heads">
+                <div className="hr-table-wrapper">
+                  <table className="hr-table">
                     <thead>
                       <tr>
                         <th>Category</th>
                         <th>Vouchers</th>
-                        <th>Paid</th>
-                        <th>Pending</th>
-                        <th style={{ textAlign: "right" }}>Total</th>
+                        <th className="cell-right">Paid</th>
+                        <th className="cell-right">Pending</th>
+                        <th className="cell-right">Total</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {(expenseReport.byCategory || []).map((c) => (
-                        <tr key={c.category_id}>
-                          <td><strong>{c.category_name}</strong></td>
-                          <td>{c.expense_count}</td>
-                          <td style={{ color: "#059669" }}>₹{Number(c.paid_amount || 0).toLocaleString("en-IN")}</td>
-                          <td style={{ color: "#b45309" }}>₹{Number(c.pending_amount || 0).toLocaleString("en-IN")}</td>
-                          <td style={{ textAlign: "right" }}>
-                            <strong>₹{Number(c.total_amount || 0).toLocaleString("en-IN")}</strong>
+                      {(expenseReport.byCategory || []).length === 0 ? (
+                        <tr>
+                          <td colSpan="5" className="hr-table-empty">
+                            No expense breakdown found for period.
                           </td>
                         </tr>
-                      ))}
+                      ) : (
+                        (expenseReport.byCategory || []).map((c) => (
+                          <tr key={c.category_id}>
+                            <td><strong>{c.category_name}</strong></td>
+                            <td>{c.expense_count}</td>
+                            <td className="cell-right text-teal">
+                              ₹{Number(c.paid_amount || 0).toLocaleString("en-IN")}
+                            </td>
+                            <td className="cell-right text-amber">
+                              ₹{Number(c.pending_amount || 0).toLocaleString("en-IN")}
+                            </td>
+                            <td className="cell-right">
+                              <strong>₹{Number(c.total_amount || 0).toLocaleString("en-IN")}</strong>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
-              </div>
+              </Card>
 
-              <div className="rep-card">
-                <h3>🏢 Top Vendors & Service Providers</h3>
-                <div className="plastic-table-container">
-                  <table className="plastic-table">
+              <Card title="Top Vendors & Service Providers" subtitle="Largest vendor accounts in selected range">
+                <div className="hr-table-wrapper">
+                  <table className="hr-table">
                     <thead>
                       <tr>
                         <th>Vendor / Beneficiary</th>
                         <th>Bills</th>
-                        <th style={{ textAlign: "right" }}>Total Invoiced</th>
+                        <th className="cell-right">Total Invoiced</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {(expenseReport.topVendors || []).map((v, idx) => (
-                        <tr key={idx}>
-                          <td><strong>{v.vendor}</strong></td>
-                          <td>{v.bill_count} bills</td>
-                          <td style={{ textAlign: "right", color: "#047857", fontWeight: "700" }}>
-                            ₹{Number(v.total_amount || 0).toLocaleString("en-IN")}
+                      {(expenseReport.topVendors || []).length === 0 ? (
+                        <tr>
+                          <td colSpan="3" className="hr-table-empty">
+                            No vendor records in this date range.
                           </td>
                         </tr>
-                      ))}
+                      ) : (
+                        (expenseReport.topVendors || []).map((v, idx) => (
+                          <tr key={idx}>
+                            <td><strong>{v.vendor}</strong></td>
+                            <td>{v.bill_count} bills</td>
+                            <td className="cell-right">
+                              <strong className="text-teal">
+                                ₹{Number(v.total_amount || 0).toLocaleString("en-IN")}
+                              </strong>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
-              </div>
+              </Card>
             </div>
           </div>
         )}
 
         {/* Tab 3: Labour Cost vs Production Output */}
         {activeTab === "LABOUR_COST" && (
-          <div>
-            <div className="plastic-filter-card">
-              <div className="attendance-controls-row">
-                <div className="filter-group">
+          <div className="hr-tab-content">
+            {/* Filter Card */}
+            <Card className="hr-filter-card">
+              <div className="hr-filter-grid">
+                <div className="filter-item">
                   <label htmlFor="lab-from">From Date</label>
                   <input
                     id="lab-from"
                     type="date"
-                    className="plastic-input"
+                    className="sb-input"
                     value={labourFrom}
                     onChange={(e) => setLabourFrom(e.target.value)}
                   />
                 </div>
-                <div className="filter-group">
+                <div className="filter-item">
                   <label htmlFor="lab-to">To Date</label>
                   <input
                     id="lab-to"
                     type="date"
-                    className="plastic-input"
+                    className="sb-input"
                     value={labourTo}
                     onChange={(e) => setLabourTo(e.target.value)}
                   />
                 </div>
-                <div className="attendance-actions-right">
-                  <button
-                    type="button"
-                    className="plastic-btn plastic-btn-primary"
+                <div className="filter-item filter-btn-end">
+                  <Button
+                    variant="primary"
+                    icon="🔍"
                     onClick={fetchLabourCostReport}
                   >
-                    🔍 Calculate Output Costing
-                  </button>
+                    Calculate Costing
+                  </Button>
                 </div>
               </div>
-            </div>
+            </Card>
 
             {/* KPI Cards */}
-            <div className="plastic-kpi-grid">
-              <div className="plastic-kpi-card">
-                <span className="plastic-kpi-icon" style={{ background: "#ecfdf5", color: "#059669" }}>💰</span>
-                <div>
-                  <span className="plastic-kpi-label">Total Labour Expenditure</span>
-                  <h3 className="plastic-kpi-val">₹{Number(labourReport.summary?.totalLabourCost || 0).toLocaleString("en-IN")}</h3>
-                  <small className="plastic-kpi-sub">Total shift worker compensation</small>
-                </div>
-              </div>
-              <div className="plastic-kpi-card">
-                <span className="plastic-kpi-icon" style={{ background: "#eff6ff", color: "#2563eb" }}>⚖️</span>
-                <div>
-                  <span className="plastic-kpi-label">Finished Goods Produced</span>
-                  <h3 className="plastic-kpi-val">{Number(labourReport.summary?.totalProducedKg || 0).toLocaleString("en-IN")} kg</h3>
-                  <small className="plastic-kpi-sub">Total batches output weight</small>
-                </div>
-              </div>
-              <div className="plastic-kpi-card">
-                <span className="plastic-kpi-icon" style={{ background: "#fef3c7", color: "#b45309" }}>⚡</span>
-                <div>
-                  <span className="plastic-kpi-label">Labour Cost Per KG</span>
-                  <h3 className="plastic-kpi-val">₹{Number(labourReport.summary?.averageLabourCostPerKg || 0).toFixed(2)} / kg</h3>
-                  <small className="plastic-kpi-sub">Plant efficiency metric</small>
-                </div>
-              </div>
+            <div className="hr-kpi-grid">
+              <KpiCard
+                title="Total Labour Expenditure"
+                value={`₹${Number(labourReport.summary?.totalLabourCost || 0).toLocaleString("en-IN")}`}
+                subtitle="Shift worker compensation"
+                icon="💰"
+                color="teal"
+              />
+              <KpiCard
+                title="Finished Goods Output"
+                value={`${Number(labourReport.summary?.totalProducedKg || 0).toLocaleString("en-IN")} kg`}
+                subtitle="Total batches output weight"
+                icon="⚖️"
+                color="blue"
+              />
+              <KpiCard
+                title="Labour Cost Per KG"
+                value={`₹${Number(labourReport.summary?.averageLabourCostPerKg || 0).toFixed(2)} / kg`}
+                subtitle="Plant operational efficiency"
+                icon="⚡"
+                color="amber"
+              />
             </div>
 
-            {/* Daily Table */}
-            {loading ? (
-              <LoadingScreen />
-            ) : (
-              <div className="plastic-table-container">
-                <table className="plastic-table">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Workers Present</th>
-                      <th>Regular Hours</th>
-                      <th>Overtime Hours</th>
-                      <th>Total Labour Cost</th>
-                      <th>Produced Output (KG)</th>
-                      <th style={{ textAlign: "right" }}>Labour Cost / KG</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(labourReport.dailyBreakdown || []).length === 0 ? (
+            {/* Daily Breakdown */}
+            <Card
+              title="Daily Labour Cost vs Finished Output"
+              subtitle="Daily production efficiency and overtime impact analysis"
+            >
+              {loading ? (
+                <LoadingScreen />
+              ) : (
+                <div className="hr-table-wrapper">
+                  <table className="hr-table">
+                    <thead>
                       <tr>
-                        <td colSpan="7" style={{ textAlign: "center", padding: "2.5rem" }}>
-                          No production or attendance records in this period.
-                        </td>
+                        <th>Date</th>
+                        <th>Workers Present</th>
+                        <th>Regular Hours</th>
+                        <th>Overtime Hours</th>
+                        <th className="cell-right">Total Labour Cost</th>
+                        <th className="cell-right">Produced Output (KG)</th>
+                        <th className="cell-right">Labour Cost / KG</th>
                       </tr>
-                    ) : (
-                      labourReport.dailyBreakdown.map((row, i) => (
-                        <tr key={i}>
-                          <td><strong>{new Date(row.date).toLocaleDateString("en-IN")}</strong></td>
-                          <td>{row.workers} workers</td>
-                          <td>{row.regularHours} hrs</td>
-                          <td style={{ color: "#2563eb" }}>⚡ {row.overtimeHours} hrs</td>
-                          <td><strong>₹{Number(row.labourCost).toLocaleString("en-IN")}</strong></td>
-                          <td>{Number(row.producedKg).toLocaleString("en-IN")} kg</td>
-                          <td style={{ textAlign: "right" }}>
-                            <strong style={{ color: "#047857", fontSize: "1.05rem" }}>
-                              ₹{Number(row.costPerKg).toFixed(2)} / kg
-                            </strong>
+                    </thead>
+                    <tbody>
+                      {(labourReport.dailyBreakdown || []).length === 0 ? (
+                        <tr>
+                          <td colSpan="7" className="hr-table-empty">
+                            No production or attendance records in this period.
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                      ) : (
+                        labourReport.dailyBreakdown.map((row, i) => (
+                          <tr key={i}>
+                            <td>
+                              <strong>
+                                {new Date(row.date).toLocaleDateString("en-IN", {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric"
+                                })}
+                              </strong>
+                            </td>
+                            <td>{row.workers} workers</td>
+                            <td>{row.regularHours} hrs</td>
+                            <td className="text-blue">⚡ {row.overtimeHours} hrs</td>
+                            <td className="cell-right">
+                              <strong>₹{Number(row.labourCost).toLocaleString("en-IN")}</strong>
+                            </td>
+                            <td className="cell-right">
+                              {Number(row.producedKg).toLocaleString("en-IN")} kg
+                            </td>
+                            <td className="cell-right">
+                              <strong className="text-teal font-medium">
+                                ₹{Number(row.costPerKg).toFixed(2)} / kg
+                              </strong>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </Card>
           </div>
         )}
 
         {/* Tab 4: Advance Recovery Status */}
         {activeTab === "ADVANCES" && (
-          <div>
+          <div className="hr-tab-content">
             {/* KPI Cards */}
-            <div className="plastic-kpi-grid">
-              <div className="plastic-kpi-card">
-                <span className="plastic-kpi-icon" style={{ background: "#eff6ff", color: "#2563eb" }}>💳</span>
-                <div>
-                  <span className="plastic-kpi-label">Total Disbursed</span>
-                  <h3 className="plastic-kpi-val">₹{Number(advanceReport.summary?.totalAdvanced || 0).toLocaleString("en-IN")}</h3>
-                  <small className="plastic-kpi-sub">All time advances</small>
-                </div>
-              </div>
-              <div className="plastic-kpi-card">
-                <span className="plastic-kpi-icon" style={{ background: "#ecfdf5", color: "#059669" }}>🔄</span>
-                <div>
-                  <span className="plastic-kpi-label">Total Recovered</span>
-                  <h3 className="plastic-kpi-val">₹{Number(advanceReport.summary?.totalRecovered || 0).toLocaleString("en-IN")}</h3>
-                  <small className="plastic-kpi-sub">Settled via payroll & cash</small>
-                </div>
-              </div>
-              <div className="plastic-kpi-card">
-                <span className="plastic-kpi-icon" style={{ background: "#fef3c7", color: "#b45309" }}>⏳</span>
-                <div>
-                  <span className="plastic-kpi-label">Active Outstanding</span>
-                  <h3 className="plastic-kpi-val">₹{Number(advanceReport.summary?.totalOutstanding || 0).toLocaleString("en-IN")}</h3>
-                  <small className="plastic-kpi-sub">Current company balance receivable</small>
-                </div>
-              </div>
-              <div className="plastic-kpi-card">
-                <span className="plastic-kpi-icon">👥</span>
-                <div>
-                  <span className="plastic-kpi-label">Ongoing Loans</span>
-                  <h3 className="plastic-kpi-val">{advanceReport.summary?.activeCount || 0}</h3>
-                  <small className="plastic-kpi-sub">Staff with active advances</small>
-                </div>
-              </div>
+            <div className="hr-kpi-grid">
+              <KpiCard
+                title="Total Disbursed"
+                value={`₹${Number(advanceReport.summary?.totalAdvanced || 0).toLocaleString("en-IN")}`}
+                subtitle="All time advances disbursed"
+                icon="💳"
+                color="blue"
+              />
+              <KpiCard
+                title="Total Recovered"
+                value={`₹${Number(advanceReport.summary?.totalRecovered || 0).toLocaleString("en-IN")}`}
+                subtitle="Settled via payroll & cash"
+                icon="🔄"
+                color="teal"
+              />
+              <KpiCard
+                title="Active Outstanding"
+                value={`₹${Number(advanceReport.summary?.totalOutstanding || 0).toLocaleString("en-IN")}`}
+                subtitle="Current balance receivable"
+                icon="⏳"
+                color="amber"
+              />
+              <KpiCard
+                title="Ongoing Loans"
+                value={advanceReport.summary?.activeCount || 0}
+                subtitle="Staff with active balances"
+                icon="👥"
+                color="navy"
+              />
             </div>
 
-            {loading ? (
-              <LoadingScreen />
-            ) : (
-              <div className="plastic-table-container">
-                <table className="plastic-table">
-                  <thead>
-                    <tr>
-                      <th>Advance No</th>
-                      <th>Disbursement Date</th>
-                      <th>Employee</th>
-                      <th>Department & Role</th>
-                      <th>Disbursed (₹)</th>
-                      <th>Recovered (₹)</th>
-                      <th>Remaining Balance (₹)</th>
-                      <th>Monthly Installment</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(advanceReport.advances || []).length === 0 ? (
+            {/* Table */}
+            <Card
+              title="Employee Advances Register"
+              subtitle="Tracking cumulative disbursements, monthly recoveries, and pending loan balances"
+            >
+              {loading ? (
+                <LoadingScreen />
+              ) : (
+                <div className="hr-table-wrapper">
+                  <table className="hr-table">
+                    <thead>
                       <tr>
-                        <td colSpan="9" style={{ textAlign: "center", padding: "2.5rem" }}>
-                          No advance records found.
-                        </td>
+                        <th>Advance No</th>
+                        <th>Disbursement Date</th>
+                        <th>Employee</th>
+                        <th>Department & Role</th>
+                        <th className="cell-right">Disbursed (₹)</th>
+                        <th className="cell-right">Recovered (₹)</th>
+                        <th className="cell-right">Remaining (₹)</th>
+                        <th>Monthly EMI</th>
+                        <th>Status</th>
                       </tr>
-                    ) : (
-                      advanceReport.advances.map((a) => (
-                        <tr key={a.id}>
-                          <td><span className="plastic-code-badge">{a.advance_no}</span></td>
-                          <td>{new Date(a.disbursement_date).toLocaleDateString("en-IN")}</td>
-                          <td><strong>{a.full_name}</strong></td>
-                          <td>
-                            <span className="plastic-chip">{a.department}</span>
-                            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{a.designation}</div>
-                          </td>
-                          <td>₹{Number(a.amount).toLocaleString("en-IN")}</td>
-                          <td style={{ color: "#059669" }}>₹{Number(a.recovery_amount).toLocaleString("en-IN")}</td>
-                          <td>
-                            <strong style={{ color: Number(a.outstanding_amount) > 0 ? "#b45309" : "#64748b" }}>
-                              ₹{Number(a.outstanding_amount).toLocaleString("en-IN")}
-                            </strong>
-                          </td>
-                          <td>₹{Number(a.monthly_installment || 0).toLocaleString("en-IN")}/mo</td>
-                          <td>
-                            <span className={`plastic-status-tag tag-${a.status.toLowerCase()}`}>
-                              {a.status}
-                            </span>
+                    </thead>
+                    <tbody>
+                      {(advanceReport.advances || []).length === 0 ? (
+                        <tr>
+                          <td colSpan="9" className="hr-table-empty">
+                            No advance records found.
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                      ) : (
+                        advanceReport.advances.map((a) => (
+                          <tr key={a.id}>
+                            <td>
+                              <span className="emp-code-badge">{a.advance_no}</span>
+                            </td>
+                            <td>
+                              {new Date(a.disbursement_date).toLocaleDateString("en-IN", {
+                                day: "2-digit",
+                                month: "short",
+                                year: "numeric"
+                              })}
+                            </td>
+                            <td><strong>{a.full_name}</strong></td>
+                            <td>
+                              <span className="dept-chip">{a.department}</span>
+                              <div className="sub-text">{a.designation}</div>
+                            </td>
+                            <td className="cell-right">
+                              ₹{Number(a.amount).toLocaleString("en-IN")}
+                            </td>
+                            <td className="cell-right text-teal">
+                              ₹{Number(a.recovery_amount).toLocaleString("en-IN")}
+                            </td>
+                            <td className="cell-right">
+                              <strong className={Number(a.outstanding_amount) > 0 ? "text-amber" : "text-muted"}>
+                                ₹{Number(a.outstanding_amount).toLocaleString("en-IN")}
+                              </strong>
+                            </td>
+                            <td>
+                              ₹{Number(a.monthly_installment || 0).toLocaleString("en-IN")}/mo
+                            </td>
+                            <td>
+                              <StatusBadge status={a.status} />
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </Card>
           </div>
         )}
       </main>

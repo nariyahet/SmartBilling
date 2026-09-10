@@ -1,4 +1,3 @@
-import PropTypes from "prop-types";
 import { Link } from "react-router-dom";
 import "./KpiCard.css";
 
@@ -68,18 +67,5 @@ function KpiCard({
 
   return <div className={cardClasses}>{cardContent}</div>;
 }
-
-KpiCard.propTypes = {
-  title: PropTypes.string.isRequired,
-  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  icon: PropTypes.node,
-  accent: PropTypes.oneOf(["blue", "teal", "green", "amber", "red", "navy"]),
-  supportingText: PropTypes.node,
-  link: PropTypes.string,
-  linkText: PropTypes.string,
-  loading: PropTypes.bool,
-  onClick: PropTypes.func,
-  className: PropTypes.string,
-};
 
 export default KpiCard;

@@ -1,40 +1,4 @@
-.qc-kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.qc-card {
-  background: #ffffff;
-  border-radius: 12px;
-  padding: 18px;
-  border: 1px solid #e2e8f0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.qc-label {
-  font-size: 13px;
-  color: #64748b;
-  font-weight: 600;
-}
-
-.qc-val {
-  font-size: 26px;
-  font-weight: 800;
-  color: #0f172a;
-}
-
-.qc-sub {
-  font-size: 12px;
-  color: #94a3b8;
-}
-
-.text-yellow { color: #d97706; }
-.text-red { color: #dc2626; }
-
+/* Modern styling for PlasticQuality */
 .qc-filter-pills {
   display: flex;
   align-items: center;
@@ -43,34 +7,53 @@
   flex-wrap: wrap;
 }
 
-.pill-btn {
-  background: #ffffff;
-  border: 1px solid #cbd5e1;
-  padding: 8px 14px;
+.qc-pill-btn {
+  background: var(--sb-card, #ffffff);
+  border: 1px solid var(--sb-border, #e3ebf2);
+  padding: 6px 14px;
   border-radius: 20px;
   font-size: 13px;
   font-weight: 600;
-  color: #475569;
+  color: var(--sb-muted, #718096);
   cursor: pointer;
   transition: all 0.2s;
 }
 
-.pill-btn:hover {
-  border-color: #059669;
-  color: #059669;
+.qc-pill-btn:hover {
+  border-color: var(--sb-ocean, #0879d1);
+  color: var(--sb-ocean, #0879d1);
 }
 
-.pill-btn.active {
-  background: #059669;
+.qc-pill-btn.active {
+  background: var(--sb-ocean, #0879d1);
   color: #ffffff;
-  border-color: #059669;
+  border-color: var(--sb-ocean, #0879d1);
 }
 
 .qc-type-badge {
   background: #f1f5f9;
-  color: #334155;
+  color: var(--sb-navy, #063b66);
   padding: 3px 8px;
   border-radius: 4px;
   font-size: 11px;
   font-weight: 700;
+}
+
+.qc-summary-box {
+  background: var(--sb-canvas, #f4f8fb);
+  border: 1px solid var(--sb-border, #e3ebf2);
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.qc-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: var(--sb-text, #102a43);
 }

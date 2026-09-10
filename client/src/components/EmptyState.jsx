@@ -1,4 +1,3 @@
-import PropTypes from "prop-types";
 import "./EmptyState.css";
 
 /**
@@ -22,13 +21,5 @@ function EmptyState({
     </div>
   );
 }
-
-EmptyState.propTypes = {
-  icon: PropTypes.node,
-  title: PropTypes.node.isRequired,
-  description: PropTypes.node,
-  action: PropTypes.node,
-  className: PropTypes.string,
-};
 
 export default EmptyState;

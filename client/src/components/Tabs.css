@@ -1,0 +1,125 @@
+/* ==========================================================================
+   SMARTBILLING 2.0 - Standardized Tabs Component
+   ========================================================================== */
+
+.sb-tabs-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+  padding: 4px;
+}
+
+.sb-tabs-container::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+
+/* Pills Variant */
+.sb-tabs-container.variant-pills {
+  background: var(--sb-bg, #F4F8FB);
+  border: 1px solid var(--sb-border, #E3EBF2);
+  border-radius: var(--sb-radius-md, 8px);
+  padding: 4px;
+  display: inline-flex;
+}
+
+.sb-tabs-container.variant-pills .sb-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--sb-text-secondary, #334E68);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sb-tabs-container.variant-pills .sb-tab-btn:hover {
+  color: var(--sb-primary, #0879D1);
+  background: rgba(8, 121, 209, 0.06);
+}
+
+.sb-tabs-container.variant-pills .sb-tab-btn.is-active {
+  background: #ffffff;
+  color: var(--sb-primary, #0879D1);
+  box-shadow: 0 1px 4px rgba(6, 59, 102, 0.1);
+  font-weight: 700;
+}
+
+/* Underline Variant */
+.sb-tabs-container.variant-underline {
+  border-bottom: 2px solid var(--sb-border, #E3EBF2);
+  gap: 20px;
+  width: 100%;
+}
+
+.sb-tabs-container.variant-underline .sb-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 4px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--sb-text-muted, #718096);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.18s ease;
+}
+
+.sb-tabs-container.variant-underline .sb-tab-btn:hover {
+  color: var(--sb-primary, #0879D1);
+}
+
+.sb-tabs-container.variant-underline .sb-tab-btn.is-active {
+  color: var(--sb-primary, #0879D1);
+  border-bottom-color: var(--sb-primary, #0879D1);
+  font-weight: 700;
+}
+
+/* Counts & Badges */
+.sb-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 7px;
+  font-size: 11.5px;
+  font-weight: 700;
+  border-radius: 9999px;
+  background: rgba(6, 59, 102, 0.08);
+  color: var(--sb-text-secondary, #334E68);
+}
+
+.sb-tab-count.is-active {
+  background: var(--sb-primary-light, #EBF4FC);
+  color: var(--sb-primary, #0879D1);
+}
+
+.sb-tab-icon {
+  font-size: 15px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .sb-tabs-container.variant-pills {
+    display: flex;
+    width: 100%;
+  }
+
+  .sb-tabs-container.variant-pills .sb-tab-btn {
+    flex: 1;
+    justify-content: center;
+    padding: 8px 10px;
+    font-size: 12.5px;
+  }
+}

@@ -1,10 +1,13 @@
 /* Plastic Workforce & Labour Costing Styles */
 
+.pwork-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
 .shift-snapshot-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 16px 20px;
   margin-bottom: 24px;
 }
 
@@ -15,8 +18,8 @@
 }
 
 .shift-stat-box {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: var(--sb-canvas, #f4f8fb);
+  border: 1px solid var(--sb-border, #e3ebf2);
   border-radius: 10px;
   padding: 12px 14px;
 }
@@ -24,29 +27,111 @@
 .shift-name {
   font-weight: 700;
   font-size: 0.9rem;
-  color: #0f172a;
+  color: var(--sb-deep-navy, #063b66);
 }
 
 .shift-numbers {
   display: flex;
   justify-content: space-between;
   margin-top: 6px;
-  font-size: 0.8rem;
+  font-size: 0.82rem;
 }
 
 .shift-present {
-  color: #047857;
+  color: var(--sb-success, #18a673);
   font-weight: 700;
 }
 
 .shift-ot {
-  color: #2563eb;
+  color: var(--sb-primary, #0879d1);
   font-weight: 600;
 }
 
+.pwork-filter-card {
+  margin-bottom: 24px;
+}
+
+.pwork-table-wrap {
+  overflow-x: auto;
+}
+
+.pwork-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  text-align: left;
+}
+
+.pwork-table th {
+  background: var(--sb-canvas, #f4f8fb);
+  color: var(--sb-deep-navy, #063b66);
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--sb-border, #e3ebf2);
+  white-space: nowrap;
+}
+
+.pwork-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--sb-border, #e3ebf2);
+  color: var(--sb-text-primary, #102a43);
+  vertical-align: middle;
+}
+
+.pwork-table tr:hover td {
+  background-color: rgba(8, 121, 209, 0.02);
+}
+
+.mapped-emp-name {
+  margin-left: 8px;
+  font-weight: 600;
+  color: var(--sb-deep-navy, #063b66);
+}
+
+.unlinked-tag {
+  color: #b47814;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.pwork-empty {
+  padding: 48px 20px;
+  text-align: center;
+  color: var(--sb-text-muted, #5a7184);
+}
+
+/* Modals */
+.pwork-modal-form {
+  display: flex;
+  flex-direction: column;
+}
+
 .operator-profile-peek {
-  background: #f1f5f9;
-  padding: 12px 16px;
+  background: var(--sb-canvas, #f4f8fb);
+  padding: 14px 16px;
   border-radius: 8px;
-  border-left: 4px solid #059669;
+  border-left: 4px solid var(--sb-primary, #0879d1);
+}
+
+.peek-title {
+  margin: 0 0 4px 0;
+  color: var(--sb-deep-navy, #063b66);
+  font-size: 1rem;
+}
+
+.peek-sub {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--sb-text-muted, #5a7184);
+}
+
+.mt-1 {
+  margin-top: 4px;
+}
+
+.mt-3 {
+  margin-top: 14px;
 }

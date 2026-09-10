@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import API from "../api/axios";
 import PlasticNavbar from "../components/PlasticNavbar";
 import LoadingScreen from "../components/LoadingScreen";
+import { PageHeader, Card, KpiCard, Button, StatusBadge, Modal } from "../components";
 import "./PlasticExpenses.css";
 
 function PlasticExpenses() {
@@ -64,9 +65,10 @@ function PlasticExpenses() {
         setSummary(expRes.data.summary || {});
       }
       if (catRes.data?.success) {
-        setCategories(catRes.data.categories || []);
-        if (catRes.data.categories.length > 0 && !expenseForm.category_id) {
-          setExpenseForm((prev) => ({ ...prev, category_id: catRes.data.categories[0].id }));
+        const cats = catRes.data.categories || [];
+        setCategories(cats);
+        if (cats.length > 0 && !expenseForm.category_id) {
+          setExpenseForm((prev) => ({ ...prev, category_id: cats[0].id }));
         }
       }
     } catch (err) {
@@ -78,10 +80,8 @@ function PlasticExpenses() {
   }, [search, categoryFilter, paymentStatusFilter, fromDate, toDate, expenseForm.category_id]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchExpenses();
   }, [fetchExpenses]);
-
 
   const handleOpenCreateModal = async () => {
     try {
@@ -186,92 +186,97 @@ function PlasticExpenses() {
     }
   };
 
-  return (
-    <div className="plastic-page">
-      <PlasticNavbar />
-      <main className="plastic-container">
-        {/* Header */}
-        <div className="plastic-header-row">
-          <div>
-            <span className="plastic-breadcrumb">Plastic ERP / HR & Payroll</span>
-            <h1 className="plastic-title">🧾 Plant & Operational Expenses</h1>
-            <p className="plastic-subtitle">
-              Record power bills, machine spare parts, transport fuel, factory rent, and consumables.
-            </p>
-          </div>
-          <div style={{ display: "flex", gap: "10px" }}>
-            <button
-              type="button"
-              className="plastic-btn plastic-btn-secondary"
-              onClick={() => setCategoryModalOpen(true)}
-            >
-              ⚙️ Manage Categories
-            </button>
-            <button
-              type="button"
-              className="plastic-btn plastic-btn-primary"
-              onClick={handleOpenCreateModal}
-            >
-              + Record Expense Voucher
-            </button>
-          </div>
-        </div>
+  const clearFilters = () => {
+    setSearch("");
+    setCategoryFilter("ALL");
+    setPaymentStatusFilter("ALL");
+    setFromDate("");
+    setToDate("");
+  };
 
-        {/* KPI Cards */}
-        <div className="plastic-kpi-grid">
-          <div className="plastic-kpi-card">
-            <span className="plastic-kpi-icon" style={{ background: "#eff6ff", color: "#2563eb" }}>🧾</span>
-            <div>
-              <span className="plastic-kpi-label">Total Expenses</span>
-              <h3 className="plastic-kpi-val">₹{Number(summary.totalAmount || 0).toLocaleString("en-IN")}</h3>
-              <small className="plastic-kpi-sub">{summary.count || 0} recorded vouchers</small>
+  return (
+    <div className="sb-page-container">
+      <PlasticNavbar />
+      <main className="sb-main-content">
+        <PageHeader
+          title="Plant & Operational Expenses"
+          subtitle="Record and monitor power bills, machine spare parts, transport fuel, factory rent, and consumables"
+          breadcrumbs={[
+            { label: "Plastic ERP", to: "/plastic-erp" },
+            { label: "HR & Workforce", to: "/plastic-erp/hr" },
+            { label: "Plant Expenses" },
+          ]}
+          actions={
+            <div className="expenses-action-group">
+              <Button
+                variant="outline"
+                icon="⚙️"
+                onClick={() => setCategoryModalOpen(true)}
+              >
+                Manage Categories
+              </Button>
+              <Button
+                variant="primary"
+                icon="➕"
+                onClick={handleOpenCreateModal}
+              >
+                Record Expense Voucher
+              </Button>
             </div>
-          </div>
-          <div className="plastic-kpi-card">
-            <span className="plastic-kpi-icon" style={{ background: "#ecfdf5", color: "#059669" }}>✅</span>
-            <div>
-              <span className="plastic-kpi-label">Paid Vouchers</span>
-              <h3 className="plastic-kpi-val">₹{Number(summary.paidAmount || 0).toLocaleString("en-IN")}</h3>
-              <small className="plastic-kpi-sub">Disbursed factory cash & bank</small>
-            </div>
-          </div>
-          <div className="plastic-kpi-card">
-            <span className="plastic-kpi-icon" style={{ background: "#fef3c7", color: "#b45309" }}>⏳</span>
-            <div>
-              <span className="plastic-kpi-label">Pending Payment</span>
-              <h3 className="plastic-kpi-val">₹{Number(summary.pendingAmount || 0).toLocaleString("en-IN")}</h3>
-              <small className="plastic-kpi-sub">Accounts payable invoices</small>
-            </div>
-          </div>
-          <div className="plastic-kpi-card">
-            <span className="plastic-kpi-icon">🏷️</span>
-            <div>
-              <span className="plastic-kpi-label">Expense Heads</span>
-              <h3 className="plastic-kpi-val">{categories.length}</h3>
-              <small className="plastic-kpi-sub">Active plant categories</small>
-            </div>
-          </div>
+          }
+        />
+
+        {/* KPI Grid */}
+        <div className="expenses-kpis-grid">
+          <KpiCard
+            title="Total Expenses"
+            value={`₹${Number(summary.totalAmount || 0).toLocaleString("en-IN")}`}
+            subtitle={`${summary.count || 0} recorded vouchers`}
+            icon="🧾"
+            color="navy"
+          />
+          <KpiCard
+            title="Paid Vouchers"
+            value={`₹${Number(summary.paidAmount || 0).toLocaleString("en-IN")}`}
+            subtitle="Disbursed cash & bank"
+            icon="✅"
+            color="teal"
+          />
+          <KpiCard
+            title="Pending Payment"
+            value={`₹${Number(summary.pendingAmount || 0).toLocaleString("en-IN")}`}
+            subtitle="Accounts payable obligations"
+            icon="⏳"
+            color="amber"
+          />
+          <KpiCard
+            title="Expense Heads"
+            value={categories.length}
+            subtitle="Active expense categories"
+            icon="🏷️"
+            color="blue"
+          />
         </div>
 
         {/* Filter Card */}
-        <div className="plastic-filter-card">
-          <div className="attendance-controls-row">
-            <div className="filter-group filter-search">
+        <Card className="expenses-filter-card">
+          <div className="expenses-filter-grid">
+            <div className="filter-item">
               <label htmlFor="exp-search">Search Vouchers</label>
               <input
                 id="exp-search"
                 type="text"
-                className="plastic-input"
+                className="sb-input"
                 placeholder="Search voucher, title, vendor..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-            <div className="filter-group">
+            <div className="filter-item">
               <label htmlFor="exp-category">Category</label>
               <select
                 id="exp-category"
-                className="plastic-select"
+                className="sb-select"
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
               >
@@ -281,11 +286,11 @@ function PlasticExpenses() {
                 ))}
               </select>
             </div>
-            <div className="filter-group">
+            <div className="filter-item">
               <label htmlFor="exp-status">Payment Status</label>
               <select
                 id="exp-status"
-                className="plastic-select"
+                className="sb-select"
                 value={paymentStatusFilter}
                 onChange={(e) => setPaymentStatusFilter(e.target.value)}
               >
@@ -294,346 +299,371 @@ function PlasticExpenses() {
                 <option value="PENDING">Pending</option>
               </select>
             </div>
-            <div className="filter-group">
-              <label htmlFor="exp-from">From</label>
+            <div className="filter-item">
+              <label htmlFor="exp-from">From Date</label>
               <input
                 id="exp-from"
                 type="date"
-                className="plastic-input"
+                className="sb-input"
                 value={fromDate}
                 onChange={(e) => setFromDate(e.target.value)}
               />
             </div>
-            <div className="filter-group">
-              <label htmlFor="exp-to">To</label>
+            <div className="filter-item">
+              <label htmlFor="exp-to">To Date</label>
               <input
                 id="exp-to"
                 type="date"
-                className="plastic-input"
+                className="sb-input"
                 value={toDate}
                 onChange={(e) => setToDate(e.target.value)}
               />
             </div>
+            <div className="filter-item filter-actions-end">
+              <Button variant="ghost" size="sm" onClick={clearFilters}>
+                Reset
+              </Button>
+            </div>
           </div>
-        </div>
+        </Card>
 
-        {/* Expenses Table */}
-        {loading ? (
-          <LoadingScreen />
-        ) : (
-          <div className="plastic-table-container">
-            <table className="plastic-table">
-              <thead>
-                <tr>
-                  <th>Voucher No</th>
-                  <th>Date</th>
-                  <th>Category</th>
-                  <th>Title / Purpose</th>
-                  <th>Vendor / Beneficiary</th>
-                  <th>Payment Mode</th>
-                  <th>Amount</th>
-                  <th>Status</th>
-                  <th style={{ textAlign: "right" }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {expenses.length === 0 ? (
+        {/* Expenses List */}
+        <Card
+          title="Expense Vouchers Register"
+          subtitle={`Displaying ${expenses.length} voucher records`}
+          actions={
+            <Button variant="ghost" size="sm" icon="🔄" onClick={fetchExpenses}>
+              Refresh
+            </Button>
+          }
+        >
+          {loading ? (
+            <LoadingScreen />
+          ) : (
+            <div className="expenses-table-wrapper">
+              <table className="expenses-table">
+                <thead>
                   <tr>
-                    <td colSpan="9" style={{ textAlign: "center", padding: "2.5rem" }}>
-                      No plant expenses recorded matching your criteria.
-                    </td>
+                    <th>Voucher No</th>
+                    <th>Date</th>
+                    <th>Category</th>
+                    <th>Title & Description</th>
+                    <th>Vendor / Beneficiary</th>
+                    <th>Payment Mode</th>
+                    <th className="cell-right">Amount</th>
+                    <th>Payment</th>
+                    <th>Approval</th>
+                    <th className="cell-right">Actions</th>
                   </tr>
-                ) : (
-                  expenses.map((exp) => (
-                    <tr key={exp.id}>
-                      <td><span className="plastic-code-badge">{exp.expense_no}</span></td>
-                      <td>{new Date(exp.expense_date).toLocaleDateString("en-IN")}</td>
-                      <td><span className="plastic-chip">{exp.category_name}</span></td>
-                      <td>
-                        <strong>{exp.title}</strong>
-                        {exp.description && (
-                          <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{exp.description}</div>
-                        )}
-                      </td>
-                      <td>{exp.vendor_name || "Direct / Internal"}</td>
-                      <td>
-                        <span style={{ fontSize: "0.8rem", color: "#475569" }}>{exp.payment_mode}</span>
-                        {exp.reference_no && (
-                          <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Ref: {exp.reference_no}</div>
-                        )}
-                      </td>
-                      <td>
-                        <strong style={{ color: "#047857", fontSize: "1rem" }}>
-                          ₹{Number(exp.amount).toLocaleString("en-IN")}
-                        </strong>
-                      </td>
-                      <td>
-                        <span className={`plastic-status-tag tag-${exp.payment_status.toLowerCase()}`}>
-                          {exp.payment_status}
-                        </span>
-                      </td>
-                      <td style={{ textAlign: "right" }}>
-                        <div className="plastic-table-actions">
-                          <button
-                            type="button"
-                            className="btn-action btn-edit"
-                            title="Edit Voucher"
-                            onClick={() => handleOpenEditModal(exp)}
-                          >
-                            ✏️
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-action btn-delete"
-                            title="Delete Voucher"
-                            onClick={() => handleDeleteExpense(exp)}
-                          >
-                            🗑️
-                          </button>
+                </thead>
+                <tbody>
+                  {expenses.length === 0 ? (
+                    <tr>
+                      <td colSpan="10" className="expenses-table-empty">
+                        <div className="empty-state">
+                          <span className="empty-icon">🧾</span>
+                          <p>No plant expenses recorded matching your criteria.</p>
+                          <Button variant="primary" size="sm" onClick={handleOpenCreateModal}>
+                            Record First Expense
+                          </Button>
                         </div>
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* Modal: Record Expense */}
-        {recordModalOpen && (
-          <div className="plastic-modal-backdrop" onClick={() => !submitting && setRecordModalOpen(false)}>
-            <div className="plastic-modal" onClick={(e) => e.stopPropagation()}>
-              <div className="plastic-modal-header">
-                <h3>{selectedExpense ? "✏️ Edit Expense Voucher" : "➕ Record Plant Expense Voucher"}</h3>
-                <button type="button" className="btn-close" onClick={() => setRecordModalOpen(false)}>✕</button>
-              </div>
-              <form onSubmit={handleSaveExpense}>
-                <div className="plastic-modal-body">
-                  <div className="form-grid-3">
-                    <div className="form-field">
-                      <label>Voucher No</label>
-                      <input
-                        type="text"
-                        className="plastic-input"
-                        value={expenseForm.expense_no}
-                        onChange={(e) => setExpenseForm({ ...expenseForm, expense_no: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <div className="form-field">
-                      <label>Expense Head / Category *</label>
-                      <select
-                        className="plastic-select"
-                        value={expenseForm.category_id}
-                        onChange={(e) => setExpenseForm({ ...expenseForm, category_id: e.target.value })}
-                        required
-                      >
-                        {categories.map((c) => (
-                          <option key={c.id} value={c.id}>{c.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="form-field">
-                      <label>Expense Date *</label>
-                      <input
-                        type="date"
-                        className="plastic-input"
-                        value={expenseForm.expense_date}
-                        onChange={(e) => setExpenseForm({ ...expenseForm, expense_date: e.target.value })}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="form-grid-2" style={{ marginTop: "12px" }}>
-                    <div className="form-field">
-                      <label>Expense Title / Description *</label>
-                      <input
-                        type="text"
-                        className="plastic-input"
-                        placeholder="e.g. Monthly Industrial Electricity Bill"
-                        value={expenseForm.title}
-                        onChange={(e) => setExpenseForm({ ...expenseForm, title: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <div className="form-field">
-                      <label>Amount (₹) *</label>
-                      <input
-                        type="number"
-                        className="plastic-input"
-                        placeholder="e.g. 45000"
-                        min="1"
-                        step="0.01"
-                        value={expenseForm.amount}
-                        onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="form-grid-3" style={{ marginTop: "12px" }}>
-                    <div className="form-field">
-                      <label>Vendor / Beneficiary</label>
-                      <input
-                        type="text"
-                        className="plastic-input"
-                        placeholder="e.g. DGVCL, Patel Machinery"
-                        value={expenseForm.vendor_name}
-                        onChange={(e) => setExpenseForm({ ...expenseForm, vendor_name: e.target.value })}
-                      />
-                    </div>
-                    <div className="form-field">
-                      <label>Payment Mode</label>
-                      <select
-                        className="plastic-select"
-                        value={expenseForm.payment_mode}
-                        onChange={(e) => setExpenseForm({ ...expenseForm, payment_mode: e.target.value })}
-                      >
-                        <option value="CASH">Cash</option>
-                        <option value="BANK_TRANSFER">Bank Transfer (NEFT/RTGS)</option>
-                        <option value="UPI">UPI / QR</option>
-                        <option value="CHEQUE">Cheque</option>
-                        <option value="CREDIT_CARD">Credit Card</option>
-                        <option value="OTHER">Other</option>
-                      </select>
-                    </div>
-                    <div className="form-field">
-                      <label>Ref / UTR / Cheque No</label>
-                      <input
-                        type="text"
-                        className="plastic-input"
-                        placeholder="Reference details"
-                        value={expenseForm.reference_no}
-                        onChange={(e) => setExpenseForm({ ...expenseForm, reference_no: e.target.value })}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="form-grid-2" style={{ marginTop: "12px" }}>
-                    <div className="form-field">
-                      <label>Payment Status</label>
-                      <select
-                        className="plastic-select"
-                        value={expenseForm.payment_status}
-                        onChange={(e) => setExpenseForm({ ...expenseForm, payment_status: e.target.value })}
-                      >
-                        <option value="PAID">Paid</option>
-                        <option value="PENDING">Pending (Payable)</option>
-                      </select>
-                    </div>
-                    <div className="form-field">
-                      <label>Approval Status</label>
-                      <select
-                        className="plastic-select"
-                        value={expenseForm.approval_status}
-                        onChange={(e) => setExpenseForm({ ...expenseForm, approval_status: e.target.value })}
-                      >
-                        <option value="APPROVED">Approved</option>
-                        <option value="PENDING">Pending Approval</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="form-field" style={{ marginTop: "12px" }}>
-                    <label>Internal Notes / Remarks</label>
-                    <textarea
-                      className="plastic-textarea"
-                      rows="2"
-                      placeholder="Notes on machine, repair bill breakdown, invoice reference..."
-                      value={expenseForm.description}
-                      onChange={(e) => setExpenseForm({ ...expenseForm, description: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className="plastic-modal-footer">
-                  <button
-                    type="button"
-                    className="plastic-btn plastic-btn-ghost"
-                    onClick={() => setRecordModalOpen(false)}
-                    disabled={submitting}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="plastic-btn plastic-btn-primary"
-                    disabled={submitting}
-                  >
-                    {submitting ? "Saving..." : selectedExpense ? "Update Voucher" : "Save Voucher"}
-                  </button>
-                </div>
-              </form>
+                  ) : (
+                    expenses.map((exp) => (
+                      <tr key={exp.id}>
+                        <td>
+                          <span className="voucher-code-badge">{exp.expense_no}</span>
+                        </td>
+                        <td>
+                          <span className="voucher-date">
+                            {new Date(exp.expense_date).toLocaleDateString("en-IN", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric"
+                            })}
+                          </span>
+                        </td>
+                        <td>
+                          <span className="category-chip">{exp.category_name}</span>
+                        </td>
+                        <td>
+                          <div className="voucher-title">{exp.title}</div>
+                          {exp.description && (
+                            <div className="voucher-desc">{exp.description}</div>
+                          )}
+                        </td>
+                        <td>
+                          <span className="vendor-name">{exp.vendor_name || "Direct / Internal"}</span>
+                        </td>
+                        <td>
+                          <div className="payment-mode-tag">{exp.payment_mode}</div>
+                          {exp.reference_no && (
+                            <div className="voucher-ref">Ref: {exp.reference_no}</div>
+                          )}
+                        </td>
+                        <td className="cell-right">
+                          <span className="voucher-amount">
+                            ₹{Number(exp.amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                          </span>
+                        </td>
+                        <td>
+                          <StatusBadge status={exp.payment_status} />
+                        </td>
+                        <td>
+                          <StatusBadge status={exp.approval_status} />
+                        </td>
+                        <td className="cell-right">
+                          <div className="row-actions">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              icon="✏️"
+                              title="Edit Voucher"
+                              onClick={() => handleOpenEditModal(exp)}
+                            />
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              icon="🗑️"
+                              title="Delete Voucher"
+                              onClick={() => handleDeleteExpense(exp)}
+                            />
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
-          </div>
-        )}
+          )}
+        </Card>
+
+        {/* Modal: Record / Edit Expense */}
+        <Modal
+          isOpen={recordModalOpen}
+          onClose={() => !submitting && setRecordModalOpen(false)}
+          title={selectedExpense ? "Edit Expense Voucher" : "Record Plant Expense Voucher"}
+          subtitle="Log operating expenses against plant cost centers and categories"
+          size="lg"
+        >
+          <form onSubmit={handleSaveExpense} className="expense-form">
+            <div className="form-grid-3">
+              <div className="form-group">
+                <label className="sb-label">Voucher No *</label>
+                <input
+                  type="text"
+                  className="sb-input"
+                  value={expenseForm.expense_no}
+                  onChange={(e) => setExpenseForm({ ...expenseForm, expense_no: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label className="sb-label">Category Head *</label>
+                <select
+                  className="sb-select"
+                  value={expenseForm.category_id}
+                  onChange={(e) => setExpenseForm({ ...expenseForm, category_id: e.target.value })}
+                  required
+                >
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="sb-label">Expense Date *</label>
+                <input
+                  type="date"
+                  className="sb-input"
+                  value={expenseForm.expense_date}
+                  onChange={(e) => setExpenseForm({ ...expenseForm, expense_date: e.target.value })}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="form-grid-2">
+              <div className="form-group">
+                <label className="sb-label">Expense Title / Description *</label>
+                <input
+                  type="text"
+                  className="sb-input"
+                  placeholder="e.g. Industrial Electricity Bill — HT Feed"
+                  value={expenseForm.title}
+                  onChange={(e) => setExpenseForm({ ...expenseForm, title: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label className="sb-label">Amount (₹) *</label>
+                <input
+                  type="number"
+                  className="sb-input"
+                  placeholder="e.g. 45000"
+                  min="1"
+                  step="0.01"
+                  value={expenseForm.amount}
+                  onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="form-grid-3">
+              <div className="form-group">
+                <label className="sb-label">Vendor / Beneficiary</label>
+                <input
+                  type="text"
+                  className="sb-input"
+                  placeholder="e.g. DGVCL / Torrent Power"
+                  value={expenseForm.vendor_name}
+                  onChange={(e) => setExpenseForm({ ...expenseForm, vendor_name: e.target.value })}
+                />
+              </div>
+              <div className="form-group">
+                <label className="sb-label">Payment Mode</label>
+                <select
+                  className="sb-select"
+                  value={expenseForm.payment_mode}
+                  onChange={(e) => setExpenseForm({ ...expenseForm, payment_mode: e.target.value })}
+                >
+                  <option value="CASH">Cash</option>
+                  <option value="BANK_TRANSFER">Bank Transfer (NEFT/RTGS)</option>
+                  <option value="UPI">UPI / QR</option>
+                  <option value="CHEQUE">Cheque</option>
+                  <option value="CREDIT_CARD">Credit Card</option>
+                  <option value="OTHER">Other</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="sb-label">Ref / UTR / Cheque No</label>
+                <input
+                  type="text"
+                  className="sb-input"
+                  placeholder="Reference number"
+                  value={expenseForm.reference_no}
+                  onChange={(e) => setExpenseForm({ ...expenseForm, reference_no: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="form-grid-2">
+              <div className="form-group">
+                <label className="sb-label">Payment Status</label>
+                <select
+                  className="sb-select"
+                  value={expenseForm.payment_status}
+                  onChange={(e) => setExpenseForm({ ...expenseForm, payment_status: e.target.value })}
+                >
+                  <option value="PAID">Paid</option>
+                  <option value="PENDING">Pending (Payable)</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="sb-label">Approval Status</label>
+                <select
+                  className="sb-select"
+                  value={expenseForm.approval_status}
+                  onChange={(e) => setExpenseForm({ ...expenseForm, approval_status: e.target.value })}
+                >
+                  <option value="APPROVED">Approved</option>
+                  <option value="PENDING">Pending Approval</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="sb-label">Internal Notes & Breakdown</label>
+              <textarea
+                className="sb-textarea"
+                rows="3"
+                placeholder="Machine code, repair breakdown notes, invoice numbers..."
+                value={expenseForm.description}
+                onChange={(e) => setExpenseForm({ ...expenseForm, description: e.target.value })}
+              />
+            </div>
+
+            <div className="modal-actions-bar">
+              <Button
+                variant="outline"
+                onClick={() => setRecordModalOpen(false)}
+                disabled={submitting}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={submitting}
+              >
+                {submitting ? "Saving..." : selectedExpense ? "Update Voucher" : "Save Voucher"}
+              </Button>
+            </div>
+          </form>
+        </Modal>
 
         {/* Modal: Add Expense Category */}
-        {categoryModalOpen && (
-          <div className="plastic-modal-backdrop" onClick={() => !submitting && setCategoryModalOpen(false)}>
-            <div className="plastic-modal" style={{ maxWidth: "520px" }} onClick={(e) => e.stopPropagation()}>
-              <div className="plastic-modal-header">
-                <h3>⚙️ Add Plant Expense Category</h3>
-                <button type="button" className="btn-close" onClick={() => setCategoryModalOpen(false)}>✕</button>
-              </div>
-              <form onSubmit={handleSaveCategory}>
-                <div className="plastic-modal-body">
-                  <div className="form-field">
-                    <label>Category Name *</label>
-                    <input
-                      type="text"
-                      className="plastic-input"
-                      placeholder="e.g. Effluent Treatment (ETP) Maintenance"
-                      value={categoryForm.name}
-                      onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="form-field" style={{ marginTop: "12px" }}>
-                    <label>Unique Code *</label>
-                    <input
-                      type="text"
-                      className="plastic-input"
-                      placeholder="e.g. ETP_MAINT"
-                      value={categoryForm.code}
-                      onChange={(e) => setCategoryForm({ ...categoryForm, code: e.target.value.toUpperCase() })}
-                      required
-                    />
-                  </div>
-                  <div className="form-field" style={{ marginTop: "12px" }}>
-                    <label>Description</label>
-                    <textarea
-                      className="plastic-textarea"
-                      rows="2"
-                      placeholder="Scope of this expense head"
-                      value={categoryForm.description}
-                      onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })}
-                    />
-                  </div>
-                </div>
-                <div className="plastic-modal-footer">
-                  <button
-                    type="button"
-                    className="plastic-btn plastic-btn-ghost"
-                    onClick={() => setCategoryModalOpen(false)}
-                    disabled={submitting}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="plastic-btn plastic-btn-primary"
-                    disabled={submitting}
-                  >
-                    {submitting ? "Saving..." : "Create Category"}
-                  </button>
-                </div>
-              </form>
+        <Modal
+          isOpen={categoryModalOpen}
+          onClose={() => !submitting && setCategoryModalOpen(false)}
+          title="Add Expense Category Head"
+          subtitle="Configure high-level expense heads for plant operations"
+          size="md"
+        >
+          <form onSubmit={handleSaveCategory} className="category-form">
+            <div className="form-group">
+              <label className="sb-label">Category Name *</label>
+              <input
+                type="text"
+                className="sb-input"
+                placeholder="e.g. Effluent Treatment (ETP) Maintenance"
+                value={categoryForm.name}
+                onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
+                required
+              />
             </div>
-          </div>
-        )}
+            <div className="form-group">
+              <label className="sb-label">Unique Code *</label>
+              <input
+                type="text"
+                className="sb-input"
+                placeholder="e.g. ETP_MAINT"
+                value={categoryForm.code}
+                onChange={(e) => setCategoryForm({ ...categoryForm, code: e.target.value.toUpperCase() })}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label className="sb-label">Description</label>
+              <textarea
+                className="sb-textarea"
+                rows="3"
+                placeholder="Define operational scope for this expense head"
+                value={categoryForm.description}
+                onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })}
+              />
+            </div>
+            <div className="modal-actions-bar">
+              <Button
+                variant="outline"
+                onClick={() => setCategoryModalOpen(false)}
+                disabled={submitting}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={submitting}
+              >
+                {submitting ? "Saving..." : "Create Category"}
+              </Button>
+            </div>
+          </form>
+        </Modal>
       </main>
     </div>
   );

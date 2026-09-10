@@ -1,54 +1,30 @@
-/* Supplier Quotations Page Specific Styles */
-.header-actions {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.btn-secondary-link {
-  background: #334155;
-  color: #f8fafc;
-  padding: 10px 16px;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 0.92rem;
-  text-decoration: none;
-  transition: all 0.2s;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.btn-secondary-link:hover {
-  background: #475569;
-  color: #ffffff;
-}
+/* ==========================================================================
+   SMARTBILLING 2.0 - Supplier Quotations Styles
+   ========================================================================== */
 
 .quote-totals-breakdown {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 6px;
-  background: #0f172a;
-  padding: 16px;
-  border-radius: 8px;
-  border: 1px solid #334155;
+  gap: 8px;
+  background: var(--sb-bg, #F4F8FB);
+  padding: 18px 24px;
+  border-radius: var(--sb-radius-md, 8px);
+  border: 1px solid var(--sb-border, #E3EBF2);
+  margin-top: 16px;
+  font-size: 13.5px;
 }
 
 .quote-totals-breakdown div {
   display: flex;
   justify-content: space-between;
-  width: 260px;
-  font-size: 0.9rem;
+  width: 280px;
 }
 
-.quote-totals-breakdown .grand-total-row {
-  border-top: 1px solid #334155;
+.quote-totals-breakdown .quote-grand-total {
+  border-top: 1.5px solid var(--sb-border, #E3EBF2);
   padding-top: 8px;
-  margin-top: 4px;
-  font-size: 1.05rem;
-  color: #38bdf8;
+  font-size: 16px;
+  color: var(--sb-navy, #063B66);
+  font-weight: 700;
 }
-
-.text-xs { font-size: 0.75rem; }
-.text-emerald-400 { color: #34d399; }

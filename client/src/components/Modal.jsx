@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import PropTypes from "prop-types";
 import "./Modal.css";
 
 /**
@@ -82,18 +81,5 @@ function Modal({
     </div>
   );
 }
-
-Modal.propTypes = {
-  isOpen: PropTypes.bool.isRequired,
-  onClose: PropTypes.func.isRequired,
-  title: PropTypes.node,
-  subtitle: PropTypes.node,
-  children: PropTypes.node,
-  footer: PropTypes.node,
-  size: PropTypes.oneOf(["sm", "md", "lg", "xl"]),
-  closeOnBackdrop: PropTypes.bool,
-  closeOnEscape: PropTypes.bool,
-  className: PropTypes.string,
-};
 
 export default Modal;

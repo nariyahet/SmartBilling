@@ -1,41 +1,8 @@
-/* Purchase Deliveries Page Specific Styles */
-.delivery-tabs-bar {
+/* ==========================================================================
+   SMARTBILLING 2.0 - Purchase Deliveries Styles
+   ========================================================================== */
+
+.sb-tab-bar-wrap {
   display: flex;
-  gap: 12px;
-  margin-bottom: 20px;
-  border-bottom: 1px solid #334155;
-  padding-bottom: 12px;
-}
-
-.tab-btn {
-  background: transparent;
-  border: none;
-  color: #94a3b8;
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 0.95rem;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.tab-btn:hover {
-  background: #1e293b;
-  color: #f8fafc;
-}
-
-.tab-btn.active {
-  background: #2563eb;
-  color: #ffffff;
-}
-
-.btn-sm {
-  padding: 6px 12px;
-  font-size: 0.82rem;
-}
-
-.form-grid-2 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  align-items: center;
 }

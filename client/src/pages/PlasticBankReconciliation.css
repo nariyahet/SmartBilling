@@ -1,30 +1,198 @@
-/* PlasticBankReconciliation.css */
+/* PlasticBankReconciliation.css - Ocean Blue / Deep Navy Design System */
 
-.recon-summary-panel {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
+.recon-action-group {
+  display: flex;
+  align-items: center;
+  gap: var(--sb-space-3, 0.75rem);
 }
 
-.recon-box {
-  background: #ffffff;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
-  padding: 16px 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.recon-box-label {
-  font-size: 0.8rem;
+.recon-account-select {
+  min-width: 240px;
   font-weight: 600;
-  text-transform: uppercase;
-  color: #64748b;
-  margin-bottom: 6px;
 }
 
-.recon-box-val {
-  font-size: 1.4rem;
-  font-weight: 800;
-  color: #0f172a;
+.recon-kpis-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: var(--sb-space-4, 1rem);
+  margin-bottom: var(--sb-space-6, 1.5rem);
+}
+
+.recon-filter-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--sb-space-3, 0.75rem);
+}
+
+.recon-status-select {
+  width: 170px;
+}
+
+/* Table */
+.recon-table-wrapper {
+  overflow-x: auto;
+}
+
+.recon-match-scroll {
+  max-height: 320px;
+}
+
+.recon-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.recon-table th {
+  background: #f8fafc;
+  color: var(--sb-text-muted, #718096);
+  font-weight: 600;
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--sb-border, #e3ebf2);
+  white-space: nowrap;
+}
+
+.recon-table td {
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--sb-border, #e3ebf2);
+  vertical-align: middle;
+  color: var(--sb-text, #102a43);
+}
+
+.recon-table tr:hover td {
+  background-color: #f8fbff;
+}
+
+.cell-right {
+  text-align: right;
+}
+
+.cell-center {
+  text-align: center;
+}
+
+.recon-date {
+  font-size: 0.8125rem;
+  color: var(--sb-text-muted, #718096);
+}
+
+.recon-ref {
+  color: var(--sb-text, #102a43);
+}
+
+.recon-desc-cell {
+  font-size: 0.8125rem;
+  color: #334155;
+  max-width: 240px;
+}
+
+.recon-bank-balance {
+  color: var(--sb-text, #102a43);
+}
+
+.matched-tx-badge {
+  display: inline-block;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  color: #0879d1;
+}
+
+.recon-tx-type {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.15rem 0.45rem;
+  background: #f1f5f9;
+  color: #475569;
+  border-radius: 4px;
+}
+
+.text-teal {
+  color: #065f46;
+}
+
+.text-danger {
+  color: #b91c1c;
+}
+
+.text-muted {
+  color: var(--sb-text-muted, #718096);
+}
+
+.sub-text {
+  font-size: 0.75rem;
+  color: var(--sb-text-muted, #718096);
+}
+
+.recon-table-empty {
+  text-align: center;
+  padding: 3rem 1rem !important;
+}
+
+/* Modals */
+.recon-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sb-space-4, 1rem);
+}
+
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sb-space-4, 1rem);
+}
+
+@media (max-width: 600px) {
+  .form-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.recon-match-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sb-space-4, 1rem);
+}
+
+.recon-target-card {
+  background: #f8fafc;
+  padding: var(--sb-space-3, 0.75rem);
+  border-radius: 8px;
+  border: 1px solid var(--sb-border, #e3ebf2);
+}
+
+.target-line {
+  font-size: 0.875rem;
+  color: var(--sb-text, #102a43);
+}
+
+.target-label {
+  color: var(--sb-text-muted, #718096);
+  margin-right: 0.5rem;
+}
+
+.target-amount-line {
+  margin-top: 0.25rem;
+  font-size: 0.95rem;
+}
+
+.target-amount-val {
+  color: #0879d1;
+}
+
+.available-tx-heading {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--sb-text, #102a43);
+}
+
+.modal-actions-bar {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sb-space-3, 0.75rem);
+  padding-top: var(--sb-space-4, 1rem);
+  border-top: 1px solid var(--sb-border, #e3ebf2);
+  margin-top: var(--sb-space-2, 0.5rem);
 }

@@ -1,69 +1,30 @@
-/* Purchase Comparison Page Specific Styles */
-.comparison-tip {
-  color: #94a3b8;
-  font-size: 0.85rem;
-  margin-left: auto;
+/* ==========================================================================
+   SMARTBILLING 2.0 - Purchase Comparison Styles
+   ========================================================================== */
+
+.sb-filter-tip {
+  font-size: 13px;
+  color: var(--sb-text-muted, #718096);
 }
 
-.material-comparison-card {
-  background: #1e293b;
-  border: 1px solid #334155;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+.comparison-material-card {
   margin-bottom: 24px;
 }
 
-.material-comparison-header {
-  padding: 18px 20px;
-  background: #182234;
-  border-bottom: 1px solid #334155;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.material-title {
-  margin: 0 0 4px 0;
-  font-size: 1.25rem;
-  color: #ffffff;
+.comparison-card-title {
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-
-.badge-type {
-  background: #0369a1;
-  color: #e0f2fe;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-.comparison-table th {
-  background: #16202e;
+  gap: 10px;
 }
 
 .highlight-best-row {
-  background: rgba(16, 185, 129, 0.05);
+  background: var(--sb-primary-light, #EBF4FC) !important;
 }
 
 .landed-rate-cell {
-  color: #10b981;
-  font-size: 1rem;
+  color: var(--sb-primary, #0879D1);
+  font-size: 15px;
 }
-
-.score-badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-weight: 700;
-  font-size: 0.82rem;
-}
-
-.score-badge.high { background: #064e3b; color: #34d399; }
-.score-badge.medium { background: #1e3a8a; color: #60a5fa; }
 
 .tag-badges {
   display: flex;
@@ -72,32 +33,29 @@
 }
 
 .highlight-tag {
-  display: inline-block;
-  padding: 2px 6px;
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
   border-radius: 4px;
-  font-size: 0.72rem;
-  font-weight: 600;
   white-space: nowrap;
 }
 
-.highlight-tag.rate { background: #065f46; color: #6ee7b7; border: 1px solid #059669; }
-.highlight-tag.speed { background: #1e3a8a; color: #93c5fd; border: 1px solid #2563eb; }
-.highlight-tag.quality { background: #581c87; color: #d8b4fe; border: 1px solid #7c3aed; }
-
-.btn-select-vendor {
-  background: linear-gradient(135deg, #059669, #047857);
-  color: #ffffff;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-weight: 600;
-  font-size: 0.82rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
+.highlight-tag.rate {
+  background: #E8F7F1;
+  color: #0E6245;
+  border: 1px solid #BCE8D6;
 }
 
-.btn-select-vendor:hover {
-  background: linear-gradient(135deg, #047857, #065f46);
-  transform: translateY(-1px);
+.highlight-tag.speed {
+  background: #EAF5FC;
+  color: #0879D1;
+  border: 1px solid #C4E2F6;
+}
+
+.highlight-tag.quality {
+  background: #FEF6EC;
+  color: #9A6014;
+  border: 1px solid #FBDCB0;
 }

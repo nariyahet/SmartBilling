@@ -1,8 +1,17 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import API from "../api/axios";
-import PlasticNavbar from "../components/PlasticNavbar";
 import LoadingScreen from "../components/LoadingScreen";
+import {
+  PageHeader,
+  KpiCard,
+  Card,
+  DataTable,
+  Modal,
+  Button,
+  StatusBadge,
+  AlertBanner,
+} from "../components";
 import "./PlasticQuality.css";
 
 function PlasticQuality() {
@@ -54,7 +63,6 @@ function PlasticQuality() {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
   }, [fetchData]);
 
@@ -113,340 +121,319 @@ function PlasticQuality() {
   if (loading) return <LoadingScreen message="Loading Quality Control..." />;
 
   return (
-    <div className="plastic-page-container">
-      <PlasticNavbar />
-
-      <div className="plastic-content-wrap">
-        <div className="plastic-page-header">
-          <div>
-            <h1 className="plastic-page-title">🔬 Quality Control (QC)</h1>
-            <p className="plastic-page-subtitle">Inspection Workflows, Parameter Tests & Defect Tracking</p>
-          </div>
-
-          <div className="plastic-page-actions">
-            <Link to="/plastic-erp" className="btn-dashboard-nav">
-              📊 ERP Dashboard
+    <div className="sb-page-container">
+      <PageHeader
+        title="Quality Control (QC)"
+        subtitle="Inspection Workflows, Parameter Tests & Defect Tracking"
+        breadcrumbs={[
+          { label: "ERP", to: "/plastic-erp" },
+          { label: "Production", to: "/plastic-erp/production" },
+          { label: "Quality Control" },
+        ]}
+        actions={
+          <div style={{ display: "flex", gap: "10px" }}>
+            <Link to="/plastic-erp">
+              <Button variant="secondary">ERP Dashboard</Button>
             </Link>
-            <button type="button" className="btn-primary" onClick={() => setShowCreateModal(true)}>
-              ➕ Record QC Inspection
-            </button>
+            <Button variant="primary" onClick={() => setShowCreateModal(true)}>
+              + Record QC Inspection
+            </Button>
           </div>
-        </div>
+        }
+      />
 
-        {error && (
-          <div className="plastic-alert error">
-            <span>⚠️ {error}</span>
-            <button type="button" onClick={() => setError("")}>✕</button>
-          </div>
-        )}
+      {error && <AlertBanner type="error" message={error} onClose={() => setError("")} />}
+      {successMsg && <AlertBanner type="success" message={successMsg} onClose={() => setSuccessMsg("")} />}
 
-        {successMsg && (
-          <div className="plastic-alert success">
-            <span>✅ {successMsg}</span>
-            <button type="button" onClick={() => setSuccessMsg("")}>✕</button>
-          </div>
-        )}
-
-        {/* QC KPI Cards */}
-        <div className="qc-kpi-grid">
-          <div className="qc-card">
-            <span className="qc-label">Total Inspections</span>
-            <strong className="qc-val">{inspections.length}</strong>
-            <span className="qc-sub">Incoming, in-process, & FG</span>
-          </div>
-          <div className="qc-card">
-            <span className="qc-label">Passed Tests</span>
-            <strong className="qc-val text-green">{passedCount}</strong>
-            <span className="qc-sub">Approved for next stage</span>
-          </div>
-          <div className="qc-card">
-            <span className="qc-label">Pending Reviews</span>
-            <strong className="qc-val text-yellow">{pendingCount}</strong>
-            <span className="qc-sub">Under lab analysis</span>
-          </div>
-          <div className="qc-card">
-            <span className="qc-label">Rejection Rate</span>
-            <strong className="qc-val text-red">{rejectionRate}%</strong>
-            <span className="qc-sub">{rejectedCount} lots rejected</span>
-          </div>
-        </div>
-
-        {/* Filter Pills */}
-        <div className="qc-filter-pills">
-          {["ALL", "INCOMING", "IN_PROCESS", "FINISHED_GOODS"].map((type) => (
-            <button
-              key={type}
-              type="button"
-              className={`pill-btn ${typeFilter === type ? "active" : ""}`}
-              onClick={() => setTypeFilter(type)}
-            >
-              {type.replace("_", " ")} ({type === "ALL" ? inspections.length : inspections.filter((i) => i.qc_type === type).length})
-            </button>
-          ))}
-        </div>
-
-        <div className="plastic-card">
-          <div className="table-responsive">
-            <table className="plastic-table">
-              <thead>
-                <tr>
-                  <th>Inspection No</th>
-                  <th>QC Type</th>
-                  <th>Linked Batch / Source</th>
-                  <th>Sample Size</th>
-                  <th>Date</th>
-                  <th>Inspector</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredInspections.length === 0 ? (
-                  <tr>
-                    <td colSpan="8" className="empty-cell">No QC inspections recorded for this category.</td>
-                  </tr>
-                ) : (
-                  filteredInspections.map((qc) => (
-                    <tr key={qc.id}>
-                      <td><strong>{qc.inspection_no}</strong></td>
-                      <td>
-                        <span className="qc-type-badge">{qc.qc_type}</span>
-                      </td>
-                      <td>{qc.batch_no ? `Batch ${qc.batch_no}` : qc.supplier_name ? `Supplier ${qc.supplier_name}` : "General"}</td>
-                      <td>{qc.sample_size} {qc.unit}</td>
-                      <td>{qc.inspection_date?.split("T")[0]}</td>
-                      <td>{qc.inspector_name || "Quality Lab"}</td>
-                      <td>
-                        <span className={`badge qc-${qc.overall_status?.toLowerCase()}`}>
-                          {qc.overall_status}
-                        </span>
-                      </td>
-                      <td>
-                        <button
-                          type="button"
-                          className="btn-view-details"
-                          onClick={() => viewDetails(qc.id)}
-                        >
-                          Parameters 📋
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* MODAL: VIEW QC DETAILS */}
-        {selectedInspection && (
-          <div className="plastic-modal-backdrop">
-            <div className="plastic-modal large">
-              <div className="modal-header">
-                <h3>QC Inspection: {selectedInspection.inspection_no}</h3>
-                <button type="button" onClick={() => setSelectedInspection(null)}>✕</button>
-              </div>
-              <div className="modal-body-padding">
-                <div className="recipe-summary-box">
-                  <div className="detail-row">
-                    <span>Inspection Type:</span>
-                    <strong>{selectedInspection.qc_type}</strong>
-                  </div>
-                  <div className="detail-row">
-                    <span>Overall Decision:</span>
-                    <strong className={`badge qc-${selectedInspection.overall_status?.toLowerCase()}`}>
-                      {selectedInspection.overall_status}
-                    </strong>
-                  </div>
-                  {selectedInspection.rejection_reason && (
-                    <div className="detail-row">
-                      <span>Rejection Reason:</span>
-                      <strong className="text-red">{selectedInspection.rejection_reason}</strong>
-                    </div>
-                  )}
-                </div>
-
-                <h4>Tested Quality Parameters</h4>
-                <table className="plastic-table">
-                  <thead>
-                    <tr>
-                      <th>Parameter Name</th>
-                      <th>Expected Spec</th>
-                      <th>Observed Value</th>
-                      <th>Result</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {selectedInspection.results?.map((res) => (
-                      <tr key={res.id}>
-                        <td><strong>{res.parameter_name}</strong></td>
-                        <td>{res.expected_value || "Standard"}</td>
-                        <td>{res.observed_value}</td>
-                        <td>
-                          <span className={`badge ${res.status === "PASS" ? "qc-passed" : "qc-rejected"}`}>
-                            {res.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="modal-footer">
-                <button type="button" className="btn-secondary" onClick={() => setSelectedInspection(null)}>
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* MODAL: RECORD QC INSPECTION */}
-        {showCreateModal && (
-          <div className="plastic-modal-backdrop">
-            <div className="plastic-modal large">
-              <div className="modal-header">
-                <h3>Record Quality Inspection</h3>
-                <button type="button" onClick={() => setShowCreateModal(false)}>✕</button>
-              </div>
-              <form onSubmit={handleSubmit} className="modal-form">
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Inspection Stage / Type</label>
-                    <select
-                      value={formData.qc_type}
-                      onChange={(e) => setFormData({ ...formData, qc_type: e.target.value })}
-                    >
-                      <option value="INCOMING">Incoming Raw Material QC</option>
-                      <option value="IN_PROCESS">In-Process Extrusion QC</option>
-                      <option value="FINISHED_GOODS">Finished Goods Final QC</option>
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label>Linked Production Batch</label>
-                    <select
-                      value={formData.batch_id}
-                      onChange={(e) => setFormData({ ...formData, batch_id: e.target.value })}
-                    >
-                      <option value="">Select Batch (Optional)</option>
-                      {batches.map((b) => (
-                        <option key={b.id} value={b.id}>{b.batch_no} - {b.product_name}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Inspector Name</label>
-                    <input
-                      type="text"
-                      value={formData.inspector_name}
-                      onChange={(e) => setFormData({ ...formData, inspector_name: e.target.value })}
-                      placeholder="e.g. QC Tech Hitesh"
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label>Overall Status *</label>
-                    <select
-                      value={formData.overall_status}
-                      onChange={(e) => setFormData({ ...formData, overall_status: e.target.value })}
-                    >
-                      <option value="PASSED">Passed (Approved)</option>
-                      <option value="HOLD">Hold (Further Testing)</option>
-                      <option value="REJECTED">Rejected</option>
-                      <option value="REWORK">Needs Rework</option>
-                    </select>
-                  </div>
-                </div>
-
-                {formData.overall_status === "REJECTED" && (
-                  <div className="form-group">
-                    <label>Rejection Reason *</label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.rejection_reason}
-                      onChange={(e) => setFormData({ ...formData, rejection_reason: e.target.value })}
-                      placeholder="e.g. High moisture content or black contamination specs"
-                    />
-                  </div>
-                )}
-
-                {/* Parameters Checklist */}
-                <div className="bom-builder-section">
-                  <div className="bom-header-row">
-                    <h4>Evaluation Parameters</h4>
-                  </div>
-
-                  {formData.parameters.map((p, idx) => (
-                    <div key={idx} className="bom-item-row">
-                      <input
-                        type="text"
-                        required
-                        placeholder="Parameter Name"
-                        value={p.parameter_name}
-                        onChange={(e) => handleParamChange(idx, "parameter_name", e.target.value)}
-                        className="material-select"
-                      />
-
-                      <input
-                        type="text"
-                        placeholder="Expected Spec"
-                        value={p.expected_value}
-                        onChange={(e) => handleParamChange(idx, "expected_value", e.target.value)}
-                        className="material-name-input"
-                      />
-
-                      <input
-                        type="text"
-                        required
-                        placeholder="Observed Value"
-                        value={p.observed_value}
-                        onChange={(e) => handleParamChange(idx, "observed_value", e.target.value)}
-                        className="material-name-input"
-                      />
-
-                      <select
-                        value={p.status}
-                        onChange={(e) => handleParamChange(idx, "status", e.target.value)}
-                        style={{ width: "90px" }}
-                      >
-                        <option value="PASS">PASS</option>
-                        <option value="FAIL">FAIL</option>
-                      </select>
-
-                      <button
-                        type="button"
-                        className="btn-remove-row"
-                        onClick={() => handleRemoveParam(idx)}
-                        disabled={formData.parameters.length <= 1}
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
-
-                  <button type="button" className="btn-add-row" onClick={handleAddParam}>
-                    ➕ Add Inspection Parameter
-                  </button>
-                </div>
-
-                <div className="modal-actions">
-                  <button type="button" className="btn-secondary" onClick={() => setShowCreateModal(false)}>
-                    Cancel
-                  </button>
-                  <button type="submit" className="btn-primary">
-                    Record Inspection
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
+      {/* QC KPI Cards */}
+      <div className="sb-kpis-grid" style={{ marginBottom: "24px" }}>
+        <KpiCard
+          label="Total Inspections"
+          value={inspections.length}
+          subtext="Incoming, in-process, & FG"
+          accent="blue"
+        />
+        <KpiCard
+          label="Passed Tests"
+          value={passedCount}
+          subtext="Approved for next stage"
+          accent="teal"
+        />
+        <KpiCard
+          label="Pending Reviews"
+          value={pendingCount}
+          subtext="Under lab analysis"
+          accent="navy"
+        />
+        <KpiCard
+          label="Rejection Rate"
+          value={`${rejectionRate}%`}
+          subtext={`${rejectedCount} lots rejected`}
+          accent={rejectedCount > 0 ? "danger" : "teal"}
+        />
       </div>
+
+      {/* Filter Pills */}
+      <div className="qc-filter-pills">
+        {["ALL", "INCOMING", "IN_PROCESS", "FINISHED_GOODS"].map((type) => (
+          <button
+            key={type}
+            type="button"
+            className={`qc-pill-btn ${typeFilter === type ? "active" : ""}`}
+            onClick={() => setTypeFilter(type)}
+          >
+            {type.replace("_", " ")} ({type === "ALL" ? inspections.length : inspections.filter((i) => i.qc_type === type).length})
+          </button>
+        ))}
+      </div>
+
+      <Card noPadding>
+        <DataTable
+          headers={[
+            "Inspection No",
+            "QC Type",
+            "Linked Batch / Source",
+            "Sample Size",
+            "Date",
+            "Inspector",
+            "Status",
+            "Actions",
+          ]}
+        >
+          {filteredInspections.length === 0 ? (
+            <tr>
+              <td colSpan="8" style={{ textAlign: "center", padding: "32px", color: "var(--sb-muted)" }}>
+                No QC inspections recorded for this category.
+              </td>
+            </tr>
+          ) : (
+            filteredInspections.map((qc) => (
+              <tr key={qc.id}>
+                <td><strong>{qc.inspection_no}</strong></td>
+                <td>
+                  <span className="qc-type-badge">{qc.qc_type}</span>
+                </td>
+                <td>{qc.batch_no ? `Batch ${qc.batch_no}` : qc.supplier_name ? `Supplier ${qc.supplier_name}` : "General"}</td>
+                <td>{qc.sample_size} {qc.unit}</td>
+                <td>{qc.inspection_date?.split("T")[0]}</td>
+                <td>{qc.inspector_name || "Quality Lab"}</td>
+                <td>
+                  <StatusBadge status={qc.overall_status} />
+                </td>
+                <td>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => viewDetails(qc.id)}
+                  >
+                    Parameters 📋
+                  </Button>
+                </td>
+              </tr>
+            ))
+          )}
+        </DataTable>
+      </Card>
+
+      {/* MODAL: VIEW QC DETAILS */}
+      <Modal
+        isOpen={!!selectedInspection}
+        onClose={() => setSelectedInspection(null)}
+        title={`QC Inspection: ${selectedInspection?.inspection_no || ""}`}
+      >
+        {selectedInspection && (
+          <div>
+            <div className="qc-summary-box">
+              <div className="qc-detail-row">
+                <span>Inspection Type:</span>
+                <strong>{selectedInspection.qc_type}</strong>
+              </div>
+              <div className="qc-detail-row">
+                <span>Overall Decision:</span>
+                <StatusBadge status={selectedInspection.overall_status} />
+              </div>
+              {selectedInspection.rejection_reason && (
+                <div className="qc-detail-row">
+                  <span>Rejection Reason:</span>
+                  <strong style={{ color: "var(--sb-danger)" }}>{selectedInspection.rejection_reason}</strong>
+                </div>
+              )}
+            </div>
+
+            <h4 style={{ margin: "20px 0 12px 0", color: "var(--sb-navy)", fontSize: "14px", fontWeight: 700 }}>
+              Tested Quality Parameters
+            </h4>
+            <DataTable
+              headers={["Parameter Name", "Expected Spec", "Observed Value", "Result"]}
+            >
+              {selectedInspection.results?.map((res) => (
+                <tr key={res.id}>
+                  <td><strong>{res.parameter_name}</strong></td>
+                  <td>{res.expected_value || "Standard"}</td>
+                  <td>{res.observed_value}</td>
+                  <td>
+                    <StatusBadge status={res.status === "PASS" ? "PASSED" : "REJECTED"} />
+                  </td>
+                </tr>
+              ))}
+            </DataTable>
+
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "24px" }}>
+              <Button type="button" variant="secondary" onClick={() => setSelectedInspection(null)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* MODAL: RECORD QC INSPECTION */}
+      <Modal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        title="Record Quality Inspection"
+      >
+        <form onSubmit={handleSubmit} className="sb-form">
+          <div className="sb-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div className="sb-form-group">
+              <label className="sb-label">Inspection Stage / Type</label>
+              <select
+                className="sb-input"
+                value={formData.qc_type}
+                onChange={(e) => setFormData({ ...formData, qc_type: e.target.value })}
+              >
+                <option value="INCOMING">Incoming Raw Material QC</option>
+                <option value="IN_PROCESS">In-Process Extrusion QC</option>
+                <option value="FINISHED_GOODS">Finished Goods Final QC</option>
+              </select>
+            </div>
+
+            <div className="sb-form-group">
+              <label className="sb-label">Linked Production Batch</label>
+              <select
+                className="sb-input"
+                value={formData.batch_id}
+                onChange={(e) => setFormData({ ...formData, batch_id: e.target.value })}
+              >
+                <option value="">Select Batch (Optional)</option>
+                {batches.map((b) => (
+                  <option key={b.id} value={b.id}>{b.batch_no} - {b.product_name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="sb-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div className="sb-form-group">
+              <label className="sb-label">Inspector Name</label>
+              <input
+                type="text"
+                className="sb-input"
+                value={formData.inspector_name}
+                onChange={(e) => setFormData({ ...formData, inspector_name: e.target.value })}
+                placeholder="e.g. QC Tech Hitesh"
+              />
+            </div>
+
+            <div className="sb-form-group">
+              <label className="sb-label">Overall Status *</label>
+              <select
+                className="sb-input"
+                value={formData.overall_status}
+                onChange={(e) => setFormData({ ...formData, overall_status: e.target.value })}
+              >
+                <option value="PASSED">Passed (Approved)</option>
+                <option value="HOLD">Hold (Further Testing)</option>
+                <option value="REJECTED">Rejected</option>
+                <option value="REWORK">Needs Rework</option>
+              </select>
+            </div>
+          </div>
+
+          {formData.overall_status === "REJECTED" && (
+            <div className="sb-form-group">
+              <label className="sb-label">Rejection Reason *</label>
+              <input
+                type="text"
+                required
+                className="sb-input"
+                value={formData.rejection_reason}
+                onChange={(e) => setFormData({ ...formData, rejection_reason: e.target.value })}
+                placeholder="e.g. High moisture content or black contamination specs"
+              />
+            </div>
+          )}
+
+          {/* Parameters Checklist */}
+          <div style={{ marginTop: "16px", border: "1px solid var(--sb-border)", borderRadius: "8px", padding: "16px" }}>
+            <h4 style={{ margin: "0 0 12px 0", fontSize: "14px", color: "var(--sb-navy)", fontWeight: 700 }}>
+              Evaluation Parameters
+            </h4>
+
+            {formData.parameters.map((p, idx) => (
+              <div key={idx} style={{ display: "grid", gridTemplateColumns: "2fr 1.5fr 1.5fr 1fr auto", gap: "8px", marginBottom: "8px", alignItems: "center" }}>
+                <input
+                  type="text"
+                  required
+                  placeholder="Parameter Name"
+                  value={p.parameter_name}
+                  onChange={(e) => handleParamChange(idx, "parameter_name", e.target.value)}
+                  className="sb-input"
+                />
+
+                <input
+                  type="text"
+                  placeholder="Expected Spec"
+                  value={p.expected_value}
+                  onChange={(e) => handleParamChange(idx, "expected_value", e.target.value)}
+                  className="sb-input"
+                />
+
+                <input
+                  type="text"
+                  required
+                  placeholder="Observed Value"
+                  value={p.observed_value}
+                  onChange={(e) => handleParamChange(idx, "observed_value", e.target.value)}
+                  className="sb-input"
+                />
+
+                <select
+                  value={p.status}
+                  onChange={(e) => handleParamChange(idx, "status", e.target.value)}
+                  className="sb-input"
+                >
+                  <option value="PASS">PASS</option>
+                  <option value="FAIL">FAIL</option>
+                </select>
+
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="danger"
+                  onClick={() => handleRemoveParam(idx)}
+                  disabled={formData.parameters.length <= 1}
+                >
+                  ✕
+                </Button>
+              </div>
+            ))}
+
+            <Button type="button" variant="secondary" size="sm" onClick={handleAddParam} style={{ marginTop: "8px" }}>
+              + Add Inspection Parameter
+            </Button>
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "24px" }}>
+            <Button type="button" variant="secondary" onClick={() => setShowCreateModal(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary">
+              Record Inspection
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

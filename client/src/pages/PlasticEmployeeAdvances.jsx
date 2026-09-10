@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import API from "../api/axios";
 import PlasticNavbar from "../components/PlasticNavbar";
 import LoadingScreen from "../components/LoadingScreen";
+import { PageHeader, Card, KpiCard, Modal, Button, StatusBadge } from "../components";
 import "./PlasticEmployeeAdvances.css";
 
 function PlasticEmployeeAdvances() {
@@ -61,10 +62,8 @@ function PlasticEmployeeAdvances() {
   }, [statusFilter, search, disburseForm.employee_id]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
   }, [fetchData]);
-
 
   const handleDisburseSubmit = async (e) => {
     e.preventDefault();
@@ -134,70 +133,61 @@ function PlasticEmployeeAdvances() {
   return (
     <div className="plastic-page">
       <PlasticNavbar />
-      <main className="plastic-container">
+      <div className="plastic-container sb-page-container">
         {/* Header */}
-        <div className="plastic-header-row">
-          <div>
-            <span className="plastic-breadcrumb">Plastic ERP / HR & Payroll</span>
-            <h1 className="plastic-title">💳 Employee Advances & Loan Recoveries</h1>
-            <p className="plastic-subtitle">
-              Manage salary advances, emergency plant loans, and automated payroll recovery schedules.
-            </p>
-          </div>
-          <button
-            type="button"
-            className="plastic-btn plastic-btn-primary"
-            onClick={() => setDisburseModalOpen(true)}
-          >
-            + Disburse Advance
-          </button>
-        </div>
+        <PageHeader
+          title="Employee Advances & Loan Recoveries"
+          subtitle="Manage salary advances, emergency plant loans, and automated payroll recovery schedules."
+          badge="HR & RECOVERIES"
+          actions={
+            <Button
+              type="button"
+              variant="primary"
+              size="md"
+              onClick={() => setDisburseModalOpen(true)}
+            >
+              + Disburse Advance
+            </Button>
+          }
+        />
 
         {/* KPI Cards */}
-        <div className="plastic-kpi-grid">
-          <div className="plastic-kpi-card">
-            <span className="plastic-kpi-icon" style={{ background: "#eff6ff", color: "#2563eb" }}>💳</span>
-            <div>
-              <span className="plastic-kpi-label">Total Advanced</span>
-              <h3 className="plastic-kpi-val">₹{totalAdvanced.toLocaleString("en-IN")}</h3>
-              <small className="plastic-kpi-sub">Total disbursed principal</small>
-            </div>
-          </div>
-          <div className="plastic-kpi-card">
-            <span className="plastic-kpi-icon" style={{ background: "#ecfdf5", color: "#059669" }}>🔄</span>
-            <div>
-              <span className="plastic-kpi-label">Total Recovered</span>
-              <h3 className="plastic-kpi-val">₹{totalRecovered.toLocaleString("en-IN")}</h3>
-              <small className="plastic-kpi-sub">Payroll deductions & cash recoveries</small>
-            </div>
-          </div>
-          <div className="plastic-kpi-card">
-            <span className="plastic-kpi-icon" style={{ background: "#fef3c7", color: "#b45309" }}>⏳</span>
-            <div>
-              <span className="plastic-kpi-label">Outstanding Balance</span>
-              <h3 className="plastic-kpi-val">₹{totalOutstanding.toLocaleString("en-IN")}</h3>
-              <small className="plastic-kpi-sub">Pending factory recovery</small>
-            </div>
-          </div>
-          <div className="plastic-kpi-card">
-            <span className="plastic-kpi-icon">👥</span>
-            <div>
-              <span className="plastic-kpi-label">Active Advances</span>
-              <h3 className="plastic-kpi-val">{activeCount}</h3>
-              <small className="plastic-kpi-sub">Staff currently with ongoing balance</small>
-            </div>
-          </div>
+        <div className="padv-kpis">
+          <KpiCard
+            title="Total Advanced"
+            value={`₹${totalAdvanced.toLocaleString("en-IN")}`}
+            subtitle="Total disbursed principal"
+            variant="primary"
+          />
+          <KpiCard
+            title="Total Recovered"
+            value={`₹${totalRecovered.toLocaleString("en-IN")}`}
+            subtitle="Payroll deductions & cash recoveries"
+            variant="success"
+          />
+          <KpiCard
+            title="Outstanding Balance"
+            value={`₹${totalOutstanding.toLocaleString("en-IN")}`}
+            subtitle="Pending factory recovery"
+            variant="warning"
+          />
+          <KpiCard
+            title="Active Advances"
+            value={activeCount}
+            subtitle="Staff with ongoing balance"
+            variant="default"
+          />
         </div>
 
         {/* Filter Card */}
-        <div className="plastic-filter-card">
+        <Card className="padv-filter-card">
           <div className="attendance-controls-row">
             <div className="filter-group filter-search">
               <label htmlFor="adv-search">Search Staff / Advance No</label>
               <input
                 id="adv-search"
                 type="text"
-                className="plastic-input"
+                className="sb-input"
                 placeholder="Search code, name, advance no..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -207,7 +197,7 @@ function PlasticEmployeeAdvances() {
               <label htmlFor="adv-status">Status</label>
               <select
                 id="adv-status"
-                className="plastic-select"
+                className="sb-select"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
               >
@@ -217,235 +207,230 @@ function PlasticEmployeeAdvances() {
               </select>
             </div>
           </div>
-        </div>
+        </Card>
 
         {/* Advances Table */}
-        {loading ? (
-          <LoadingScreen />
-        ) : (
-          <div className="plastic-table-container">
-            <table className="plastic-table">
-              <thead>
-                <tr>
-                  <th>Advance No</th>
-                  <th>Disbursed Date</th>
-                  <th>Employee</th>
-                  <th>Principal</th>
-                  <th>Recovered</th>
-                  <th>Outstanding</th>
-                  <th>Monthly Installment</th>
-                  <th>Status</th>
-                  <th style={{ textAlign: "right" }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {advances.length === 0 ? (
+        <Card title={`Employee Advances & Loans (${advances.length})`}>
+          {loading ? (
+            <LoadingScreen message="Loading employee advances..." />
+          ) : advances.length === 0 ? (
+            <div className="padv-empty">No employee advances found.</div>
+          ) : (
+            <div className="padv-table-wrap">
+              <table className="padv-table">
+                <thead>
                   <tr>
-                    <td colSpan="9" style={{ textAlign: "center", padding: "2.5rem" }}>
-                      No employee advances found.
-                    </td>
+                    <th>Advance No</th>
+                    <th>Disbursed Date</th>
+                    <th>Employee</th>
+                    <th>Principal</th>
+                    <th>Recovered</th>
+                    <th>Outstanding</th>
+                    <th>Monthly Installment</th>
+                    <th>Status</th>
+                    <th className="text-right">Actions</th>
                   </tr>
-                ) : (
-                  advances.map((adv) => (
+                </thead>
+                <tbody>
+                  {advances.map((adv) => (
                     <tr key={adv.id}>
-                      <td><span className="plastic-code-badge">{adv.advance_no}</span></td>
+                      <td><span className="pemp-code-badge">{adv.advance_no}</span></td>
                       <td>{new Date(adv.disbursement_date).toLocaleDateString("en-IN")}</td>
                       <td>
                         <strong>{adv.full_name}</strong>
-                        <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                        <div className="text-muted text-sm">
                           {adv.employee_code} • {adv.department}
                         </div>
                       </td>
                       <td>₹{Number(adv.amount).toLocaleString("en-IN")}</td>
-                      <td style={{ color: "#059669" }}>₹{Number(adv.recovery_amount).toLocaleString("en-IN")}</td>
+                      <td className="text-success font-semibold">₹{Number(adv.recovery_amount).toLocaleString("en-IN")}</td>
                       <td>
-                        <strong style={{ color: Number(adv.outstanding_amount) > 0 ? "#b45309" : "#64748b", fontSize: "0.95rem" }}>
+                        <strong className={Number(adv.outstanding_amount) > 0 ? "text-warning font-bold" : "text-muted"}>
                           ₹{Number(adv.outstanding_amount).toLocaleString("en-IN")}
                         </strong>
                       </td>
                       <td>₹{Number(adv.monthly_installment || 0).toLocaleString("en-IN")}/mo</td>
                       <td>
-                        <span className={`plastic-status-tag tag-${adv.status.toLowerCase()}`}>
-                          {adv.status}
-                        </span>
+                        <StatusBadge
+                          status={adv.status}
+                          variant={adv.status === "ACTIVE" ? "warning" : "success"}
+                        />
                       </td>
-                      <td style={{ textAlign: "right" }}>
+                      <td className="text-right">
                         {adv.status === "ACTIVE" && (
-                          <button
+                          <Button
                             type="button"
-                            className="plastic-btn plastic-btn-secondary"
-                            style={{ padding: "4px 8px", fontSize: "0.8rem" }}
+                            variant="secondary"
+                            size="sm"
                             onClick={() => handleOpenRepayModal(adv)}
                           >
                             💵 Repay
-                          </button>
+                          </Button>
                         )}
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
 
         {/* Modal: Disburse Advance */}
         {disburseModalOpen && (
-          <div className="plastic-modal-backdrop" onClick={() => !submitting && setDisburseModalOpen(false)}>
-            <div className="plastic-modal" style={{ maxWidth: "580px" }} onClick={(e) => e.stopPropagation()}>
-              <div className="plastic-modal-header">
-                <h3>➕ Disburse Salary Advance / Loan</h3>
-                <button type="button" className="btn-close" onClick={() => setDisburseModalOpen(false)}>✕</button>
+          <Modal
+            isOpen={disburseModalOpen}
+            onClose={() => !submitting && setDisburseModalOpen(false)}
+            title="➕ Disburse Salary Advance / Loan"
+            size="md"
+          >
+            <form onSubmit={handleDisburseSubmit} className="padv-modal-form">
+              <div className="form-field">
+                <label>Select Employee *</label>
+                <select
+                  className="sb-select"
+                  value={disburseForm.employee_id}
+                  onChange={(e) => setDisburseForm({ ...disburseForm, employee_id: e.target.value })}
+                  required
+                >
+                  {employees.map((emp) => (
+                    <option key={emp.id} value={emp.id}>
+                      {emp.full_name} ({emp.employee_code} - {emp.department})
+                    </option>
+                  ))}
+                </select>
               </div>
-              <form onSubmit={handleDisburseSubmit}>
-                <div className="plastic-modal-body">
-                  <div className="form-field">
-                    <label>Select Employee *</label>
-                    <select
-                      className="plastic-select"
-                      value={disburseForm.employee_id}
-                      onChange={(e) => setDisburseForm({ ...disburseForm, employee_id: e.target.value })}
-                      required
-                    >
-                      {employees.map((emp) => (
-                        <option key={emp.id} value={emp.id}>
-                          {emp.full_name} ({emp.employee_code} - {emp.department})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
 
-                  <div className="form-grid-2" style={{ marginTop: "12px" }}>
-                    <div className="form-field">
-                      <label>Advance Amount (₹) *</label>
-                      <input
-                        type="number"
-                        className="plastic-input"
-                        placeholder="e.g. 10000"
-                        min="100"
-                        value={disburseForm.amount}
-                        onChange={(e) => setDisburseForm({ ...disburseForm, amount: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <div className="form-field">
-                      <label>Disbursement Date *</label>
-                      <input
-                        type="date"
-                        className="plastic-input"
-                        value={disburseForm.disbursement_date}
-                        onChange={(e) => setDisburseForm({ ...disburseForm, disbursement_date: e.target.value })}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="form-field" style={{ marginTop: "12px" }}>
-                    <label>Monthly Payroll Recovery Installment (₹)</label>
-                    <input
-                      type="number"
-                      className="plastic-input"
-                      placeholder="e.g. 2500 (recovered each month in payroll)"
-                      value={disburseForm.monthly_installment}
-                      onChange={(e) => setDisburseForm({ ...disburseForm, monthly_installment: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="form-field" style={{ marginTop: "12px" }}>
-                    <label>Purpose / Reason</label>
-                    <input
-                      type="text"
-                      className="plastic-input"
-                      placeholder="e.g. Festival advance, hospital emergency"
-                      value={disburseForm.reason}
-                      onChange={(e) => setDisburseForm({ ...disburseForm, reason: e.target.value })}
-                    />
-                  </div>
+              <div className="form-grid-2 mt-3">
+                <div className="form-field">
+                  <label>Advance Amount (₹) *</label>
+                  <input
+                    type="number"
+                    className="sb-input"
+                    placeholder="e.g. 10000"
+                    min="100"
+                    value={disburseForm.amount}
+                    onChange={(e) => setDisburseForm({ ...disburseForm, amount: e.target.value })}
+                    required
+                  />
                 </div>
-
-                <div className="plastic-modal-footer">
-                  <button
-                    type="button"
-                    className="plastic-btn plastic-btn-ghost"
-                    onClick={() => setDisburseModalOpen(false)}
-                    disabled={submitting}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="plastic-btn plastic-btn-primary"
-                    disabled={submitting}
-                  >
-                    {submitting ? "Disbursing..." : "Confirm & Disburse"}
-                  </button>
+                <div className="form-field">
+                  <label>Disbursement Date *</label>
+                  <input
+                    type="date"
+                    className="sb-input"
+                    value={disburseForm.disbursement_date}
+                    onChange={(e) => setDisburseForm({ ...disburseForm, disbursement_date: e.target.value })}
+                    required
+                  />
                 </div>
-              </form>
-            </div>
-          </div>
+              </div>
+
+              <div className="form-field mt-3">
+                <label>Monthly Payroll Recovery Installment (₹)</label>
+                <input
+                  type="number"
+                  className="sb-input"
+                  placeholder="e.g. 2500 (recovered each month in payroll)"
+                  value={disburseForm.monthly_installment}
+                  onChange={(e) => setDisburseForm({ ...disburseForm, monthly_installment: e.target.value })}
+                />
+              </div>
+
+              <div className="form-field mt-3">
+                <label>Purpose / Reason</label>
+                <input
+                  type="text"
+                  className="sb-input"
+                  placeholder="e.g. Festival advance, hospital emergency"
+                  value={disburseForm.reason}
+                  onChange={(e) => setDisburseForm({ ...disburseForm, reason: e.target.value })}
+                />
+              </div>
+
+              <div className="modal-footer-actions">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="md"
+                  onClick={() => setDisburseModalOpen(false)}
+                  disabled={submitting}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="md"
+                  disabled={submitting}
+                >
+                  {submitting ? "Disbursing..." : "Confirm & Disburse"}
+                </Button>
+              </div>
+            </form>
+          </Modal>
         )}
 
         {/* Modal: Manual Repay */}
         {repayModalOpen && selectedAdv && (
-          <div className="plastic-modal-backdrop" onClick={() => !submitting && setRepayModalOpen(false)}>
-            <div className="plastic-modal" style={{ maxWidth: "480px" }} onClick={(e) => e.stopPropagation()}>
-              <div className="plastic-modal-header">
-                <h3>💵 Record Manual Cash Repayment</h3>
-                <button type="button" className="btn-close" onClick={() => setRepayModalOpen(false)}>✕</button>
+          <Modal
+            isOpen={repayModalOpen}
+            onClose={() => !submitting && setRepayModalOpen(false)}
+            title="💵 Record Manual Cash Repayment"
+            size="md"
+          >
+            <form onSubmit={handleRepaySubmit} className="padv-modal-form">
+              <div className="repay-summary-box mb-3">
+                <div>Advance: <strong>{selectedAdv.advance_no}</strong> ({selectedAdv.full_name})</div>
+                <div>Outstanding Balance: <strong className="text-warning">₹{Number(selectedAdv.outstanding_amount).toLocaleString("en-IN")}</strong></div>
               </div>
-              <form onSubmit={handleRepaySubmit}>
-                <div className="plastic-modal-body">
-                  <p style={{ margin: "0 0 12px 0" }}>
-                    Advance: <strong>{selectedAdv.advance_no}</strong> ({selectedAdv.full_name})<br />
-                    Outstanding Balance: <strong>₹{Number(selectedAdv.outstanding_amount).toLocaleString("en-IN")}</strong>
-                  </p>
 
-                  <div className="form-field">
-                    <label>Repayment Amount (₹) *</label>
-                    <input
-                      type="number"
-                      className="plastic-input"
-                      max={Number(selectedAdv.outstanding_amount)}
-                      min="1"
-                      value={repayForm.amount}
-                      onChange={(e) => setRepayForm({ ...repayForm, amount: e.target.value })}
-                      required
-                    />
-                  </div>
+              <div className="form-field">
+                <label>Repayment Amount (₹) *</label>
+                <input
+                  type="number"
+                  className="sb-input"
+                  max={Number(selectedAdv.outstanding_amount)}
+                  min="1"
+                  value={repayForm.amount}
+                  onChange={(e) => setRepayForm({ ...repayForm, amount: e.target.value })}
+                  required
+                />
+              </div>
 
-                  <div className="form-field" style={{ marginTop: "12px" }}>
-                    <label>Receipt Notes</label>
-                    <input
-                      type="text"
-                      className="plastic-input"
-                      value={repayForm.notes}
-                      onChange={(e) => setRepayForm({ ...repayForm, notes: e.target.value })}
-                    />
-                  </div>
-                </div>
+              <div className="form-field mt-3">
+                <label>Receipt Notes</label>
+                <input
+                  type="text"
+                  className="sb-input"
+                  value={repayForm.notes}
+                  onChange={(e) => setRepayForm({ ...repayForm, notes: e.target.value })}
+                />
+              </div>
 
-                <div className="plastic-modal-footer">
-                  <button
-                    type="button"
-                    className="plastic-btn plastic-btn-ghost"
-                    onClick={() => setRepayModalOpen(false)}
-                    disabled={submitting}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="plastic-btn plastic-btn-primary"
-                    disabled={submitting}
-                  >
-                    {submitting ? "Recording..." : "Save Repayment"}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
+              <div className="modal-footer-actions">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="md"
+                  onClick={() => setRepayModalOpen(false)}
+                  disabled={submitting}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="md"
+                  disabled={submitting}
+                >
+                  {submitting ? "Recording..." : "Save Repayment"}
+                </Button>
+              </div>
+            </form>
+          </Modal>
         )}
-      </main>
+      </div>
     </div>
   );
 }

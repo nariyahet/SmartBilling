@@ -1,4 +1,3 @@
-import PropTypes from "prop-types";
 import "./SearchInput.css";
 
 /**
@@ -46,14 +45,5 @@ function SearchInput({
     </div>
   );
 }
-
-SearchInput.propTypes = {
-  value: PropTypes.string.isRequired,
-  onChange: PropTypes.func.isRequired,
-  onClear: PropTypes.func,
-  placeholder: PropTypes.string,
-  className: PropTypes.string,
-  ariaLabel: PropTypes.string,
-};
 
 export default SearchInput;
