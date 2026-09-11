@@ -65,12 +65,45 @@ function PlasticSupplierQuotations() {
         API.get("/plastic-erp/procurement/requisitions?status=APPROVED"),
       ]);
 
-      setQuotations(qRes.data?.data || []);
-      setSuppliers(sRes.data?.data || sRes.data || []);
-      setRawMaterials(rmRes.data?.data || rmRes.data || []);
-      setRequisitions(prRes.data?.data || []);
+      const quoteList = Array.isArray(qRes.data?.data)
+        ? qRes.data.data
+        : Array.isArray(qRes.data?.quotations)
+        ? qRes.data.quotations
+        : Array.isArray(qRes.data)
+        ? qRes.data
+        : [];
+      const suppList = Array.isArray(sRes.data?.suppliers)
+        ? sRes.data.suppliers
+        : Array.isArray(sRes.data?.data)
+        ? sRes.data.data
+        : Array.isArray(sRes.data)
+        ? sRes.data
+        : [];
+      const rmList = Array.isArray(rmRes.data?.raw_materials)
+        ? rmRes.data.raw_materials
+        : Array.isArray(rmRes.data?.data)
+        ? rmRes.data.data
+        : Array.isArray(rmRes.data)
+        ? rmRes.data
+        : [];
+      const prList = Array.isArray(prRes.data?.data)
+        ? prRes.data.data
+        : Array.isArray(prRes.data?.requisitions)
+        ? prRes.data.requisitions
+        : Array.isArray(prRes.data)
+        ? prRes.data
+        : [];
+
+      setQuotations(quoteList);
+      setSuppliers(suppList);
+      setRawMaterials(rmList);
+      setRequisitions(prList);
     } catch (err) {
       console.error("Error loading quotations:", err);
+      setQuotations([]);
+      setSuppliers([]);
+      setRawMaterials([]);
+      setRequisitions([]);
     } finally {
       setLoading(false);
     }
@@ -161,11 +194,11 @@ function PlasticSupplierQuotations() {
   };
 
   // KPIs
-  const totalCount = quotations.length;
-  const activeCount = quotations.filter((q) => q.status === "PENDING" || q.status === "ACCEPTED").length;
-  const acceptedCount = quotations.filter((q) => q.status === "ACCEPTED").length;
+  const totalCount = Array.isArray(quotations) ? quotations.length : 0;
+  const activeCount = Array.isArray(quotations) ? quotations.filter((q) => q.status === "PENDING" || q.status === "ACCEPTED").length : 0;
+  const acceptedCount = Array.isArray(quotations) ? quotations.filter((q) => q.status === "ACCEPTED").length : 0;
 
-  if (loading && quotations.length === 0) {
+  if (loading && (!Array.isArray(quotations) || quotations.length === 0)) {
     return <LoadingScreen title="Loading Quotations..." subtitle="Fetching supplier quotes..." />;
   }
 
@@ -315,7 +348,7 @@ function PlasticSupplierQuotations() {
               className="sb-select"
             >
               <option value="ALL">All Suppliers</option>
-              {suppliers.map((s) => (
+              {(Array.isArray(suppliers) ? suppliers : []).map((s) => (
                 <option key={s.id} value={s.id}>{s.supplier_name}</option>
               ))}
             </select>
@@ -380,7 +413,7 @@ function PlasticSupplierQuotations() {
                 className="sb-select"
               >
                 <option value="">Select Supplier</option>
-                {suppliers.map((s) => (
+                {(Array.isArray(suppliers) ? suppliers : []).map((s) => (
                   <option key={s.id} value={s.id}>{s.supplier_name} ({s.supplier_code})</option>
                 ))}
               </select>
@@ -393,7 +426,7 @@ function PlasticSupplierQuotations() {
                 className="sb-select"
               >
                 <option value="">None (Standalone Quote)</option>
-                {requisitions.map((pr) => (
+                {(Array.isArray(requisitions) ? requisitions : []).map((pr) => (
                   <option key={pr.id} value={pr.id}>{pr.pr_no} - {pr.requester_name}</option>
                 ))}
               </select>
@@ -500,7 +533,7 @@ function PlasticSupplierQuotations() {
                           className="sb-select"
                         >
                           <option value="">Select Material</option>
-                          {rawMaterials.map((m) => (
+                          {(Array.isArray(rawMaterials) ? rawMaterials : []).map((m) => (
                             <option key={m.id} value={m.id}>{m.material_name} ({m.plastic_type})</option>
                           ))}
                         </select>

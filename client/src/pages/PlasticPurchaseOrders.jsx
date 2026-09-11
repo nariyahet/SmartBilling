@@ -61,11 +61,36 @@ function PlasticPurchaseOrders() {
         API.get("/raw-materials"),
       ]);
 
-      setOrders(poRes.data?.data || []);
-      setSuppliers(sRes.data?.data || sRes.data || []);
-      setRawMaterials(rmRes.data?.data || rmRes.data || []);
+      const poList = Array.isArray(poRes.data?.data)
+        ? poRes.data.data
+        : Array.isArray(poRes.data?.orders)
+        ? poRes.data.orders
+        : Array.isArray(poRes.data)
+        ? poRes.data
+        : [];
+      const suppList = Array.isArray(sRes.data?.suppliers)
+        ? sRes.data.suppliers
+        : Array.isArray(sRes.data?.data)
+        ? sRes.data.data
+        : Array.isArray(sRes.data)
+        ? sRes.data
+        : [];
+      const rmList = Array.isArray(rmRes.data?.raw_materials)
+        ? rmRes.data.raw_materials
+        : Array.isArray(rmRes.data?.data)
+        ? rmRes.data.data
+        : Array.isArray(rmRes.data)
+        ? rmRes.data
+        : [];
+
+      setOrders(poList);
+      setSuppliers(suppList);
+      setRawMaterials(rmList);
     } catch (err) {
       console.error("Error loading purchase orders:", err);
+      setOrders([]);
+      setSuppliers([]);
+      setRawMaterials([]);
     } finally {
       setLoading(false);
     }
@@ -98,7 +123,7 @@ function PlasticPurchaseOrders() {
       const updated = [...prev.items];
       updated[index][field] = value;
       if (field === "raw_material_id") {
-        const mat = rawMaterials.find((m) => String(m.id) === String(value));
+        const mat = (Array.isArray(rawMaterials) ? rawMaterials : []).find((m) => String(m.id) === String(value));
         if (mat) {
           updated[index].rate = mat.default_purchase_rate || 45.0;
           updated[index].unit = mat.unit || "KG";
@@ -160,12 +185,12 @@ function PlasticPurchaseOrders() {
   };
 
   // KPIs
-  const totalPOCount = orders.length;
-  const pendingApprovalCount = orders.filter((o) => o.status === "PENDING_APPROVAL").length;
-  const openCount = orders.filter((o) => o.status === "APPROVED" || o.status === "PARTIALLY_RECEIVED").length;
-  const totalValue = orders.reduce((sum, o) => sum + Number(o.grand_total || 0), 0);
+  const totalPOCount = Array.isArray(orders) ? orders.length : 0;
+  const pendingApprovalCount = Array.isArray(orders) ? orders.filter((o) => o.status === "PENDING_APPROVAL").length : 0;
+  const openCount = Array.isArray(orders) ? orders.filter((o) => o.status === "APPROVED" || o.status === "PARTIALLY_RECEIVED").length : 0;
+  const totalValue = Array.isArray(orders) ? orders.reduce((sum, o) => sum + Number(o.grand_total || 0), 0) : 0;
 
-  if (loading && orders.length === 0) {
+  if (loading && (!Array.isArray(orders) || orders.length === 0)) {
     return <LoadingScreen title="Loading Purchase Orders..." subtitle="Fetching procurement commitments..." />;
   }
 
@@ -344,7 +369,7 @@ function PlasticPurchaseOrders() {
               className="sb-select"
             >
               <option value="ALL">All Suppliers</option>
-              {suppliers.map((s) => (
+              {(Array.isArray(suppliers) ? suppliers : []).map((s) => (
                 <option key={s.id} value={s.id}>{s.supplier_name}</option>
               ))}
             </select>
@@ -412,7 +437,7 @@ function PlasticPurchaseOrders() {
                 className="sb-select"
               >
                 <option value="">Select Supplier</option>
-                {suppliers.map((s) => (
+                {(Array.isArray(suppliers) ? suppliers : []).map((s) => (
                   <option key={s.id} value={s.id}>{s.supplier_name} ({s.supplier_code})</option>
                 ))}
               </select>
@@ -515,7 +540,7 @@ function PlasticPurchaseOrders() {
                           className="sb-select"
                         >
                           <option value="">Select Material</option>
-                          {rawMaterials.map((m) => (
+                          {(Array.isArray(rawMaterials) ? rawMaterials : []).map((m) => (
                             <option key={m.id} value={m.id}>{m.material_name} ({m.plastic_type})</option>
                           ))}
                         </select>

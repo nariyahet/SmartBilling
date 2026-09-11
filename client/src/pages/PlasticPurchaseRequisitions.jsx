@@ -67,11 +67,36 @@ function PlasticPurchaseRequisitions() {
         API.get("/suppliers"),
       ]);
 
-      setRequisitions(prRes.data?.data || []);
-      setRawMaterials(rmRes.data?.data || rmRes.data || []);
-      setSuppliers(suppRes.data?.data || suppRes.data || []);
+      const prList = Array.isArray(prRes.data?.data)
+        ? prRes.data.data
+        : Array.isArray(prRes.data?.requisitions)
+        ? prRes.data.requisitions
+        : Array.isArray(prRes.data)
+        ? prRes.data
+        : [];
+      const rmList = Array.isArray(rmRes.data?.raw_materials)
+        ? rmRes.data.raw_materials
+        : Array.isArray(rmRes.data?.data)
+        ? rmRes.data.data
+        : Array.isArray(rmRes.data)
+        ? rmRes.data
+        : [];
+      const suppList = Array.isArray(suppRes.data?.suppliers)
+        ? suppRes.data.suppliers
+        : Array.isArray(suppRes.data?.data)
+        ? suppRes.data.data
+        : Array.isArray(suppRes.data)
+        ? suppRes.data
+        : [];
+
+      setRequisitions(prList);
+      setRawMaterials(rmList);
+      setSuppliers(suppList);
     } catch (err) {
       console.error("Error loading requisitions:", err);
+      setRequisitions([]);
+      setRawMaterials([]);
+      setSuppliers([]);
     } finally {
       setLoading(false);
     }
@@ -105,7 +130,7 @@ function PlasticPurchaseRequisitions() {
       updated[index][field] = value;
 
       if (field === "raw_material_id") {
-        const mat = rawMaterials.find((m) => String(m.id) === String(value));
+        const mat = (Array.isArray(rawMaterials) ? rawMaterials : []).find((m) => String(m.id) === String(value));
         if (mat) {
           updated[index].estimated_rate = mat.default_purchase_rate || "";
           updated[index].unit = mat.unit || "KG";
@@ -195,12 +220,12 @@ function PlasticPurchaseRequisitions() {
   };
 
   // KPIs
-  const totalPRCount = requisitions.length;
-  const pendingCount = requisitions.filter((r) => r.status === "PENDING_APPROVAL").length;
-  const approvedCount = requisitions.filter((r) => r.status === "APPROVED").length;
-  const totalEstValue = requisitions.reduce((sum, r) => sum + Number(r.total_estimated_value || 0), 0);
+  const totalPRCount = Array.isArray(requisitions) ? requisitions.length : 0;
+  const pendingCount = Array.isArray(requisitions) ? requisitions.filter((r) => r.status === "PENDING_APPROVAL").length : 0;
+  const approvedCount = Array.isArray(requisitions) ? requisitions.filter((r) => r.status === "APPROVED").length : 0;
+  const totalEstValue = Array.isArray(requisitions) ? requisitions.reduce((sum, r) => sum + Number(r.total_estimated_value || 0), 0) : 0;
 
-  if (loading && requisitions.length === 0) {
+  if (loading && (!Array.isArray(requisitions) || requisitions.length === 0)) {
     return <LoadingScreen title="Loading Requisitions..." subtitle="Fetching purchase requests..." />;
   }
 
@@ -544,7 +569,7 @@ function PlasticPurchaseRequisitions() {
                           className="sb-select"
                         >
                           <option value="">Select Raw Material</option>
-                          {rawMaterials.map((rm) => (
+                          {(Array.isArray(rawMaterials) ? rawMaterials : []).map((rm) => (
                             <option key={rm.id} value={rm.id}>
                               {rm.material_name} ({rm.plastic_type})
                             </option>
@@ -714,7 +739,7 @@ function PlasticPurchaseRequisitions() {
                 className="sb-select"
               >
                 <option value="">Select Supplier</option>
-                {suppliers.map((s) => (
+                {(Array.isArray(suppliers) ? suppliers : []).map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.supplier_name} ({s.supplier_code}) - {s.city || "Kim"}
                   </option>

@@ -29,10 +29,27 @@ function PlasticPurchaseComparison() {
         API.get("/raw-materials"),
       ]);
 
-      setComparisons(compRes.data?.data || []);
-      setRawMaterials(rmRes.data?.data || rmRes.data || []);
+      const compList = Array.isArray(compRes.data?.data)
+        ? compRes.data.data
+        : Array.isArray(compRes.data?.comparisons)
+        ? compRes.data.comparisons
+        : Array.isArray(compRes.data)
+        ? compRes.data
+        : [];
+      const rmList = Array.isArray(rmRes.data?.raw_materials)
+        ? rmRes.data.raw_materials
+        : Array.isArray(rmRes.data?.data)
+        ? rmRes.data.data
+        : Array.isArray(rmRes.data)
+        ? rmRes.data
+        : [];
+
+      setComparisons(compList);
+      setRawMaterials(rmList);
     } catch (err) {
       console.error("Error loading quotation comparison:", err);
+      setComparisons([]);
+      setRawMaterials([]);
     } finally {
       setLoading(false);
     }
@@ -58,7 +75,7 @@ function PlasticPurchaseComparison() {
     }
   };
 
-  if (loading && comparisons.length === 0) {
+  if (loading && (!Array.isArray(comparisons) || comparisons.length === 0)) {
     return <LoadingScreen title="Comparing Quotations..." subtitle="Computing vendor landed rates..." />;
   }
 
@@ -89,7 +106,7 @@ function PlasticPurchaseComparison() {
               style={{ minWidth: "260px" }}
             >
               <option value="">All Raw Materials</option>
-              {rawMaterials.map((rm) => (
+              {(Array.isArray(rawMaterials) ? rawMaterials : []).map((rm) => (
                 <option key={rm.id} value={rm.id}>
                   {rm.material_name} ({rm.plastic_type})
                 </option>
@@ -103,7 +120,7 @@ function PlasticPurchaseComparison() {
       </Card>
 
       {/* Comparison Sections by Material */}
-      {comparisons.length === 0 ? (
+      {!Array.isArray(comparisons) || comparisons.length === 0 ? (
         <Card>
           <EmptyState
             icon="⚖️"
@@ -120,7 +137,7 @@ function PlasticPurchaseComparison() {
           />
         </Card>
       ) : (
-        comparisons.map((group) => (
+        (Array.isArray(comparisons) ? comparisons : []).map((group) => (
           <Card
             key={group.raw_material_id}
             className="comparison-material-card"
@@ -130,7 +147,7 @@ function PlasticPurchaseComparison() {
                 <span className="sb-badge sb-badge-teal">{group.plastic_type}</span>
               </div>
             }
-            subtitle={`Code: ${group.material_code} • ${group.quotes.length} Competing Vendor Quote(s)`}
+            subtitle={`Code: ${group.material_code} • ${group.quotes?.length || 0} Competing Vendor Quote(s)`}
             noPadding
           >
             <div className="sb-table-responsive">
@@ -152,7 +169,7 @@ function PlasticPurchaseComparison() {
                   </tr>
                 </thead>
                 <tbody>
-                  {group.quotes.map((q) => (
+                  {(group.quotes || []).map((q) => (
                     <tr key={q.id} className={q.is_best_commercial ? "highlight-best-row" : ""}>
                       <td>
                         <strong>{q.supplier_name}</strong>
