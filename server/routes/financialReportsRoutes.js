@@ -7,6 +7,7 @@ const repController = require("../controllers/financialReportsController");
 router.use(authMiddleware);
 router.use(trialMiddleware);
 
+router.get("/", repController.getTrialBalance);
 router.get("/trial-balance", repController.getTrialBalance);
 router.get("/profit-loss", repController.getProfitAndLoss);
 router.get("/balance-sheet", repController.getBalanceSheet);

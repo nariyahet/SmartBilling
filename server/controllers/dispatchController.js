@@ -74,17 +74,17 @@ exports.getDispatches = async (req, res) => {
     let sql = `
       SELECT
         d.*,
-        c.name AS customer_name,
-        c.mobile AS customer_mobile,
-        so.sales_order_no,
+        MAX(c.name) AS customer_name,
+        MAX(c.mobile) AS customer_mobile,
+        MAX(so.sales_order_no) AS sales_order_no,
         COUNT(di.id) AS total_items,
         COALESCE(SUM(di.quantity), 0) AS total_dispatched_qty,
-        inv.id AS invoice_id,
-        inv.invoice_no,
-        inv.grand_total AS invoice_grand_total,
-        inv.payment_status AS invoice_payment_status,
-        dc.id AS challan_id,
-        dc.challan_no
+        MAX(inv.id) AS invoice_id,
+        MAX(inv.invoice_no) AS invoice_no,
+        MAX(inv.grand_total) AS invoice_grand_total,
+        MAX(inv.payment_status) AS invoice_payment_status,
+        MAX(dc.id) AS challan_id,
+        MAX(dc.challan_no) AS challan_no
       FROM plastic_dispatches d
       JOIN customers c ON d.customer_id = c.id AND d.company_id = c.company_id
       LEFT JOIN plastic_sales_orders so ON d.sales_order_id = so.id AND d.company_id = so.company_id

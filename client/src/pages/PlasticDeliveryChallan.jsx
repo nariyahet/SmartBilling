@@ -61,7 +61,7 @@ function PlasticDeliveryChallan() {
       const [chalRes, custRes, dispRes, vehRes, fgRes, compRes] = await Promise.all([
         API.get("/plastic-erp/transport/challans"),
         API.get("/customers"),
-        API.get("/plastic-erp/dispatches"),
+        API.get("/plastic-erp/dispatch").catch(() => API.get("/plastic-erp/dispatches")),
         API.get("/plastic-erp/transport/vehicles"),
         API.get("/plastic-erp/inventory/finished-goods"),
         API.get("/company/profile").catch(() => ({ data: {} })),

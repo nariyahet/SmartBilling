@@ -152,7 +152,7 @@ function PlasticSalesReturns() {
     try {
       const res = await API.get(`/plastic-erp/sales-returns/${ret.id}`);
       if (res.data?.success) {
-        const fullRet = res.data.salesReturn;
+        const fullRet = res.data.salesReturn || res.data.returnRecord;
         setSelectedReturn(fullRet);
 
         let calculatedCredit = 0;

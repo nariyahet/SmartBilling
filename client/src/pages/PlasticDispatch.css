@@ -29,3 +29,69 @@
   color: #dc2626;
   border: 1px solid #fecaca;
 }
+
+/* Header & Filter Responsiveness */
+.dsp-header-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.dsp-filter-bar {
+  padding: 16px 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dsp-filter-search {
+  flex: 1;
+  min-width: 240px;
+}
+
+.dsp-filter-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .dsp-header-actions {
+    width: 100%;
+    gap: 8px;
+  }
+
+  .dsp-header-actions > a,
+  .dsp-header-actions > button {
+    flex: 1 1 calc(50% - 6px);
+  }
+
+  .dsp-filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 12px;
+  }
+
+  .dsp-filter-search {
+    width: 100%;
+  }
+
+  .dsp-filter-controls {
+    width: 100%;
+  }
+
+  .dsp-filter-controls select,
+  .dsp-filter-controls input[type="date"] {
+    flex: 1 1 calc(50% - 6px);
+    min-width: 130px !important;
+    width: auto !important;
+  }
+
+  .dsp-filter-controls button {
+    width: 100%;
+  }
+}

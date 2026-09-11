@@ -19,6 +19,9 @@ db.connect((err) => {
   }
 
   console.log("✅ MySQL Connected Successfully");
+  db.query("SET SESSION sql_mode=(SELECT REPLACE(@@sql_mode,'ONLY_FULL_GROUP_BY',''))", (modeErr) => {
+    if (modeErr) console.warn("Could not set session sql_mode:", modeErr.message);
+  });
 });
 
 module.exports = db;

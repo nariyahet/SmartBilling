@@ -88,13 +88,15 @@ function PlasticProcurementReports() {
       />
 
       {/* Report Selector Tabs */}
-      <div style={{ marginBottom: "20px" }}>
-        <Tabs
-          tabs={REPORTS}
-          activeTab={selectedReportId}
-          onChange={setSelectedReportId}
-          variant="pills"
-        />
+      <div className="proc-reports-selector-wrap">
+        <div className="proc-pills-scroll">
+          <Tabs
+            tabs={REPORTS}
+            activeTab={selectedReportId}
+            onChange={setSelectedReportId}
+            variant="pills"
+          />
+        </div>
       </div>
 
       {/* Date Filter Bar */}

@@ -5,6 +5,7 @@ import "./DataTable.css";
  */
 function DataTable({
   columns = [],
+  headers = [],
   data = [],
   children = null,
   loading = false,
@@ -12,12 +13,27 @@ function DataTable({
   density = "normal",
   className = "",
 }) {
+  const hasCustomHeaders = Array.isArray(headers) && headers.length > 0;
+
   return (
     <div className={`sb-table-container ${className}`}>
       <div className="sb-table-wrapper">
         <table className={`sb-data-table density-${density}`}>
+          {hasCustomHeaders && (
+            <thead>
+              <tr>
+                {headers.map((h, idx) => (
+                  <th key={idx}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+          )}
           {children ? (
-            children
+            hasCustomHeaders ? (
+              <tbody>{children}</tbody>
+            ) : (
+              children
+            )
           ) : (
             <>
               <thead>

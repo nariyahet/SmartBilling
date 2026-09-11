@@ -328,7 +328,7 @@ function PlasticDispatch() {
           { label: "Dispatches" },
         ]}
         actions={
-          <div style={{ display: "flex", gap: "10px" }}>
+          <div className="dsp-header-actions">
             <Link to="/plastic-erp/transport/challans">
               <Button variant="secondary">Delivery Challans</Button>
             </Link>
@@ -383,8 +383,8 @@ function PlasticDispatch() {
 
       {/* Filters Bar */}
       <Card noPadding style={{ marginBottom: "24px" }}>
-        <div style={{ padding: "16px 20px", display: "flex", flexWrap: "wrap", gap: "12px", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ flex: 1, minWidth: "260px" }}>
+        <div className="dsp-filter-bar">
+          <div className="dsp-filter-search">
             <input
               type="text"
               className="sb-input"
@@ -395,7 +395,7 @@ function PlasticDispatch() {
             />
           </div>
 
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "center" }}>
+          <div className="dsp-filter-controls">
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}

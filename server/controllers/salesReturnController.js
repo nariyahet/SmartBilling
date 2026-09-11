@@ -70,11 +70,11 @@ exports.getSalesReturns = async (req, res) => {
     let sql = `
       SELECT
         sr.*,
-        c.name AS customer_name,
-        c.mobile AS customer_mobile,
-        inv.invoice_no,
-        d.dispatch_no,
-        cn.credit_note_no,
+        MAX(c.name) AS customer_name,
+        MAX(c.mobile) AS customer_mobile,
+        MAX(inv.invoice_no) AS invoice_no,
+        MAX(d.dispatch_no) AS dispatch_no,
+        MAX(cn.credit_note_no) AS credit_note_no,
         COUNT(sri.id) AS total_items,
         COALESCE(SUM(sri.quantity), 0) AS total_return_qty
       FROM plastic_sales_returns sr
@@ -158,12 +158,15 @@ exports.getSalesReturnById = async (req, res) => {
       [id, companyId]
     );
 
+    const record = {
+      ...returns[0],
+      items,
+    };
+
     res.status(200).json({
       success: true,
-      returnRecord: {
-        ...returns[0],
-        items,
-      },
+      returnRecord: record,
+      salesReturn: record,
     });
   } catch (error) {
     console.error("Get Sales Return Details Error:", error);

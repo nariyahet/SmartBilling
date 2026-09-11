@@ -198,7 +198,7 @@ function PlasticPayments() {
           { label: "Payments" },
         ]}
         actions={
-          <div style={{ display: "flex", gap: "10px" }}>
+          <div className="pay-header-actions">
             <Link to="/plastic-erp/finance/receivables">
               <Button variant="secondary">Aging & Receivables</Button>
             </Link>
@@ -258,8 +258,8 @@ function PlasticPayments() {
 
       {/* Filters Bar */}
       <Card noPadding style={{ marginBottom: "24px" }}>
-        <div style={{ padding: "16px 20px", display: "flex", flexWrap: "wrap", gap: "12px", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ flex: 1, minWidth: "260px" }}>
+        <div className="pay-filter-bar">
+          <div className="pay-filter-search">
             <input
               type="text"
               className="sb-input"
@@ -270,7 +270,7 @@ function PlasticPayments() {
             />
           </div>
 
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "center" }}>
+          <div className="pay-filter-controls">
             <select
               className="sb-input"
               style={{ width: "170px", height: "38px" }}

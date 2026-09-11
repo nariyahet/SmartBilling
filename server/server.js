@@ -13,6 +13,9 @@ app.use(
       "http://localhost:5173",
       "http://localhost:5174",
       "http://localhost:5175",
+      "http://localhost:4173",
+      "http://127.0.0.1:5173",
+      "http://127.0.0.1:4173",
       "https://smartbilling-sigma.vercel.app",
     ],
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
@@ -117,11 +120,15 @@ app.use("/api/plastic-erp/reports", plasticReportsRoutes);
 // Plastic Recycling ERP Endpoints (Phase 3 Sales, Dispatch & Finance)
 app.use("/api/plastic-erp/sales", salesOrderRoutes);
 app.use("/api/plastic-erp/dispatch", dispatchRoutes);
+app.use("/api/plastic-erp/dispatches", dispatchRoutes);
 app.use("/api/plastic-erp/transport", transportRoutes);
 app.use("/api/plastic-erp/payments", paymentRoutes);
 app.use("/api/plastic-erp/receivables", receivablesRoutes);
+app.use("/api/plastic-erp/finance/receivables", receivablesRoutes);
 app.use("/api/plastic-erp/ledger", customerLedgerRoutes);
+app.use("/api/plastic-erp/finance/ledger", customerLedgerRoutes);
 app.use("/api/plastic-erp/returns", salesReturnRoutes);
+app.use("/api/plastic-erp/sales-returns", salesReturnRoutes);
 app.use("/api/plastic-erp/credit-notes", creditNoteRoutes);
 app.use("/api/plastic-erp/debit-notes", debitNoteRoutes);
 app.use("/api/plastic-erp/phase3-reports", phase3ReportsRoutes);
@@ -145,6 +152,7 @@ app.use("/api/plastic-erp/accounting/supplier-payments", supplierPaymentRoutes);
 app.use("/api/plastic-erp/accounting/gst", gstRoutes);
 app.use("/api/plastic-erp/accounting/gst-recon", gstReconciliationRoutes);
 app.use("/api/plastic-erp/accounting/financial-reports", financialReportsRoutes);
+app.use("/api/plastic-erp/financial-reports", financialReportsRoutes);
 
 // Plastic Recycling ERP Endpoints (Phase 6 Procurement, Vendor & Purchase Intelligence)
 app.use("/api/plastic-erp/procurement/requisitions", procurementRequisitionRoutes);

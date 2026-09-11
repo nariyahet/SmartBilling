@@ -52,3 +52,69 @@
 .pay-receipt-row .val {
   color: var(--sb-navy, #063b66);
 }
+
+/* Header & Filter Responsiveness */
+.pay-header-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.pay-filter-bar {
+  padding: 16px 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pay-filter-search {
+  flex: 1;
+  min-width: 240px;
+}
+
+.pay-filter-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .pay-header-actions {
+    width: 100%;
+    gap: 8px;
+  }
+
+  .pay-header-actions > a,
+  .pay-header-actions > button {
+    flex: 1 1 calc(50% - 6px);
+  }
+
+  .pay-filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 12px;
+  }
+
+  .pay-filter-search {
+    width: 100%;
+  }
+
+  .pay-filter-controls {
+    width: 100%;
+  }
+
+  .pay-filter-controls select,
+  .pay-filter-controls input[type="date"] {
+    flex: 1 1 calc(50% - 6px);
+    min-width: 130px !important;
+    width: auto !important;
+  }
+
+  .pay-filter-controls button {
+    width: 100%;
+  }
+}

@@ -21,13 +21,25 @@ function PlasticReceivables() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [sumRes, custRes] = await Promise.all([
-        API.get("/plastic-erp/finance/receivables/summary"),
-        API.get("/plastic-erp/finance/receivables/customers"),
-      ]);
+      let sumRes, custRes;
+      try {
+        [sumRes, custRes] = await Promise.all([
+          API.get("/plastic-erp/receivables/summary"),
+          API.get("/plastic-erp/receivables/customers"),
+        ]);
+      } catch (e) {
+        if (e.response?.status === 404) {
+          [sumRes, custRes] = await Promise.all([
+            API.get("/plastic-erp/finance/receivables/summary"),
+            API.get("/plastic-erp/finance/receivables/customers"),
+          ]);
+        } else {
+          throw e;
+        }
+      }
 
-      if (sumRes.data?.success) setSummary(sumRes.data.summary);
-      if (custRes.data?.success) setCustomers(custRes.data.customers || []);
+      if (sumRes?.data?.success) setSummary(sumRes.data.summary);
+      if (custRes?.data?.success) setCustomers(custRes.data.customers || []);
     } catch (err) {
       console.error("Failed to load receivables data:", err);
       alert("Failed to load accounts receivable data");

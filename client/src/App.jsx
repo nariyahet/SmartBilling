@@ -189,6 +189,8 @@ function App() {
           <Route path="/plastic-erp/gst-management" element={<PlasticGstManagement />} />
           <Route path="/plastic-erp/gst-reconciliation" element={<PlasticGstReconciliation />} />
           <Route path="/plastic-erp/financial-reports" element={<PlasticFinancialReports />} />
+          <Route path="/plastic-erp/accounting/financial-reports" element={<PlasticFinancialReports />} />
+          <Route path="/financial-reports" element={<PlasticFinancialReports />} />
           <Route path="/plastic-erp/accounting-dashboard" element={<PlasticAccountingDashboard />} />
 
           {/* Phase 6: Procurement, Vendor & Purchase Intelligence */}

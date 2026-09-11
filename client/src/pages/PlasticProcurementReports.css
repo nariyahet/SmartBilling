@@ -2,4 +2,80 @@
    SMARTBILLING 2.0 - Procurement Reports Styles
    ========================================================================== */
 
-/* Clean styles deferring to global index.css and standardized components */
+/* Report Selector Tabs Horizontal Scroll Container */
+.proc-reports-selector-wrap {
+  margin-bottom: 20px;
+  max-width: 100%;
+}
+
+.proc-pills-scroll {
+  display: flex;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 4px;
+}
+
+.proc-pills-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* Date Filter Bar Styling */
+.sb-filter-card {
+  margin-bottom: 20px;
+}
+
+.sb-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  flex-wrap: wrap;
+}
+
+.sb-filter-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sb-filter-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sb-muted, #718096);
+  white-space: nowrap;
+}
+
+/* Responsive Rules */
+@media (max-width: 768px) {
+  .sb-filter-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .sb-filter-item {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .sb-filter-item input[type="date"] {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .sb-filter-row button {
+    width: 100%;
+  }
+
+  .sb-header-actions {
+    width: 100%;
+    display: flex;
+    gap: 8px;
+  }
+
+  .sb-header-actions > * {
+    flex: 1 1 50%;
+  }
+}

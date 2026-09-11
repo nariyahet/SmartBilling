@@ -9,5 +9,6 @@ router.use(trialMiddleware);
 
 router.get("/overview", customerLedgerController.getLedgerOverview);
 router.get("/customer/:customerId", customerLedgerController.getCustomerLedger);
+router.get("/:customerId", customerLedgerController.getCustomerLedger);
 
 module.exports = router;

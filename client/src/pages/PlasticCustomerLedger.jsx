@@ -44,14 +44,23 @@ function PlasticCustomerLedger() {
     if (!custId) return;
     try {
       setFetchingLedger(true);
-      let url = `/plastic-erp/finance/ledger/${custId}`;
       const params = [];
       if (start) params.push(`from_date=${start}`);
       if (end) params.push(`to_date=${end}`);
-      if (params.length > 0) url += `?${params.join("&")}`;
+      const qs = params.length > 0 ? `?${params.join("&")}` : "";
 
-      const res = await API.get(url);
-      if (res.data?.success) {
+      let res;
+      try {
+        res = await API.get(`/plastic-erp/ledger/customer/${custId}${qs}`);
+      } catch (e) {
+        if (e.response?.status === 404) {
+          res = await API.get(`/plastic-erp/finance/ledger/${custId}${qs}`);
+        } else {
+          throw e;
+        }
+      }
+
+      if (res?.data?.success) {
         setCustomerData(res.data.customer);
         setEntries(res.data.entries || []);
         setSummary(res.data.summary);
