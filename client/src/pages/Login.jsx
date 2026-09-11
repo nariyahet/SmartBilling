@@ -127,7 +127,7 @@ function Login() {
           <Link
             to="/register"
             style={{
-              color: "#4f46e5",
+              color: "var(--sb-primary, #0879D1)",
               fontWeight: 600,
               textDecoration: "none",
             }}

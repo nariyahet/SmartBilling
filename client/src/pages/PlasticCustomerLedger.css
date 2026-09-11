@@ -191,6 +191,7 @@
 
 .ledger-table {
   width: 100%;
+  min-width: 650px;
   border-collapse: collapse;
   font-size: 0.88rem;
   text-align: left;
@@ -322,6 +323,28 @@
   text-align: center;
   color: var(--sb-text-muted, #5a7184);
   font-size: 0.95rem;
+}
+
+@media (max-width: 767px) {
+  .pledger-selector-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .selector-field,
+  .selector-field.cust-select-field {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .statement-kpis {
+    grid-template-columns: 1fr;
+  }
+
+  .statement-hdr-right {
+    text-align: left;
+    margin-top: 12px;
+  }
 }
 
 /* Print Rules */

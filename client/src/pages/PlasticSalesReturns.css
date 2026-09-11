@@ -41,6 +41,7 @@
 
 .pret-table {
   width: 100%;
+  min-width: 650px;
   border-collapse: collapse;
   font-size: 0.88rem;
   text-align: left;
@@ -172,6 +173,7 @@
 
 .challan-item-table {
   width: 100%;
+  min-width: 480px;
   border-collapse: collapse;
   font-size: 0.85rem;
 }
@@ -232,6 +234,7 @@
 
 .qc-table {
   width: 100%;
+  min-width: 500px;
   border-collapse: collapse;
   font-size: 0.88rem;
 }
@@ -295,4 +298,46 @@
 
 .mt-4 {
   margin-top: 18px;
+}
+
+@media (max-width: 767px) {
+  .pret-kpis {
+    grid-template-columns: 1fr;
+  }
+
+  .pret-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pret-search,
+  .pret-select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .item-builder {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .builder-field,
+  .builder-field.flex-2 {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .btn-add-item-align {
+    width: 100%;
+  }
+
+  .form-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .form-col {
+    width: 100%;
+    min-width: 0;
+  }
 }

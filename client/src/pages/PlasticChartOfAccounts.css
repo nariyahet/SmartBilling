@@ -213,7 +213,7 @@
 /* Masters View */
 .coa-masters-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
   gap: var(--sb-space-6, 1.5rem);
 }
 
@@ -315,4 +315,20 @@
   font-size: 0.95rem;
   font-weight: 600;
   color: var(--sb-text, #102a43);
+}
+
+@media (max-width: 767px) {
+  .coa-masters-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .coa-details-kpi-bar {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .coa-details-kpi-bar {
+    grid-template-columns: 1fr;
+  }
 }

@@ -311,6 +311,7 @@
 
 .inv-items-table {
   width: 100%;
+  min-width: 540px;
   border-collapse: collapse;
   text-align: left;
   font-size: 13px;
@@ -609,5 +610,53 @@
 
   .inv-pos-right {
     position: static;
+  }
+}
+
+@media (max-width: 767px) {
+  .inv-header-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .inv-meta-badges {
+    width: 100%;
+  }
+
+  .inv-meta-pill {
+    flex: 1;
+    min-width: 120px;
+  }
+
+  .inv-card {
+    padding: 16px;
+  }
+
+  .inv-summary-card {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 640px) {
+  .inv-add-product-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .inv-qty-input-wrap {
+    width: 100%;
+  }
+
+  .qty-btn {
+    flex: 1;
+  }
+
+  .inv-qty-input {
+    flex: 2;
+  }
+
+  .inv-btn-add {
+    width: 100%;
+    justify-content: center;
   }
 }

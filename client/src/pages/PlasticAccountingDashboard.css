@@ -171,3 +171,12 @@
   color: var(--sb-text-muted, #718096);
   line-height: 1.3;
 }
+
+@media (max-width: 767px) {
+  .acc-kpis-grid {
+    grid-template-columns: 1fr;
+  }
+  .acc-quick-links-grid {
+    grid-template-columns: 1fr;
+  }
+}

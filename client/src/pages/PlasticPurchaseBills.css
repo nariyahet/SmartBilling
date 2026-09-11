@@ -79,6 +79,8 @@
   border-radius: 12px;
   padding: 16px;
   margin-bottom: 20px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .items-header-bar {
@@ -112,6 +114,7 @@
 
 .items-table {
   width: 100%;
+  min-width: 580px;
   border-collapse: collapse;
   font-size: 13px;
 }
@@ -208,7 +211,10 @@
 .bill-detail-paper {
   padding: 28px;
   max-height: 80vh;
+  max-height: 80dvh;
   overflow-y: auto;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .bill-header {
@@ -279,6 +285,7 @@
 
 .bill-items-table {
   width: 100%;
+  min-width: 480px;
   border-collapse: collapse;
   font-size: 13px;
   margin-bottom: 20px;
@@ -390,4 +397,27 @@
   border-color: #059669;
   color: #059669;
   transform: translateY(-1px);
+}
+
+@media (max-width: 767px) {
+  .bill-party-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .bill-footer-calc div {
+    width: 100%;
+  }
+
+  .payment-updater-bar {
+    flex-wrap: wrap;
+  }
+
+  .bill-header {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .bill-meta-right {
+    text-align: left;
+  }
 }

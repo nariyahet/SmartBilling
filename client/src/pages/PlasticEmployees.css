@@ -51,6 +51,7 @@
 
 .pemp-table {
   width: 100%;
+  min-width: 650px;
   border-collapse: collapse;
   font-size: 0.88rem;
   text-align: left;
@@ -223,7 +224,7 @@
 
 .detail-sections-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
   gap: 16px;
 }
 
@@ -254,4 +255,31 @@
 
 .mt-3 {
   margin-top: 14px;
+}
+
+@media (max-width: 767px) {
+  .pemp-kpis {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-group,
+  .filter-search {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .detail-sections-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
 }

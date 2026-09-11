@@ -168,6 +168,7 @@
 
 .rep-chart-container {
   width: 100%;
+  min-width: 0;
   height: 320px;
 }
 
@@ -191,6 +192,7 @@
 
 .rep-table {
   width: 100%;
+  min-width: 480px;
   border-collapse: collapse;
   text-align: left;
   font-size: 13px;
@@ -257,4 +259,33 @@
   margin: 0;
   font-size: 13px;
   color: #667085;
+}
+
+@media (max-width: 767px) {
+  .rep-header-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .rep-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .rep-main-card {
+    padding: 16px;
+  }
+
+  .rep-card-top {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .rep-chart-tabs {
+    width: 100%;
+  }
+
+  .rep-tab-btn {
+    flex: 1;
+    text-align: center;
+  }
 }

@@ -140,3 +140,15 @@
     background-position: -200% 0;
   }
 }
+
+@media (max-width: 480px) {
+  .sb-stat-card {
+    padding: 12px 14px;
+  }
+  .sb-stat-value {
+    font-size: 19px;
+  }
+  .sb-stat-title {
+    font-size: 11px;
+  }
+}

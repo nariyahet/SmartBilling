@@ -76,12 +76,13 @@
 /* Layout Grids */
 .grid-2-sections {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
   gap: 20px;
 }
 
 .report-table {
   width: 100%;
+  min-width: 500px;
   border-collapse: collapse;
   font-size: 0.88rem;
   text-align: left;
@@ -153,5 +154,15 @@
 @media print {
   .no-print {
     display: none !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .prep-kpis {
+    grid-template-columns: 1fr;
+  }
+
+  .grid-2-sections {
+    grid-template-columns: 1fr;
   }
 }

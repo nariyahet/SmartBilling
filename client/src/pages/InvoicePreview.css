@@ -132,9 +132,14 @@
   color: #374151;
 }
 
+.invoice-products {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .invoice-products table {
   width: 100%;
-
+  min-width: 500px;
   border-collapse: collapse;
 }
 
@@ -295,25 +300,55 @@
 
 @media (max-width: 900px) {
   .invoice-preview-page {
-    padding: 15px;
+    padding: 12px;
+  }
+
+  .invoice-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .invoice-actions button,
+  .invoice-action-right {
+    width: 100%;
+  }
+
+  .invoice-action-right {
+    justify-content: stretch;
+  }
+
+  .invoice-action-right button {
+    flex: 1;
+    text-align: center;
+    justify-content: center;
   }
 
   .invoice-a4 {
     width: 100%;
     min-height: auto;
+    padding: 14px;
   }
 
   .invoice-company-header {
     flex-direction: column;
-    gap: 20px;
+    gap: 16px;
+  }
+
+  .invoice-company-header h1 {
+    font-size: 20px;
   }
 
   .invoice-title {
     text-align: left;
   }
 
+  .invoice-title h2 {
+    font-size: 22px;
+  }
+
   .invoice-bottom {
     grid-template-columns: 1fr;
+    gap: 20px;
   }
 
   .invoice-footer {
@@ -329,11 +364,11 @@
 }
 
 .download-pdf-btn {
-  background: #2563eb !important;
+  background: var(--sb-primary, #0879D1) !important;
 }
 
 .download-pdf-btn:hover {
-  background: #1d4ed8 !important;
+  background: var(--sb-navy, #063B66) !important;
 }
 
 .whatsapp-btn {

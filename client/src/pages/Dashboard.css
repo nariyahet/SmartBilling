@@ -328,7 +328,7 @@
 
 .sb-alerts-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
   gap: 12px;
 }
 
@@ -575,6 +575,7 @@
 /* Chart Container */
 .sb-chart-wrapper {
   width: 100%;
+  min-width: 0;
   margin-top: 6px;
 }
 
@@ -921,6 +922,7 @@
 
 .sb-mini-table {
   width: 100%;
+  min-width: 480px;
   border-collapse: collapse;
   text-align: left;
   font-size: 12.5px;

@@ -54,3 +54,9 @@
 .sb-search-field-clear:hover {
   color: var(--sb-danger, #E05252);
 }
+
+@media (max-width: 767px) {
+  .sb-search-field-wrap {
+    max-width: 100%;
+  }
+}

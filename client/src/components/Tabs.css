@@ -111,15 +111,24 @@
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
+  .sb-tabs-container {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 6px;
+  }
+
   .sb-tabs-container.variant-pills {
     display: flex;
-    width: 100%;
+    width: max-content;
+    min-width: 100%;
   }
 
   .sb-tabs-container.variant-pills .sb-tab-btn {
-    flex: 1;
+    flex-shrink: 0;
     justify-content: center;
-    padding: 8px 10px;
+    padding: 8px 12px;
     font-size: 12.5px;
+    white-space: nowrap;
   }
 }

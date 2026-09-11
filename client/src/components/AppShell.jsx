@@ -245,8 +245,10 @@ function AppShell({
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Tablet collapsed sidebar state
-  const [collapsed, setCollapsed] = useState(false);
+  // Tablet collapsed sidebar state: default collapsed on tablet viewports
+  const [collapsed, setCollapsed] = useState(() => {
+    return typeof window !== "undefined" && window.innerWidth >= 768 && window.innerWidth <= 1024;
+  });
   // Mobile off-canvas drawer state
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   // Profile dropdown menu state
@@ -492,8 +494,8 @@ function AppShell({
                 type="button"
                 className="sb-hamburger-btn sb-sidebar-toggle-btn"
                 onClick={() => {
-                  // If on desktop/tablet toggle collapsed; on mobile toggle drawer
-                  if (window.innerWidth <= 768) {
+                  // If on mobile toggle off-canvas drawer; on tablet/desktop toggle collapsed
+                  if (window.innerWidth < 768) {
                     setMobileDrawerOpen(!mobileDrawerOpen);
                   } else {
                     setCollapsed(!collapsed);

@@ -42,6 +42,7 @@
 
 .journal-table {
   width: 100%;
+  min-width: 650px;
   border-collapse: collapse;
   font-size: 0.875rem;
 }
@@ -186,6 +187,7 @@
 
 .journal-lines-table {
   width: 100%;
+  min-width: 500px;
   border-collapse: collapse;
 }
 
@@ -267,4 +269,35 @@
   margin: 0.25rem 0 0 0;
   font-size: 0.875rem;
   color: var(--sb-text, #102a43);
+}
+
+@media (max-width: 767px) {
+  .journal-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .journal-view-kpis {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .journal-balance-indicator {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .balance-totals {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .balance-sep {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .journal-view-kpis {
+    grid-template-columns: 1fr;
+  }
 }

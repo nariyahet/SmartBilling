@@ -41,7 +41,9 @@
   border-radius: 16px;
   width: 100%;
   max-width: 540px;
-  overflow: hidden;
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
 }
 
@@ -201,6 +203,17 @@
   border-color: #059669;
   color: #059669;
   transform: translateY(-1px);
+}
+
+@media (max-width: 480px) {
+  .slip-grid {
+    grid-template-columns: 1fr;
+  }
+  .slip-footer {
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
 }
 
 @media print {

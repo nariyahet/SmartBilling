@@ -165,6 +165,7 @@
 
 .cust-table {
   width: 100%;
+  min-width: 620px;
   border-collapse: collapse;
   text-align: left;
   font-size: 13.5px;
@@ -317,8 +318,10 @@
   border-radius: 14px;
   width: 100%;
   max-width: 520px;
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  overflow: hidden;
 }
 
 .cust-modal-header {
@@ -396,4 +399,60 @@
   opacity: 0.95;
   transform: translateY(-1px);
   box-shadow: 0 4px 10px rgba(8, 121, 209, 0.35);
+}
+
+/* Mobile & Tablet Responsive Adjustments */
+@media (max-width: 767px) {
+  .cust-header-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cust-header-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cust-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cust-main-card {
+    padding: 16px;
+  }
+
+  .cust-card-top {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cust-search-input-wrap,
+  .cust-search-input {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .cust-address-text {
+    max-width: 100%;
+  }
+
+  .cust-modal-box {
+    margin: 10px;
+    max-height: calc(100dvh - 20px);
+  }
+
+  .cust-modal-form {
+    padding: 16px;
+  }
+
+  .cust-modal-footer {
+    flex-direction: column-reverse;
+  }
+
+  .cust-modal-footer .btn-modal-cancel,
+  .cust-modal-footer .btn-modal-save {
+    width: 100%;
+    text-align: center;
+    justify-content: center;
+  }
 }

@@ -194,6 +194,7 @@
 
 .plastic-table {
   width: 100%;
+  min-width: 650px;
   border-collapse: collapse;
   text-align: left;
   font-size: 13px;
@@ -495,5 +496,43 @@
   .form-row-2,
   .form-row-3 {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 767px) {
+  .page-title-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .title-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .title-actions a,
+  .title-actions button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .kpi-row {
+    grid-template-columns: 1fr;
+  }
+
+  .search-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-form input,
+  .btn-search,
+  .btn-clear {
+    width: 100%;
+  }
+
+  .status-toggle-wrap {
+    flex-wrap: wrap;
+    width: 100%;
   }
 }

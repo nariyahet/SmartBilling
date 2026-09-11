@@ -17,6 +17,7 @@
 
 .ppay-table {
   width: 100%;
+  min-width: 600px;
   border-collapse: collapse;
   font-size: 0.88rem;
   text-align: left;
@@ -189,6 +190,26 @@
 .payslip-net-amount {
   font-size: 1.4rem;
   color: var(--sb-success, #18a673);
+}
+
+@media (max-width: 767px) {
+  .ppay-kpis {
+    grid-template-columns: 1fr;
+  }
+
+  .payslip-info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .payslip-breakdown-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .payslip-net-box {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
 }
 
 @media print {

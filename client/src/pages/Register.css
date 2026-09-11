@@ -1,10 +1,11 @@
 .register-page {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 30px 20px;
-  background: linear-gradient(135deg, #f0f4ff 0%, #f9fafb 100%);
+  background: var(--sb-bg, #F4F8FB);
   font-family: inherit;
 }
 
@@ -13,9 +14,9 @@
   max-width: 480px;
   padding: 36px 32px;
   background: #ffffff;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--sb-border, #E3EBF2);
   border-radius: 20px;
-  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 20px 45px rgba(6, 59, 102, 0.08);
   animation: fadeIn 0.3s ease;
 }
 
@@ -37,7 +38,7 @@
 
 .register-header h1 {
   margin: 0;
-  color: #0f172a;
+  color: var(--sb-navy, #063B66);
   font-size: 26px;
   font-weight: 800;
   letter-spacing: -0.5px;
@@ -45,7 +46,7 @@
 
 .register-header p {
   margin-top: 6px;
-  color: #64748b;
+  color: var(--sb-text-muted, #718096);
   font-size: 14px;
 }
 
@@ -58,7 +59,7 @@
   background: #ecfdf5;
   border: 1px solid #a7f3d0;
   border-radius: 9999px;
-  color: #047857;
+  color: var(--sb-success, #18A673);
   font-size: 12px;
   font-weight: 700;
 }
@@ -82,7 +83,7 @@
   background: #ecfdf5;
   border: 1px solid #a7f3d0;
   border-radius: 10px;
-  color: #047857;
+  color: var(--sb-success, #18A673);
   font-size: 13px;
   font-weight: 600;
   margin-bottom: 20px;
@@ -95,7 +96,7 @@
 .register-form .form-group label {
   display: block;
   margin-bottom: 6px;
-  color: #334155;
+  color: var(--sb-text, #102A43);
   font-size: 13px;
   font-weight: 600;
 }
@@ -108,7 +109,7 @@
   border-radius: 10px;
   outline: none;
   background: #f8fafc;
-  color: #0f172a;
+  color: var(--sb-text, #102A43);
   font-size: 14px;
   transition: all 0.2s ease;
   box-sizing: border-box;
@@ -116,8 +117,8 @@
 
 .register-form .form-group input:focus {
   background: #ffffff;
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  border-color: var(--sb-primary, #0879D1);
+  box-shadow: 0 0 0 3px rgba(8, 121, 209, 0.15);
 }
 
 .register-button {
@@ -126,18 +127,18 @@
   margin-top: 10px;
   border: 0;
   border-radius: 10px;
-  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+  background: linear-gradient(135deg, var(--sb-primary, #0879D1) 0%, var(--sb-navy, #063B66) 100%);
   color: #ffffff;
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3);
+  box-shadow: 0 4px 14px rgba(8, 121, 209, 0.3);
 }
 
 .register-button:hover:not(:disabled) {
-  background: linear-gradient(135deg, #4338ca 0%, #4f46e5 100%);
-  box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
+  opacity: 0.95;
+  box-shadow: 0 6px 20px rgba(8, 121, 209, 0.4);
   transform: translateY(-1px);
 }
 
@@ -151,11 +152,11 @@
   margin-top: 22px;
   text-align: center;
   font-size: 13px;
-  color: #64748b;
+  color: var(--sb-text-muted, #718096);
 }
 
 .register-footer a {
-  color: #4f46e5;
+  color: var(--sb-primary, #0879D1);
   font-weight: 600;
   text-decoration: none;
   margin-left: 4px;
@@ -163,4 +164,11 @@
 
 .register-footer a:hover {
   text-decoration: underline;
+}
+
+@media (max-width: 480px) {
+  .register-card {
+    padding: 26px 18px;
+    border-radius: 16px;
+  }
 }

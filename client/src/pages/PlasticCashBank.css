@@ -26,7 +26,7 @@
 
 .bank-cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
   gap: var(--sb-space-4, 1rem);
 }
 
@@ -143,6 +143,7 @@
 
 .cb-table {
   width: 100%;
+  min-width: 600px;
   border-collapse: collapse;
   font-size: 0.875rem;
 }
@@ -265,4 +266,33 @@
   padding-top: var(--sb-space-4, 1rem);
   border-top: 1px solid var(--sb-border, #e3ebf2);
   margin-top: var(--sb-space-2, 0.5rem);
+}
+
+@media (max-width: 767px) {
+  .cb-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .bank-cards-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cb-statement-kpi-bar {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .cb-action-group {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .cb-action-group button {
+    flex: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .cb-statement-kpi-bar {
+    grid-template-columns: 1fr;
+  }
 }
