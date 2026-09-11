@@ -18,7 +18,13 @@ function Customers() {
   const [showModal, setShowModal] = useState(false);
 
   // Filter state
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(() => {
+    try {
+      return new URLSearchParams(window.location.search).get("search") || "";
+    } catch {
+      return "";
+    }
+  });
 
   const fetchCustomers = async () => {
     try {

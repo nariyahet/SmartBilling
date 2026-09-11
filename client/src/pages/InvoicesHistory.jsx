@@ -12,7 +12,13 @@ function InvoicesHistory() {
   const [taxEnabled, setTaxEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
 
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(() => {
+    try {
+      return new URLSearchParams(window.location.search).get("search") || "";
+    } catch {
+      return "";
+    }
+  });
   const [dateFilter, setDateFilter] = useState("");
 
   const navigate = useNavigate();

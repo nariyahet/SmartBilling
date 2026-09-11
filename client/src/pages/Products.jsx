@@ -17,7 +17,13 @@ function Products() {
   const [showModal, setShowModal] = useState(false);
 
   // Filter state
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(() => {
+    try {
+      return new URLSearchParams(window.location.search).get("search") || "";
+    } catch {
+      return "";
+    }
+  });
   const [stockFilter, setStockFilter] = useState("all");
 
   const loadProducts = async () => {

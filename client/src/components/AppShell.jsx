@@ -1,5 +1,6 @@
-import { useState, useEffect, createContext, useContext } from "react";
+import { useState, useEffect, createContext, useContext, useRef, useMemo } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { searchDestinations } from "../utils/searchCatalog";
 import "./AppShell.css";
 
 export const AppShellContext = createContext(false);
@@ -246,15 +247,46 @@ function AppShell({
   const navigate = useNavigate();
 
   // Internal search state fallback when page does not pass controlled onSearchChange
-  const [internalSearch, setInternalSearch] = useState("");
+  const [internalSearch, setInternalSearch] = useState(() => {
+    try {
+      return new URLSearchParams(window.location.search).get("search") || "";
+    } catch {
+      return "";
+    }
+  });
   const isControlled = onSearchChange !== null && onSearchChange !== undefined;
   const currentSearch = isControlled ? searchValue : internalSearch;
+
+  // Global search dropdown & active selection state
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchActiveIndex, setSearchActiveIndex] = useState(0);
+  const searchWrapRef = useRef(null);
+
+  // Sync internalSearch if URL search query changes and search is not controlled
+  useEffect(() => {
+    try {
+      const urlQuery = new URLSearchParams(location.search).get("search");
+      if (urlQuery !== null && !isControlled && urlQuery !== internalSearch) {
+        setInternalSearch(urlQuery);
+      }
+    } catch {
+      // ignore
+    }
+  }, [location.search, isControlled, internalSearch]);
+
+  // Compute matching destinations
+  const searchResults = useMemo(() => {
+    if (isControlled || !currentSearch.trim()) return [];
+    return searchDestinations(currentSearch.trim());
+  }, [isControlled, currentSearch]);
 
   const handleSearchInput = (val) => {
     if (isControlled) {
       onSearchChange(val);
     } else {
       setInternalSearch(val);
+      setIsSearchOpen(Boolean(val.trim()));
+      setSearchActiveIndex(0);
     }
   };
 
@@ -263,8 +295,79 @@ function AppShell({
       onSearchChange("");
     } else {
       setInternalSearch("");
+      setIsSearchOpen(false);
+      setSearchActiveIndex(0);
     }
   };
+
+  const handleSelectDestination = (dest) => {
+    if (!dest || !dest.path) return;
+    setIsSearchOpen(false);
+    setInternalSearch("");
+    navigate(dest.path);
+  };
+
+  const handleSearchKeyDown = (e) => {
+    if (isControlled) {
+      if (e.key === "Enter") {
+        e.target.blur();
+      }
+      return;
+    }
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (searchResults.length > 0) {
+        setSearchActiveIndex((prev) => (prev + 1) % searchResults.length);
+        setIsSearchOpen(true);
+      }
+      return;
+    }
+
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (searchResults.length > 0) {
+        setSearchActiveIndex((prev) => (prev - 1 + searchResults.length) % searchResults.length);
+        setIsSearchOpen(true);
+      }
+      return;
+    }
+
+    if (e.key === "Escape") {
+      setIsSearchOpen(false);
+      return;
+    }
+
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (searchResults.length > 0) {
+        const target =
+          searchResults[searchActiveIndex >= 0 && searchActiveIndex < searchResults.length ? searchActiveIndex : 0];
+        handleSelectDestination(target);
+      } else if (currentSearch.trim()) {
+        setIsSearchOpen(true);
+      }
+    }
+  };
+
+  // Close search dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (searchWrapRef.current && !searchWrapRef.current.contains(e.target)) {
+        setIsSearchOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Close search dropdown and clear query on route navigation
+  useEffect(() => {
+    setIsSearchOpen(false);
+    if (!isControlled) {
+      setInternalSearch("");
+    }
+  }, [location.pathname, isControlled]);
 
   // Tablet collapsed sidebar state: default collapsed on tablet viewports
   const [collapsed, setCollapsed] = useState(() => {
@@ -536,7 +639,7 @@ function AppShell({
             </div>
 
             <div className="sb-header-center">
-              <div className="sb-search-wrap">
+              <div className="sb-search-wrap" ref={searchWrapRef}>
                 <span className="sb-search-icon">🔍</span>
                 <input
                   type="text"
@@ -544,12 +647,15 @@ function AppShell({
                   placeholder={searchPlaceholder}
                   value={currentSearch}
                   onChange={(e) => handleSearchInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !isControlled && currentSearch.trim()) {
-                      navigate(`/products?search=${encodeURIComponent(currentSearch.trim())}`);
+                  onFocus={() => {
+                    if (!isControlled && currentSearch.trim()) {
+                      setIsSearchOpen(true);
                     }
                   }}
+                  onKeyDown={handleSearchKeyDown}
                   aria-label="Search"
+                  aria-expanded={!isControlled && isSearchOpen}
+                  aria-autocomplete={!isControlled ? "list" : undefined}
                 />
                 {currentSearch && (
                   <button
@@ -560,6 +666,54 @@ function AppShell({
                   >
                     ✕
                   </button>
+                )}
+
+                {/* Global Search Results Dropdown */}
+                {!isControlled && isSearchOpen && currentSearch.trim() && (
+                  <div className="sb-search-dropdown" role="listbox" aria-label="Search results">
+                    {searchResults.length > 0 ? (
+                      <>
+                        <div className="sb-search-dropdown-header">
+                          <span>NAVIGATION DESTINATIONS</span>
+                          <span className="sb-search-count">
+                            {searchResults.length} {searchResults.length === 1 ? "match" : "matches"}
+                          </span>
+                        </div>
+                        <div className="sb-search-results-list">
+                          {searchResults.map((dest, idx) => {
+                            const isSelected = idx === searchActiveIndex;
+                            return (
+                              <div
+                                key={dest.id || dest.path}
+                                className={`sb-search-result-item ${isSelected ? "is-selected" : ""}`}
+                                onClick={() => handleSelectDestination(dest)}
+                                onMouseEnter={() => setSearchActiveIndex(idx)}
+                                role="option"
+                                aria-selected={isSelected}
+                              >
+                                <span className="sb-search-result-icon">{dest.icon}</span>
+                                <div className="sb-search-result-body">
+                                  <span className="sb-search-result-title">{dest.label}</span>
+                                  <span className="sb-search-result-module">{dest.module}</span>
+                                </div>
+                                <span className="sb-search-result-hint">↵ Go</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="sb-search-empty-state">
+                        <span className="sb-search-empty-icon">🔎</span>
+                        <div className="sb-search-empty-message">
+                          <strong className="sb-search-empty-title">No matching pages found</strong>
+                          <span className="sb-search-empty-sub">
+                            No destination matches "{currentSearch.trim()}". Try searching for "payments", "invoices", "gst", or "production".
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
