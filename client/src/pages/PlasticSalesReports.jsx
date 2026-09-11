@@ -1,13 +1,33 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import API from "../api/axios";
 import PlasticNavbar from "../components/PlasticNavbar";
 import LoadingScreen from "../components/LoadingScreen";
 import { PageHeader, Card, KpiCard, Button } from "../components";
 import "./PlasticSalesReports.css";
 
-function PlasticSalesReports() {
+function PlasticSalesReports({ defaultTab = "SALES" }) {
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("SALES"); // SALES, DISPATCH, COLLECTIONS, PROFIT
+  const [activeTab, setActiveTab] = useState(() => {
+    if (location.pathname === "/plastic-erp/payment-reports" || defaultTab === "COLLECTIONS") {
+      return "COLLECTIONS";
+    }
+    if (location.pathname === "/plastic-erp/dispatch-reports" || defaultTab === "DISPATCH") {
+      return "DISPATCH";
+    }
+    return defaultTab;
+  });
+
+  useEffect(() => {
+    if (location.pathname === "/plastic-erp/payment-reports") {
+      setActiveTab("COLLECTIONS");
+    } else if (location.pathname === "/plastic-erp/dispatch-reports") {
+      setActiveTab("DISPATCH");
+    } else if (location.pathname === "/plastic-erp/sales-reports") {
+      setActiveTab("SALES");
+    }
+  }, [location.pathname]);
 
   // Date Filters
   const [fromDate, setFromDate] = useState("");
@@ -75,8 +95,20 @@ function PlasticSalesReports() {
       <div className="plastic-container sb-page-container">
         {/* Header */}
         <PageHeader
-          title="Sales, Dispatch & Margin Reports"
-          subtitle="Comprehensive analytics across order volumes, transport logistics, payment collections, and actual production margins."
+          title={
+            activeTab === "COLLECTIONS"
+              ? "Payment & Collections Reports"
+              : activeTab === "DISPATCH"
+              ? "Dispatch & Logistics Reports"
+              : "Sales, Dispatch & Margin Reports"
+          }
+          subtitle={
+            activeTab === "COLLECTIONS"
+              ? "Comprehensive records across customer receipts, payment methods, channel analytics, and cash flow."
+              : activeTab === "DISPATCH"
+              ? "Comprehensive analytics across vehicle tracking, dispatch volumes, logistics metrics, and delivery fulfillment."
+              : "Comprehensive analytics across order volumes, transport logistics, payment collections, and actual production margins."
+          }
           badge="EXECUTIVE INTELLIGENCE"
           actions={
             <div className="prep-header-actions no-print">

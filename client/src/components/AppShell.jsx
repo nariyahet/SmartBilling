@@ -4,6 +4,15 @@ import "./AppShell.css";
 
 export const AppShellContext = createContext(false);
 
+// Safe exact and prefix route matching helper
+export const isPathActive = (currentPath, targetPath) => {
+  if (!currentPath || !targetPath) return false;
+  if (currentPath === targetPath) return true;
+  // Dashboard and settings root routes require exact match
+  if (targetPath === "/dashboard" || targetPath === "/settings") return false;
+  return currentPath.startsWith(targetPath + "/");
+};
+
 // Navigation group configuration matching approved SmartBilling 2.0 structure
 const NAV_GROUPS = [
   {
@@ -27,7 +36,6 @@ const NAV_GROUPS = [
       "/plastic-erp/purchase-deliveries",
       "/plastic-erp/supplier-performance",
       "/plastic-erp/procurement-dashboard",
-      "/plastic-erp/procurement-reports",
       "/plastic-erp/truck-inward",
       "/plastic-erp/weighment",
       "/plastic-erp/purchase-bills",
@@ -43,7 +51,6 @@ const NAV_GROUPS = [
       { path: "/plastic-erp/purchase-deliveries", label: "Purchase Deliveries", icon: "🚚" },
       { path: "/plastic-erp/supplier-performance", label: "Supplier Performance", icon: "⭐" },
       { path: "/plastic-erp/procurement-dashboard", label: "Procurement Dashboard", icon: "📈" },
-      { path: "/plastic-erp/procurement-reports", label: "Procurement Reports", icon: "📊" },
     ],
   },
   {
@@ -60,7 +67,6 @@ const NAV_GROUPS = [
       "/plastic-erp/operations",
       "/plastic-erp/traceability",
       "/plastic-erp/costing",
-      "/plastic-erp/reports",
     ],
     items: [
       { path: "/plastic-erp/production", label: "Production Management", icon: "🏭" },
@@ -72,7 +78,6 @@ const NAV_GROUPS = [
       { path: "/plastic-erp/operations", label: "Operations", icon: "👥" },
       { path: "/plastic-erp/traceability", label: "Batch Traceability", icon: "🔍" },
       { path: "/plastic-erp/costing", label: "Production Costing", icon: "💰" },
-      { path: "/plastic-erp/reports", label: "Production Reports", icon: "📊" },
     ],
   },
   {
@@ -124,7 +129,6 @@ const NAV_GROUPS = [
       "/plastic-erp/payroll",
       "/plastic-erp/advances",
       "/plastic-erp/expenses",
-      "/plastic-erp/hr-reports",
     ],
     items: [
       { path: "/plastic-erp/employees", label: "Employees", icon: "👥" },
@@ -134,7 +138,6 @@ const NAV_GROUPS = [
       { path: "/plastic-erp/payroll", label: "Payroll", icon: "💵" },
       { path: "/plastic-erp/advances", label: "Employee Advances", icon: "🤝" },
       { path: "/plastic-erp/expenses", label: "Expenses", icon: "💸" },
-      { path: "/plastic-erp/hr-reports", label: "HR Reports", icon: "📊" },
     ],
   },
   {
@@ -149,7 +152,6 @@ const NAV_GROUPS = [
       "/plastic-erp/supplier-ledger",
       "/plastic-erp/gst-management",
       "/plastic-erp/gst-reconciliation",
-      "/plastic-erp/financial-reports",
       "/plastic-erp/accounting-dashboard",
     ],
     items: [
@@ -160,7 +162,6 @@ const NAV_GROUPS = [
       { path: "/plastic-erp/supplier-ledger", label: "Supplier Ledger", icon: "🚛" },
       { path: "/plastic-erp/gst-management", label: "GST Management", icon: "⚖️" },
       { path: "/plastic-erp/gst-reconciliation", label: "GST Reconciliation", icon: "🔍" },
-      { path: "/plastic-erp/financial-reports", label: "Financial Reports", icon: "📊" },
       { path: "/plastic-erp/accounting-dashboard", label: "Accounting Dashboard", icon: "📈" },
     ],
   },
@@ -171,21 +172,25 @@ const NAV_GROUPS = [
     paths: [
       "/plastic-erp/sales-reports",
       "/sales-report",
-      "/plastic-erp/customer-ledger",
-      "/plastic-erp/receivables",
+      "/plastic-erp/dispatch-reports",
+      "/plastic-erp/payment-reports",
+      "/plastic-erp/customer-ledger-reports",
+      "/plastic-erp/reports",
       "/plastic-erp/procurement-reports",
       "/plastic-erp/hr-reports",
+      "/plastic-erp/financial-reports",
+      "/plastic-erp/executive-analytics",
     ],
     items: [
       { path: "/plastic-erp/sales-reports", label: "Sales Reports", icon: "📊" },
-      { path: "/plastic-erp/dispatch", label: "Dispatch Reports", icon: "🚚" },
-      { path: "/plastic-erp/payments", label: "Payment Reports", icon: "💵" },
-      { path: "/plastic-erp/customer-ledger", label: "Customer Ledger Reports", icon: "📑" },
+      { path: "/plastic-erp/dispatch-reports", label: "Dispatch Reports", icon: "🚚" },
+      { path: "/plastic-erp/payment-reports", label: "Payment Reports", icon: "💵" },
+      { path: "/plastic-erp/customer-ledger-reports", label: "Customer Ledger Reports", icon: "📑" },
       { path: "/plastic-erp/reports", label: "Production Reports", icon: "🏭" },
       { path: "/plastic-erp/procurement-reports", label: "Procurement Reports", icon: "📦" },
       { path: "/plastic-erp/hr-reports", label: "HR & Expense Reports", icon: "👥" },
       { path: "/plastic-erp/financial-reports", label: "Financial Reports", icon: "📈" },
-      { path: "/dashboard", label: "Executive Analytics", icon: "⚡" },
+      { path: "/plastic-erp/executive-analytics", label: "Executive Analytics", icon: "⚡" },
     ],
   },
   {
@@ -195,7 +200,6 @@ const NAV_GROUPS = [
     paths: ["/settings"],
     items: [
       { path: "/settings", label: "Business Settings", icon: "⚙️" },
-      { path: "/settings", label: "User/Profile", icon: "👤" },
     ],
   },
 ];
@@ -207,18 +211,13 @@ function getRouteInfo(pathname) {
   for (const group of NAV_GROUPS) {
     if (group.items) {
       for (const item of group.items) {
-        if (
-          item.path === pathname ||
-          (item.path !== "/dashboard" &&
-            item.path !== "/settings" &&
-            pathname.startsWith(item.path))
-        ) {
+        if (isPathActive(pathname, item.path)) {
           return { module: group.label, title: item.label };
         }
       }
     }
   }
-  if (pathname.startsWith("/settings")) {
+  if (pathname === "/settings" || pathname.startsWith("/settings/")) {
     return { module: "Administration", title: "Business Settings" };
   }
   return { module: "ERP", title: "SmartBilling" };
@@ -278,7 +277,7 @@ function AppShell({
     const currentPath = location.pathname;
     const initial = {};
     NAV_GROUPS.forEach((group) => {
-      if (group.paths && group.paths.some((p) => currentPath.startsWith(p))) {
+      if (group.paths && group.paths.some((p) => isPathActive(currentPath, p))) {
         initial[group.id] = true;
       }
     });
@@ -289,7 +288,7 @@ function AppShell({
   useEffect(() => {
     const currentPath = location.pathname;
     NAV_GROUPS.forEach((group) => {
-      if (group.paths && group.paths.some((p) => currentPath.startsWith(p))) {
+      if (group.paths && group.paths.some((p) => isPathActive(currentPath, p))) {
         setExpandedGroups((prev) => ({ ...prev, [group.id]: true }));
       }
     });
@@ -387,7 +386,7 @@ function AppShell({
             {NAV_GROUPS.map((group) => {
               // Direct Top-level Link (e.g. Dashboard)
               if (group.isDirectLink) {
-                const isActive = location.pathname === group.path;
+                const isActive = isPathActive(location.pathname, group.path);
                 return (
                   <Link
                     key={group.id}
@@ -404,7 +403,9 @@ function AppShell({
               }
 
               // Accordion Group Header
-              const isGroupActive = group.paths.some((p) => location.pathname === p || location.pathname.startsWith(p + "/"));
+              const isGroupActive = Boolean(
+                group.paths && group.paths.some((p) => isPathActive(location.pathname, p))
+              );
               const isExpanded = expandedGroups[group.id];
 
               return (
@@ -429,9 +430,7 @@ function AppShell({
                   {!collapsed && isExpanded && (
                     <div className="sb-nav-submenu">
                       {group.items.map((subitem) => {
-                        const isSubActive =
-                          location.pathname === subitem.path ||
-                          (subitem.path !== "/dashboard" && location.pathname.startsWith(subitem.path));
+                        const isSubActive = isPathActive(location.pathname, subitem.path);
                         return (
                           <Link
                             key={subitem.label + subitem.path}
