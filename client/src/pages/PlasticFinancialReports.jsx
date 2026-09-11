@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useLocation } from "react-router-dom";
 import API from "../api/axios";
 import PlasticNavbar from "../components/PlasticNavbar";
 import LoadingScreen from "../components/LoadingScreen";
@@ -23,12 +24,20 @@ const REPORT_TABS = [
 ];
 
 function PlasticFinancialReports({ defaultReport = "trial-balance" }) {
+  const location = useLocation();
   const [activeReport, setActiveReport] = useState(() => {
     if (typeof window !== "undefined" && window.location.pathname.includes("supplier-ledger")) {
       return "supplier-ledger";
     }
     return defaultReport;
   });
+
+  useEffect(() => {
+    if (location.pathname.includes("supplier-ledger")) {
+      setActiveReport("supplier-ledger");
+    }
+  }, [location.pathname]);
+
   const [period, setPeriod] = useState("month");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
@@ -45,7 +54,7 @@ function PlasticFinancialReports({ defaultReport = "trial-balance" }) {
         params.from_date = fromDate;
         params.to_date = toDate;
       }
-      const res = await API.get(`/plastic-erp/reports/${activeReport}`, { params });
+      const res = await API.get(`/plastic-erp/accounting/financial-reports/${activeReport}`, { params });
       if (res.data?.success) {
         setReportData(res.data);
       }
@@ -66,6 +75,7 @@ function PlasticFinancialReports({ defaultReport = "trial-balance" }) {
   };
 
   const currentTab = REPORT_TABS.find((r) => r.id === activeReport);
+  const isSupplierLedgerView = location.pathname.includes("supplier-ledger") || activeReport === "supplier-ledger";
 
   return (
     <div className="sb-page-container">
@@ -73,12 +83,16 @@ function PlasticFinancialReports({ defaultReport = "trial-balance" }) {
       <main className="sb-main-content">
         <div className="no-print">
           <PageHeader
-            title="Comprehensive Financial Reports"
-            subtitle="Auditable double-entry financial statements, tax registers, aging analysis, and books of account"
+            title={isSupplierLedgerView ? "Supplier Ledger & Payables Register" : "Comprehensive Financial Reports"}
+            subtitle={
+              isSupplierLedgerView
+                ? "Creditor payables ledger with purchase bills, debit notes, and payment transactions trail"
+                : "Auditable double-entry financial statements, tax registers, aging analysis, and books of account"
+            }
             breadcrumbs={[
               { label: "Plastic ERP", to: "/plastic-erp" },
-              { label: "Accounting & GST", to: "/plastic-erp/accounting" },
-              { label: "Financial Reports" },
+              { label: "Accounting & GST", to: "/plastic-erp/accounting-dashboard" },
+              { label: isSupplierLedgerView ? "Supplier Ledger" : "Financial Reports" },
             ]}
             actions={
               <Button

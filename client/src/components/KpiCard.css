@@ -45,7 +45,8 @@
   border-top: 3.5px solid var(--sb-warning, #F2A93B);
 }
 
-.sb-stat-card.accent-red {
+.sb-stat-card.accent-red,
+.sb-stat-card.accent-danger {
   border-top: 3.5px solid var(--sb-danger, #E05252);
 }
 
@@ -102,7 +103,8 @@
   color: #B45309;
 }
 
-.sb-stat-card.accent-red .sb-stat-value {
+.sb-stat-card.accent-red .sb-stat-value,
+.sb-stat-card.accent-danger .sb-stat-value {
   color: var(--sb-danger, #E05252);
 }
 
@@ -152,3 +154,12 @@
     font-size: 11px;
   }
 }
+
+/* --- Standard KPI Grid Layout --- */
+.sb-kpis-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+

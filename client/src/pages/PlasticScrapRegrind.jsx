@@ -151,23 +151,32 @@ function PlasticScrapRegrind() {
       {successMsg && <AlertBanner type="success" message={successMsg} onClose={() => setSuccessMsg("")} />}
 
       {/* KPI Cards */}
-      <div className="sb-kpis-grid" style={{ marginBottom: "24px" }}>
+      <div className="regrind-kpis-grid sb-kpis-grid sb-kpi-grid" style={{ marginBottom: "24px" }}>
         <KpiCard
+          title="Total Process Scrap"
           label="Total Process Scrap"
           value={`${Number(scrapSummary.totalScrapKg || 0).toLocaleString()} KG`}
+          supportingText={`${Number(scrapSummary.reusableScrapKg || 0).toLocaleString()} KG reusable`}
           subtext={`${Number(scrapSummary.reusableScrapKg || 0).toLocaleString()} KG reusable`}
+          icon="♻️"
           accent="danger"
         />
         <KpiCard
+          title="Current Regrind Stock"
           label="Current Regrind Stock"
           value={`${Number(regrindSummary.currentRegrindStockKg || 0).toLocaleString()} KG`}
+          supportingText="Available for extrusion batches"
           subtext="Available for extrusion batches"
+          icon="📦"
           accent="teal"
         />
         <KpiCard
+          title="Regrind Generated"
           label="Regrind Generated"
           value={`${Number(regrindSummary.totalGeneratedKg || 0).toLocaleString()} KG`}
+          supportingText={`${Number(regrindSummary.totalConsumedKg || 0).toLocaleString()} KG consumed`}
           subtext={`${Number(regrindSummary.totalConsumedKg || 0).toLocaleString()} KG consumed`}
+          icon="⚙️"
           accent="blue"
         />
       </div>

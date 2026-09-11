@@ -6,10 +6,12 @@ import "./KpiCard.css";
  */
 function KpiCard({
   title,
+  label,
   value,
   icon = null,
   accent = "blue",
   supportingText = null,
+  subtext = null,
   link = null,
   linkText = null,
   loading = false,
@@ -17,11 +19,14 @@ function KpiCard({
   className = "",
 }) {
   const isClickable = Boolean(link || onClick);
+  const displayTitle = title || label;
+  const displaySubtext = supportingText || subtext;
+  const normalizedAccent = accent === "danger" ? "red" : accent;
 
   const cardContent = (
     <>
       <div className="sb-stat-top">
-        <span className="sb-stat-title">{title}</span>
+        <span className="sb-stat-title">{displayTitle}</span>
         {icon && <span className="sb-stat-icon-wrap">{icon}</span>}
       </div>
 
@@ -31,7 +36,7 @@ function KpiCard({
         ) : (
           <strong className="sb-stat-value">{value}</strong>
         )}
-        {supportingText && <span className="sb-stat-sub">{supportingText}</span>}
+        {displaySubtext && <span className="sb-stat-sub">{displaySubtext}</span>}
       </div>
 
       {link && linkText && (
@@ -42,7 +47,7 @@ function KpiCard({
 
   const cardClasses = [
     "sb-stat-card",
-    `accent-${accent}`,
+    `accent-${normalizedAccent}`,
     isClickable ? "is-clickable" : "",
     className,
   ]

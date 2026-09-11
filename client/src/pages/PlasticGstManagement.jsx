@@ -32,17 +32,17 @@ function PlasticGstManagement() {
     setError(null);
     try {
       if (activeTab === "gstr1") {
-        const res = await API.get("/plastic-erp/gst/gstr-1", {
+        const res = await API.get("/plastic-erp/accounting/gst/gstr-1", {
           params: { month, year },
         });
         if (res.data?.success) setGstr1Data(res.data);
       } else if (activeTab === "gstr3b") {
-        const res = await API.get("/plastic-erp/gst/gstr-3b", {
+        const res = await API.get("/plastic-erp/accounting/gst/gstr-3b", {
           params: { month, year },
         });
         if (res.data?.success) setGstr3bData(res.data);
       } else if (activeTab === "itc") {
-        const res = await API.get("/plastic-erp/gst/itc-register", {
+        const res = await API.get("/plastic-erp/accounting/gst/itc-register", {
           params: { month, year },
         });
         if (res.data?.success) {
@@ -50,7 +50,7 @@ function PlasticGstManagement() {
           setItcSummary(res.data.summary || null);
         }
       } else if (activeTab === "all") {
-        const res = await API.get("/plastic-erp/gst/records", {
+        const res = await API.get("/plastic-erp/accounting/gst/records", {
           params: {
             gst_type: gstTypeFilter,
             search: searchTerm,
@@ -76,7 +76,7 @@ function PlasticGstManagement() {
   const handleUpdateItcStatus = async (id, currentStatus) => {
     const nextStatus = currentStatus === "ELIGIBLE" ? "INELIGIBLE" : "ELIGIBLE";
     try {
-      const res = await API.patch(`/plastic-erp/gst/itc-status/${id}`, {
+      const res = await API.patch(`/plastic-erp/accounting/gst/itc-status/${id}`, {
         itc_eligibility: nextStatus,
       });
       if (res.data?.success) {
@@ -115,7 +115,7 @@ function PlasticGstManagement() {
           subtitle="Comprehensive GSTR-1, GSTR-3B preparation tables, ITC register, and statutory audit verification"
           breadcrumbs={[
             { label: "Plastic ERP", to: "/plastic-erp" },
-            { label: "Accounting & GST", to: "/plastic-erp/accounting" },
+            { label: "Accounting & GST", to: "/plastic-erp/accounting-dashboard" },
             { label: "GST Returns" },
           ]}
           actions={

@@ -36,7 +36,7 @@ function PlasticGstReconciliation() {
     setLoading(true);
     setError(null);
     try {
-      const res = await API.get("/plastic-erp/gst-reconciliation/items", {
+      const res = await API.get("/plastic-erp/accounting/gst-recon/items", {
         params: {
           return_period: returnPeriod,
           status: statusFilter,
@@ -62,7 +62,7 @@ function PlasticGstReconciliation() {
     setLoading(true);
     setError(null);
     try {
-      const res = await API.post("/plastic-erp/gst-reconciliation/auto-match", {
+      const res = await API.post("/plastic-erp/accounting/gst-recon/auto-match", {
         return_period: returnPeriod,
       });
       if (res.data?.success) {
@@ -94,7 +94,7 @@ function PlasticGstReconciliation() {
         notes: formData.supplier_name ? `Supplier: ${formData.supplier_name}` : "Portal GSTR-2B entry",
       };
 
-      const res = await API.post("/plastic-erp/gst-reconciliation/items", payload);
+      const res = await API.post("/plastic-erp/accounting/gst-recon/items", payload);
       if (res.data?.success) {
         setSuccessMsg("GSTR-2B entry added successfully!");
         setShowAddModal(false);
@@ -137,7 +137,7 @@ function PlasticGstReconciliation() {
           subtitle="Cross-verify purchase bills against government portal returns to prevent ITC leakage and audit queries"
           breadcrumbs={[
             { label: "Plastic ERP", to: "/plastic-erp" },
-            { label: "Accounting & GST", to: "/plastic-erp/accounting" },
+            { label: "Accounting & GST", to: "/plastic-erp/accounting-dashboard" },
             { label: "GST Reconciliation" },
           ]}
           actions={

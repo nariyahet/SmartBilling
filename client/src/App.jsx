@@ -181,6 +181,7 @@ function App() {
           <Route path="/plastic-erp/hr-reports" element={<PlasticHrReports />} />
 
           {/* Phase 5: Accounting, GST & Compliance */}
+          <Route path="/plastic-erp/accounting" element={<Navigate to="/plastic-erp/accounting-dashboard" replace />} />
           <Route path="/plastic-erp/chart-of-accounts" element={<PlasticChartOfAccounts />} />
           <Route path="/plastic-erp/journal-entries" element={<PlasticJournalEntries />} />
           <Route path="/plastic-erp/cash-bank" element={<PlasticCashBank />} />

@@ -15,7 +15,7 @@ function PlasticAccountingDashboard() {
     setLoading(true);
     setError(null);
     try {
-      const res = await API.get("/plastic-erp/reports/dashboard-kpis");
+      const res = await API.get("/plastic-erp/accounting/financial-reports/dashboard-kpis");
       if (res.data?.success) {
         setData(res.data);
       }
@@ -43,7 +43,7 @@ function PlasticAccountingDashboard() {
           subtitle="Real-time cash flow, double-entry financial health, operating margin analysis, and statutory GST liabilities"
           breadcrumbs={[
             { label: "Plastic ERP", to: "/plastic-erp" },
-            { label: "Accounting & GST", to: "/plastic-erp/accounting" },
+            { label: "Accounting & GST", to: "/plastic-erp/accounting-dashboard" },
             { label: "Executive Dashboard" },
           ]}
           actions={

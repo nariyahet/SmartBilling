@@ -153,6 +153,7 @@ const NAV_GROUPS = [
       "/plastic-erp/gst-management",
       "/plastic-erp/gst-reconciliation",
       "/plastic-erp/accounting-dashboard",
+      "/plastic-erp/accounting",
     ],
     items: [
       { path: "/plastic-erp/chart-of-accounts", label: "Chart of Accounts", icon: "📑" },
@@ -243,6 +244,27 @@ function AppShell({
   const isNested = useContext(AppShellContext);
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Internal search state fallback when page does not pass controlled onSearchChange
+  const [internalSearch, setInternalSearch] = useState("");
+  const isControlled = onSearchChange !== null && onSearchChange !== undefined;
+  const currentSearch = isControlled ? searchValue : internalSearch;
+
+  const handleSearchInput = (val) => {
+    if (isControlled) {
+      onSearchChange(val);
+    } else {
+      setInternalSearch(val);
+    }
+  };
+
+  const handleClearSearch = () => {
+    if (isControlled) {
+      onSearchChange("");
+    } else {
+      setInternalSearch("");
+    }
+  };
 
   // Tablet collapsed sidebar state: default collapsed on tablet viewports
   const [collapsed, setCollapsed] = useState(() => {
@@ -511,22 +533,29 @@ function AppShell({
                 <span className="sb-header-separator">/</span>
                 <span className="sb-header-page-title">{currentRouteInfo.title}</span>
               </div>
+            </div>
 
+            <div className="sb-header-center">
               <div className="sb-search-wrap">
                 <span className="sb-search-icon">🔍</span>
                 <input
                   type="text"
                   className="sb-search-input"
                   placeholder={searchPlaceholder}
-                  value={searchValue}
-                  onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
+                  value={currentSearch}
+                  onChange={(e) => handleSearchInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !isControlled && currentSearch.trim()) {
+                      navigate(`/products?search=${encodeURIComponent(currentSearch.trim())}`);
+                    }
+                  }}
                   aria-label="Search"
                 />
-                {searchValue && (
+                {currentSearch && (
                   <button
                     type="button"
                     className="sb-search-clear"
-                    onClick={() => onSearchChange && onSearchChange("")}
+                    onClick={handleClearSearch}
                     aria-label="Clear search"
                   >
                     ✕
