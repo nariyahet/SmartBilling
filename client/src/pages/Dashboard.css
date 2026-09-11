@@ -339,6 +339,8 @@
   padding: 10px 14px;
   border-radius: 8px;
   border: 1px solid #E3EBF2;
+  box-sizing: border-box;
+  max-width: 100%;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -383,9 +385,9 @@
   margin: 1px 0 0 0;
   font-size: 11.5px;
   color: var(--sb-text-muted, #718096);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.35;
 }
 
 .sb-alert-action-btn {
@@ -394,6 +396,8 @@
   color: var(--sb-primary, #0879D1);
   text-decoration: none;
   white-space: nowrap;
+  flex-shrink: 0;
+  box-sizing: border-box;
   padding: 4px 8px;
   background: #FFFFFF;
   border: 1px solid var(--sb-border, #E3EBF2);
@@ -715,6 +719,8 @@
   border-radius: 6px;
   text-decoration: none;
   transition: all 0.15s ease;
+  box-sizing: border-box;
+  max-width: 100%;
 }
 
 .sb-pill-action:hover {
@@ -1060,6 +1066,9 @@
   .sb-dashboard-canvas {
     gap: 16px;
     padding-bottom: 24px;
+    overflow-x: hidden;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   .sb-exec-header {
@@ -1099,8 +1108,118 @@
     grid-template-columns: 1fr;
   }
 
+  /* 1. Fully Responsive Operational Alerts */
+  .sb-alert-section {
+    padding: 14px 12px;
+    box-sizing: border-box;
+    max-width: 100%;
+  }
+
+  .sb-section-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
   .sb-alerts-grid {
     grid-template-columns: 1fr;
+    width: 100%;
+    gap: 10px;
+    box-sizing: border-box;
+  }
+
+  .sb-alert-card {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+      "icon content"
+      "action action";
+    align-items: start;
+    gap: 8px 10px;
+    padding: 12px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .sb-alert-icon-wrap {
+    grid-area: icon;
+    font-size: 20px;
+    line-height: 1.2;
+    flex-shrink: 0;
+  }
+
+  .sb-alert-content {
+    grid-area: content;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .sb-alert-heading {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.35;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  .sb-alert-msg {
+    margin: 3px 0 0 0;
+    font-size: 12px;
+    line-height: 1.45;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    word-break: break-word;
+  }
+
+  .sb-alert-action-btn {
+    grid-area: action;
+    justify-self: start;
+    margin-top: 4px;
+    padding: 6px 12px;
+    font-size: 11.5px;
+    font-weight: 700;
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    box-sizing: border-box;
+    max-width: 100%;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  /* 2. Fully Responsive Card Panels & Quick Actions */
+  .sb-card-panel {
+    padding: 16px 14px;
+    box-sizing: border-box;
+    max-width: 100%;
+  }
+
+  .sb-quick-links-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    width: 100%;
+    margin-top: 8px;
+    box-sizing: border-box;
+  }
+
+  .sb-pill-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 8px 10px;
+    min-height: 38px;
+    font-size: 12px;
+    line-height: 1.3;
+    white-space: normal;
+    word-break: break-word;
+    border-radius: 6px;
+    box-sizing: border-box;
+    width: 100%;
   }
 
   .sb-fin-pills-grid,
@@ -1120,5 +1239,25 @@
   .sb-polymer-flex-wrap {
     flex-direction: column;
     align-items: center;
+  }
+}
+
+/* Narrow Mobile Screens (<= 480px) */
+@media (max-width: 480px) {
+  .sb-quick-links-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .sb-pill-action {
+    justify-content: flex-start;
+    text-align: left;
+    padding: 10px 14px;
+    min-height: 42px;
+    font-size: 12.5px;
+  }
+
+  .sb-alert-card {
+    padding: 10px 12px;
   }
 }
