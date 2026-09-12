@@ -177,6 +177,9 @@ function PlasticTransport() {
             <Link to="/plastic-erp/transport/challans">
               <Button variant="secondary">Delivery Challans</Button>
             </Link>
+            <Link to="/plastic-erp/eway-bills">
+              <Button variant="secondary">🚚 E-Way Bills</Button>
+            </Link>
             <Button variant="primary" onClick={handleOpenCreate}>
               + Register Vehicle
             </Button>

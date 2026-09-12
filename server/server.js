@@ -62,6 +62,7 @@ const salesReturnRoutes = require("./routes/salesReturnRoutes");
 const creditNoteRoutes = require("./routes/creditNoteRoutes");
 const debitNoteRoutes = require("./routes/debitNoteRoutes");
 const phase3ReportsRoutes = require("./routes/phase3ReportsRoutes");
+const ewayBillRoutes = require("./routes/ewayBillRoutes");
 
 // Plastic Recycling ERP Routes (Phase 4 HR, Payroll & Expenses)
 const employeeRoutes = require("./routes/employeeRoutes");
@@ -132,6 +133,7 @@ app.use("/api/plastic-erp/sales-returns", salesReturnRoutes);
 app.use("/api/plastic-erp/credit-notes", creditNoteRoutes);
 app.use("/api/plastic-erp/debit-notes", debitNoteRoutes);
 app.use("/api/plastic-erp/phase3-reports", phase3ReportsRoutes);
+app.use("/api/plastic-erp/eway-bills", ewayBillRoutes);
 
 // Plastic Recycling ERP Endpoints (Phase 4 HR, Payroll & Expenses)
 app.use("/api/plastic-erp/employees", employeeRoutes);

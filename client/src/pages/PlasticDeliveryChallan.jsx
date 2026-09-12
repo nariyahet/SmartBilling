@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import API from "../api/axios";
 import LoadingScreen from "../components/LoadingScreen";
 import {
@@ -13,6 +13,7 @@ import {
 import "./PlasticDeliveryChallan.css";
 
 function PlasticDeliveryChallan() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [challans, setChallans] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -339,6 +340,16 @@ function PlasticDeliveryChallan() {
                     >
                       Print / View
                     </Button>
+                    {c.dispatch_id && (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => navigate(`/plastic-erp/eway-bills?dispatch_id=${c.dispatch_id}`)}
+                        title="Prepare Internal E-Way Bill from Dispatch"
+                      >
+                        🚚 E-Way
+                      </Button>
+                    )}
                     {c.status === "ISSUED" && (
                       <Button
                         size="sm"

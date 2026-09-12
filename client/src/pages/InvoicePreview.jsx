@@ -553,6 +553,14 @@ function InvoicePreview() {
           <button onClick={handleSendWhatsApp} className="whatsapp-btn">
             🟢 Send via WhatsApp
           </button>
+
+          <button
+            onClick={() => navigate(`/plastic-erp/eway-bills?invoice_id=${invoice.id}`)}
+            className="eway-bill-btn"
+            style={{ background: "#2563eb", color: "#fff" }}
+          >
+            🚚 Internal E-Way Bill
+          </button>
         </div>
       </div>
 

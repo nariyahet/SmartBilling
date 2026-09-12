@@ -32,6 +32,7 @@ import PlasticSalesOrders from "./pages/PlasticSalesOrders";
 import PlasticDispatch from "./pages/PlasticDispatch";
 import PlasticDeliveryChallan from "./pages/PlasticDeliveryChallan";
 import PlasticTransport from "./pages/PlasticTransport";
+import PlasticEWayBills from "./pages/PlasticEWayBills";
 import PlasticPayments from "./pages/PlasticPayments";
 import PlasticReceivables from "./pages/PlasticReceivables";
 import PlasticCustomerLedger from "./pages/PlasticCustomerLedger";
@@ -153,6 +154,8 @@ function App() {
           <Route path="/plastic-erp/transport/challans" element={<PlasticDeliveryChallan />} />
           <Route path="/plastic-erp/transport" element={<PlasticTransport />} />
           <Route path="/plastic-erp/transport/vehicles" element={<PlasticTransport />} />
+          <Route path="/plastic-erp/eway-bills" element={<PlasticEWayBills />} />
+          <Route path="/plastic-erp/transport/eway-bills" element={<PlasticEWayBills />} />
           <Route path="/plastic-erp/sales-returns" element={<PlasticSalesReturns />} />
           <Route path="/plastic-erp/payments" element={<PlasticPayments />} />
           <Route path="/plastic-erp/receivables" element={<PlasticReceivables />} />

@@ -529,6 +529,15 @@ function PlasticDispatch() {
                       Details
                     </Button>
 
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => navigate(`/plastic-erp/eway-bills?dispatch_id=${d.id}`)}
+                      title="Prepare Internal E-Way Bill"
+                    >
+                      🚚 E-Way
+                    </Button>
+
                     {d.status === "PENDING" && (
                       <Button
                         size="sm"
@@ -952,6 +961,13 @@ function PlasticDispatch() {
                   Generate Tax Invoice
                 </Button>
               )}
+              <Button
+                variant="secondary"
+                onClick={() => navigate(`/plastic-erp/eway-bills?dispatch_id=${selectedDispatch.id}`)}
+                title="Prepare or View Internal E-Way Bill"
+              >
+                🚚 Internal E-Way Bill
+              </Button>
               <Button variant="secondary" onClick={() => setDetailsModalOpen(false)}>
                 Close
               </Button>

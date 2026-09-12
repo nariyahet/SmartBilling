@@ -334,7 +334,7 @@ function InvoicesHistory() {
                   {taxEnabled && <th style={{ textAlign: "right" }}>GST</th>}
                   <th style={{ textAlign: "right" }}>Grand Total</th>
                   <th style={{ textAlign: "center", width: "110px" }}>Status</th>
-                  <th style={{ textAlign: "right", width: "110px" }}>Action</th>
+                  <th style={{ textAlign: "right", width: "180px" }}>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -373,7 +373,7 @@ function InvoicesHistory() {
                     <td style={{ textAlign: "center" }}>
                       <span className="invh-status-pill status-paid">Issued</span>
                     </td>
-                    <td style={{ textAlign: "right" }}>
+                    <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
                       <button
                         type="button"
                         className="btn-view-invoice"
@@ -381,6 +381,15 @@ function InvoicesHistory() {
                         title="View invoice details and share"
                       >
                         👁️ View Bill
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-view-invoice"
+                        onClick={() => navigate(`/plastic-erp/eway-bills?invoice_id=${invoice.id}`)}
+                        title="Create or View Internal E-Way Bill"
+                        style={{ marginLeft: "6px", background: "rgba(37, 99, 235, 0.12)", color: "#3b82f6", borderColor: "rgba(37, 99, 235, 0.3)" }}
+                      >
+                        🚚 E-Way
                       </button>
                     </td>
                   </tr>

@@ -1,0 +1,78 @@
+-- SmartBilling Migration 010: Practical Internal E-Way Bill Management
+-- Purpose: Add tables for Internal E-Way Bills and Items to manage transport document preparation
+--          workflows without external government API dependencies.
+-- Safety: IDEMPOTENT, NON-DESTRUCTIVE, STRICT MULTI-TENANT ISOLATION
+
+-- 1. Internal E-Way Bills Master Table
+CREATE TABLE IF NOT EXISTS internal_eway_bills (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  company_id INT NOT NULL,
+  ewb_number VARCHAR(50) NOT NULL,
+  invoice_id INT NULL,
+  invoice_no VARCHAR(50) NULL,
+  invoice_date DATE NULL,
+  dispatch_id INT NULL,
+  dispatch_no VARCHAR(50) NULL,
+  customer_id INT NULL,
+  customer_name VARCHAR(150) NOT NULL,
+  customer_gstin VARCHAR(30) NULL,
+  customer_phone VARCHAR(30) NULL,
+  customer_email VARCHAR(100) NULL,
+  billing_address TEXT NULL,
+  shipping_address TEXT NULL,
+  dispatch_from_name VARCHAR(150) NULL,
+  dispatch_from_gstin VARCHAR(30) NULL,
+  dispatch_from_address TEXT NULL,
+  transport_mode VARCHAR(20) NOT NULL DEFAULT 'ROAD',
+  distance_km INT NOT NULL DEFAULT 0,
+  transporter_name VARCHAR(150) NULL,
+  transporter_id VARCHAR(50) NULL,
+  vehicle_id INT NULL,
+  vehicle_number VARCHAR(50) NULL,
+  vehicle_type VARCHAR(50) NOT NULL DEFAULT 'REGULAR',
+  driver_name VARCHAR(100) NULL,
+  driver_mobile VARCHAR(20) NULL,
+  dispatch_date DATE NOT NULL,
+  status VARCHAR(30) NOT NULL DEFAULT 'DRAFT',
+  total_taxable_amount DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+  total_tax_amount DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+  total_amount DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+  total_weight_kg DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  notes TEXT NULL,
+  created_by INT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY unique_company_ewb_number (company_id, ewb_number),
+  INDEX idx_ewb_company_status (company_id, status),
+  INDEX idx_ewb_company_customer (company_id, customer_id),
+  INDEX idx_ewb_company_invoice (company_id, invoice_id),
+  INDEX idx_ewb_company_dispatch (company_id, dispatch_id),
+  FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
+  FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE SET NULL,
+  FOREIGN KEY (dispatch_id) REFERENCES plastic_dispatches(id) ON DELETE SET NULL,
+  FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE RESTRICT,
+  FOREIGN KEY (vehicle_id) REFERENCES plastic_vehicles(id) ON DELETE SET NULL,
+  FOREIGN KEY (created_by) REFERENCES admins(id) ON DELETE SET NULL
+);
+
+-- 2. Internal E-Way Bill Line Items Table
+CREATE TABLE IF NOT EXISTS internal_eway_bill_items (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  company_id INT NOT NULL,
+  eway_bill_id INT NOT NULL,
+  product_id INT NULL,
+  product_name VARCHAR(150) NOT NULL,
+  hsn_code VARCHAR(20) NULL DEFAULT '3915',
+  quantity DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  unit VARCHAR(20) NOT NULL DEFAULT 'KG',
+  rate DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  taxable_amount DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+  tax_percent DECIMAL(5,2) NOT NULL DEFAULT 18.00,
+  tax_amount DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+  total_amount DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+  weight_kg DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_ewb_items_company_bill (company_id, eway_bill_id),
+  FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
+  FOREIGN KEY (eway_bill_id) REFERENCES internal_eway_bills(id) ON DELETE CASCADE
+);
