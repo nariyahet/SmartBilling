@@ -825,3 +825,84 @@ a {
     font-size: 17.5px !important;
   }
 }
+
+/* ==========================================================================
+   GLOBAL PRINT STYLES & FOUNDATION
+   ========================================================================== */
+@media print {
+  .no-print,
+  .no-print * {
+    display: none !important;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Legacy layout print resets */
+  .sidebar,
+  .dashboard-topbar,
+  .plastic-navbar {
+    display: none !important;
+  }
+
+  .dashboard-main {
+    margin-left: 0 !important;
+    width: 100% !important;
+    padding: 0 !important;
+  }
+
+  /* Custom ERP modal print resets */
+  .plastic-modal-backdrop {
+    position: static !important;
+    inset: auto !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    padding: 0 !important;
+    display: block !important;
+    animation: none !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  .bill-detail-modal-card,
+  .scale-slip-card {
+    position: static !important;
+    max-height: none !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+  }
+
+  .bill-detail-paper,
+  .slip-paper {
+    overflow: visible !important;
+    max-height: none !important;
+    padding: 0 !important;
+    height: auto !important;
+    width: 100% !important;
+  }
+
+  .slip-modal-actions,
+  .payment-updater-bar {
+    display: none !important;
+  }
+
+  /* When an ERP modal is open, ensure background page content is hidden so only the document prints */
+  body:has(.sb-modal-backdrop) .sb-page-content-canvas > *:not(:has(.sb-modal-backdrop)),
+  body:has(.sb-modal-backdrop) .sb-page-container > *:not(:has(.sb-modal-backdrop)),
+  body:has(.plastic-modal-backdrop) .plastic-content-wrap,
+  body:has(.plastic-modal-backdrop) .sb-page-container > *:not(:has(.plastic-modal-backdrop)) {
+    display: none !important;
+  }
+}
+

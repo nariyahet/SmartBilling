@@ -1101,3 +1101,26 @@
     font-size: 11px;
   }
 }
+
+/* ==========================================================================
+   AppShell Print Styles
+   ========================================================================== */
+@media print {
+  .sb-sidebar,
+  .sb-top-header,
+  .sb-drawer-backdrop {
+    display: none !important;
+  }
+
+  .sb-main-wrapper {
+    margin-left: 0 !important;
+    width: 100% !important;
+    min-height: auto !important;
+  }
+
+  .sb-page-content-canvas {
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+}
+

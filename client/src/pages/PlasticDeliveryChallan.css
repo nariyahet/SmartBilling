@@ -201,24 +201,15 @@
 
 /* Print Stylesheet */
 @media print {
-  body * {
-    visibility: hidden;
-  }
-  .challan-print-document,
-  .challan-print-document * {
-    visibility: visible;
-  }
-  .challan-print-document {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    margin: 0;
-    padding: 20px;
-    border: 2px solid black;
-    box-shadow: none;
-  }
   .no-print {
     display: none !important;
+  }
+  .challan-print-document {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 20px !important;
+    border: 2px solid black !important;
+    box-shadow: none !important;
   }
 }

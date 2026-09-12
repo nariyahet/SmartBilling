@@ -218,3 +218,50 @@
     justify-content: center;
   }
 }
+
+/* --- Print Rules for Modals --- */
+@media print {
+  .sb-modal-backdrop {
+    position: static !important;
+    inset: auto !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: block !important;
+    width: 100% !important;
+    min-height: auto !important;
+    box-shadow: none !important;
+    animation: none !important;
+  }
+
+  .sb-modal-box {
+    position: static !important;
+    max-height: none !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
+    animation: none !important;
+    transform: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+  }
+
+  .sb-modal-body {
+    padding: 0 !important;
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+  }
+
+  .sb-modal-header,
+  .sb-modal-footer,
+  .sb-modal-close-btn {
+    display: none !important;
+  }
+}
+

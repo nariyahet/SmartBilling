@@ -53,9 +53,16 @@ test.describe('Scrap & Regrind Operations KPI Layout & Regression Suite', () => 
       card3.boundingBox(),
     ]);
 
+    const [box1, box2, box3] = cardBBoxes;
+    expect(box1).not.toBeNull();
+    expect(box2).not.toBeNull();
+    expect(box3).not.toBeNull();
+    if (!box1 || !box2 || !box3) throw new Error('Card bounding boxes not found');
+
     for (let i = 0; i < 3; i++) {
       const box = cardBBoxes[i];
       expect(box).not.toBeNull();
+      if (!box) continue;
       // Compact height check
       expect(box.height).toBeGreaterThanOrEqual(80);
       expect(box.height).toBeLessThanOrEqual(160);
@@ -65,8 +72,8 @@ test.describe('Scrap & Regrind Operations KPI Layout & Regression Suite', () => 
     }
 
     // Check that card 1, 2, and 3 are on the same vertical line (side-by-side in 1 row)
-    expect(Math.abs(cardBBoxes[0].y - cardBBoxes[1].y)).toBeLessThanOrEqual(4);
-    expect(Math.abs(cardBBoxes[1].y - cardBBoxes[2].y)).toBeLessThanOrEqual(4);
+    expect(Math.abs(box1.y - box2.y)).toBeLessThanOrEqual(4);
+    expect(Math.abs(box2.y - box3.y)).toBeLessThanOrEqual(4);
 
     // Verify preservation of action buttons
     await expect(page.getByRole('button', { name: 'ERP Dashboard' })).toBeVisible();
@@ -120,6 +127,11 @@ test.describe('Scrap & Regrind Operations KPI Layout & Regression Suite', () => 
     const b1 = await cards.nth(0).boundingBox();
     const b2 = await cards.nth(1).boundingBox();
     const b3 = await cards.nth(2).boundingBox();
+
+    expect(b1).not.toBeNull();
+    expect(b2).not.toBeNull();
+    expect(b3).not.toBeNull();
+    if (!b1 || !b2 || !b3) throw new Error('Mobile card bounding boxes not found');
 
     expect(b2.y).toBeGreaterThan(b1.y);
     expect(b3.y).toBeGreaterThan(b2.y);

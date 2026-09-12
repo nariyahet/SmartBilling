@@ -217,17 +217,17 @@
 }
 
 @media print {
-  body * {
-    visibility: hidden;
-  }
-  .slip-paper,
-  .slip-paper * {
-    visibility: visible;
+  .no-print,
+  .slip-modal-actions {
+    display: none !important;
   }
   .slip-paper {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
+    width: 100% !important;
+    max-width: 100% !important;
+    position: static !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
 }
