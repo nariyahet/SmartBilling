@@ -320,6 +320,25 @@ exports.getEWayBills = async (req, res) => {
     sql += ` ORDER BY e.id DESC`;
 
     const [rows] = await db.promise().query(sql, params);
+
+    if (rows.length > 0) {
+      const billIds = rows.map((r) => r.id);
+      const [items] = await db.promise().query(
+        `SELECT * FROM internal_eway_bill_items
+         WHERE eway_bill_id IN (?) AND company_id = ?
+         ORDER BY id ASC`,
+        [billIds, companyId]
+      );
+      const itemsMap = {};
+      for (const it of items) {
+        if (!itemsMap[it.eway_bill_id]) itemsMap[it.eway_bill_id] = [];
+        itemsMap[it.eway_bill_id].push(it);
+      }
+      for (const row of rows) {
+        row.items = itemsMap[row.id] || [];
+      }
+    }
+
     res.status(200).json({ success: true, ewayBills: rows });
   } catch (error) {
     console.error("Get EWayBills Error:", error);

@@ -27,9 +27,46 @@ function formatDate(dateStr) {
   }
 }
 
+const loadFont = async () => {
+  try {
+    const response = await fetch("/fonts/NotoSans-Regular.ttf");
+    if (!response.ok) return null;
+    const buffer = await response.arrayBuffer();
+
+    let binary = "";
+    const bytes = new Uint8Array(buffer);
+    const chunkSize = 0x8000;
+
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+    }
+
+    return btoa(binary);
+  } catch {
+    return null;
+  }
+};
+
+const getImageDimensions = (src) => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      resolve({
+        width: img.naturalWidth || img.width || 1,
+        height: img.naturalHeight || img.height || 1,
+      });
+    };
+    img.onerror = () => {
+      resolve({ width: 24, height: 18 });
+    };
+    img.src = src;
+  });
+};
+
 function PlasticEWayBills() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
+  const [businessSettings, setBusinessSettings] = useState(null);
   const [ewayBills, setEwayBills] = useState([]);
   const [kpis, setKpis] = useState({
     total: 0,
@@ -112,13 +149,14 @@ function PlasticEWayBills() {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const [listRes, kpiRes, custRes, vehRes, invRes, dispRes] = await Promise.all([
+      const [listRes, kpiRes, custRes, vehRes, invRes, dispRes, settingsRes] = await Promise.all([
         API.get("/plastic-erp/eway-bills").catch(() => ({ data: {} })),
         API.get("/plastic-erp/eway-bills/kpi").catch(() => ({ data: {} })),
         API.get("/customers").catch(() => ({ data: {} })),
         API.get("/plastic-erp/transport/vehicles").catch(() => ({ data: {} })),
         API.get("/invoices").catch(() => ({ data: {} })),
         API.get("/plastic-erp/dispatches").catch(() => ({ data: {} })),
+        API.get("/business-settings").catch(() => ({ data: {} })),
       ]);
 
       if (listRes.data?.success) setEwayBills(listRes.data.ewayBills || []);
@@ -127,6 +165,7 @@ function PlasticEWayBills() {
       if (vehRes.data?.vehicles) setVehicles(vehRes.data.vehicles || []);
       if (invRes.data?.invoices) setInvoices(invRes.data.invoices || []);
       if (dispRes.data?.dispatches) setDispatches(dispRes.data.dispatches || []);
+      if (settingsRes.data?.settings) setBusinessSettings(settingsRes.data.settings);
     } catch (err) {
       console.error("Failed to load E-Way Bill data:", err);
     } finally {
@@ -402,227 +441,577 @@ function PlasticEWayBills() {
   };
 
   // Generate Vector PDF using jsPDF
-  const handleDownloadPDF = (bill = selectedBill) => {
+  const handleDownloadPDF = async (bill = selectedBill) => {
     if (!bill) return;
 
-    try {
-      const pdf = new jsPDF("p", "mm", "a4");
-      const pageWidth = 210;
-      const margin = 14;
-      const contentWidth = pageWidth - margin * 2;
-      let y = 14;
+    let fullBill = bill;
+    if (!fullBill.items || fullBill.items.length === 0) {
+      if (fullBill.id) {
+        try {
+          const res = await API.get(`/plastic-erp/eway-bills/${fullBill.id}`);
+          if (res.data?.success && res.data.ewayBill) {
+            fullBill = res.data.ewayBill;
+          }
+        } catch (fetchErr) {
+          console.warn("Could not load bill details for PDF:", fetchErr);
+        }
+      }
+    }
 
-      // Internal Banner
-      pdf.setFillColor(239, 68, 68);
-      pdf.rect(margin, y, contentWidth, 8, "F");
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(9);
-      pdf.setFont("helvetica", "bold");
+    try {
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+        compress: true,
+      });
+
+      let fontLoaded = false;
+      try {
+        const fontBase64 = await loadFont();
+        if (fontBase64) {
+          pdf.addFileToVFS("NotoSans-Regular.ttf", fontBase64);
+          pdf.addFont("NotoSans-Regular.ttf", "NotoSans", "normal");
+          pdf.addFont("NotoSans-Regular.ttf", "NotoSans", "bold");
+          pdf.setFont("NotoSans", "normal");
+          fontLoaded = true;
+        }
+      } catch (fErr) {
+        console.warn("Font loading error:", fErr);
+      }
+
+      const formatPdfCurrency = (amount) => {
+        const num = Number(amount) || 0;
+        const formatted = num.toLocaleString("en-IN", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        });
+        return fontLoaded ? `₹${formatted}` : `Rs. ${formatted}`;
+      };
+
+      const setPdfFont = (style = "normal") => {
+        if (fontLoaded) {
+          pdf.setFont("NotoSans", style);
+        } else {
+          pdf.setFont("helvetica", style);
+        }
+      };
+
+      const pageWidth = 210;
+      const pageHeight = 297;
+      const margin = 14;
+      const contentWidth = pageWidth - margin * 2; // 182 mm
+      let y = 10;
+
+      // 1. Top Statutory Disclaimer Banner
+      pdf.setFillColor(254, 242, 242);
+      pdf.setDrawColor(248, 113, 113);
+      pdf.setLineWidth(0.3);
+      pdf.roundedRect(margin, y, contentWidth, 7, 1, 1, "FD");
+
+      pdf.setTextColor(153, 27, 27);
+      setPdfFont("bold");
+      pdf.setFontSize(7.5);
       pdf.text(
-        "INTERNAL TRANSPORT / E-WAY BILL PREPARATION DOCUMENT — Not an Official Government E-Way Bill",
+        "NOT AN OFFICIAL GOVERNMENT E-WAY BILL — INTERNAL TRANSPORT / E-WAY BILL PREPARATION DOCUMENT",
         pageWidth / 2,
-        y + 5.5,
+        y + 4.6,
         { align: "center" }
       );
 
-      y += 14;
+      y += 11;
 
-      // Header: Reference & Status
+      // 2. Company Branding Header & Title
+      const bSettings = businessSettings || fullBill.companySettings;
+      let textStartX = margin;
+
+      // Optional Logo
+      if (bSettings?.logo) {
+        try {
+          let format = "PNG";
+          if (
+            bSettings.logo.startsWith("data:image/jpeg") ||
+            bSettings.logo.startsWith("data:image/jpg")
+          ) {
+            format = "JPEG";
+          } else if (bSettings.logo.startsWith("data:image/webp")) {
+            format = "WEBP";
+          }
+          const maxLogoWidth = 24;
+          const maxLogoHeight = 16;
+          const { width: nw, height: nh } = await getImageDimensions(bSettings.logo);
+          const ratio = nw / nh;
+          let rWidth = maxLogoWidth;
+          let rHeight = maxLogoWidth / ratio;
+          if (rHeight > maxLogoHeight) {
+            rHeight = maxLogoHeight;
+            rWidth = maxLogoHeight * ratio;
+          }
+          pdf.addImage(bSettings.logo, format, margin, y, rWidth, rHeight);
+          textStartX = margin + rWidth + 4;
+        } catch (lErr) {
+          console.warn("Logo draw error:", lErr);
+        }
+      }
+
+      // Company Info (Left)
+      setPdfFont("bold");
+      pdf.setFontSize(13);
+      pdf.setTextColor(15, 23, 42); // slate-900
+      const compName = fullBill.dispatch_from_name || bSettings?.business_name || "SmartBilling Recycled Polymers";
+      pdf.text(compName, textStartX, y + 4.5);
+
+      setPdfFont("normal");
+      pdf.setFontSize(7.5);
+      pdf.setTextColor(71, 85, 105); // slate-600
+      let compInfoY = y + 8.5;
+      if (bSettings?.address || fullBill.dispatch_from_address) {
+        const addrText = bSettings?.address || fullBill.dispatch_from_address;
+        const compAddrLines = pdf.splitTextToSize(addrText, 95 - (textStartX - margin));
+        pdf.text(compAddrLines.slice(0, 2), textStartX, compInfoY);
+        compInfoY += Math.min(compAddrLines.length, 2) * 3.5;
+      }
+      const gstinFrom = fullBill.dispatch_from_gstin || bSettings?.tax_number;
+      if (gstinFrom) {
+        pdf.text(`GSTIN: ${gstinFrom}`, textStartX, compInfoY);
+        compInfoY += 3.5;
+      }
+
+      // Right Header Block: Document Title & Metadata
+      const rightX = pageWidth - margin;
+      setPdfFont("bold");
+      pdf.setFontSize(12);
       pdf.setTextColor(15, 23, 42);
-      pdf.setFontSize(16);
-      pdf.text(`REFERENCE: ${bill.ewb_number}`, margin, y);
+      pdf.text("INTERNAL E-WAY BILL", rightX, y + 4, { align: "right" });
 
-      pdf.setFontSize(10);
-      pdf.setTextColor(100, 116, 139);
-      pdf.text(`Date: ${formatDate(bill.dispatch_date)}`, pageWidth - margin, y - 1, { align: "right" });
-      pdf.text(`Status: ${bill.status}`, pageWidth - margin, y + 5, { align: "right" });
-
-      y += 10;
-
-      // Consignor & Consignee Box
-      pdf.setDrawColor(203, 213, 225);
-      pdf.setLineWidth(0.3);
-      pdf.setFillColor(248, 250, 252);
-      pdf.roundedRect(margin, y, contentWidth, 34, 2, 2, "FD");
-
-      pdf.setFontSize(10);
-      pdf.setFont("helvetica", "bold");
-      pdf.setTextColor(30, 41, 59);
-      pdf.text("DISPATCH FROM (CONSIGNOR)", margin + 4, y + 6);
-      pdf.text("DELIVER TO (CONSIGNEE)", margin + contentWidth / 2 + 4, y + 6);
-
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(8.5);
-      pdf.setTextColor(51, 65, 85);
-
-      // Left: Dispatch From
-      let leftY = y + 11;
-      pdf.text(bill.dispatch_from_name || "SmartBilling Plant", margin + 4, leftY);
-      leftY += 4.5;
-      if (bill.dispatch_from_gstin) {
-        pdf.text(`GSTIN: ${bill.dispatch_from_gstin}`, margin + 4, leftY);
-        leftY += 4.5;
-      }
-      const fromAddr = pdf.splitTextToSize(bill.dispatch_from_address || "Surat, Gujarat", contentWidth / 2 - 8);
-      pdf.text(fromAddr, margin + 4, leftY);
-
-      // Right: Deliver To
-      let rightY = y + 11;
-      pdf.text(bill.customer_name || "Customer", margin + contentWidth / 2 + 4, rightY);
-      rightY += 4.5;
-      if (bill.customer_gstin) {
-        pdf.text(`GSTIN: ${bill.customer_gstin}`, margin + contentWidth / 2 + 4, rightY);
-        rightY += 4.5;
-      }
-      const toAddr = pdf.splitTextToSize(bill.shipping_address || bill.billing_address || "Delivery Address", contentWidth / 2 - 8);
-      pdf.text(toAddr, margin + contentWidth / 2 + 4, rightY);
-
-      y += 40;
-
-      // Transportation Details Box
-      pdf.setFillColor(241, 245, 249);
-      pdf.roundedRect(margin, y, contentWidth, 22, 2, 2, "FD");
-
-      pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(9);
-      pdf.setTextColor(30, 41, 59);
-      pdf.text("PART-B: TRANSPORT & VEHICLE PARTICULARS", margin + 4, y + 5.5);
-
-      pdf.setFont("helvetica", "normal");
+      setPdfFont("bold");
       pdf.setFontSize(8);
+      pdf.setTextColor(37, 99, 235); // blue-600
+      pdf.text("TRANSPORT & DISPATCH MEMO", rightX, y + 8, { align: "right" });
+
+      // Metadata card on top right
+      pdf.setFillColor(248, 250, 252);
+      pdf.setDrawColor(203, 213, 225);
+      pdf.setLineWidth(0.25);
+      pdf.roundedRect(rightX - 70, y + 10.5, 70, 18, 1, 1, "FD");
+
+      setPdfFont("bold");
+      pdf.setFontSize(7.5);
+      pdf.setTextColor(30, 41, 59);
+      pdf.text("Ref No:", rightX - 67, y + 14.5);
+      setPdfFont("bold");
+      pdf.setTextColor(15, 23, 42);
+      pdf.text(fullBill.ewb_number, rightX - 3, y + 14.5, { align: "right" });
+
+      setPdfFont("normal");
+      pdf.setTextColor(71, 85, 105);
+      pdf.text("Dispatch Date:", rightX - 67, y + 18.5);
+      pdf.text(formatDate(fullBill.dispatch_date), rightX - 3, y + 18.5, { align: "right" });
+
+      pdf.text("Status:", rightX - 67, y + 22.5);
+      setPdfFont("bold");
+      pdf.setTextColor(
+        fullBill.status === "CANCELLED" ? 185 : 30,
+        fullBill.status === "CANCELLED" ? 28 : 64,
+        fullBill.status === "CANCELLED" ? 28 : 175
+      );
+      pdf.text(String(fullBill.status || "DRAFT").replace(/_/g, " "), rightX - 3, y + 22.5, { align: "right" });
+
+      y = Math.max(compInfoY + 2, y + 31);
+
+      // Horizontal Divider
+      pdf.setDrawColor(226, 232, 240);
+      pdf.setLineWidth(0.3);
+      pdf.line(margin, y, pageWidth - margin, y);
+      y += 4;
+
+      // 3. Part A: Consignor & Consignee Cards (2-Column)
+      const cardW = (contentWidth - 4) / 2; // 89 mm each
+      const leftCardX = margin;
+      const rightCardX = margin + cardW + 4;
+
+      // Card 1: Consignor (Dispatch From)
+      pdf.setFillColor(248, 250, 252);
+      pdf.setDrawColor(203, 213, 225);
+      pdf.setLineWidth(0.25);
+      pdf.roundedRect(leftCardX, y, cardW, 35, 1, 1, "FD");
+
+      pdf.setFillColor(241, 245, 249);
+      pdf.rect(leftCardX, y, cardW, 6, "F");
+      setPdfFont("bold");
+      pdf.setFontSize(7.5);
+      pdf.setTextColor(30, 41, 59);
+      pdf.text("PART A1: CONSIGNOR (DISPATCH FROM)", leftCardX + 3, y + 4.2);
+
+      setPdfFont("bold");
+      pdf.setFontSize(8.5);
+      pdf.setTextColor(15, 23, 42);
+      pdf.text(compName, leftCardX + 3, y + 10.5);
+
+      setPdfFont("normal");
+      pdf.setFontSize(7.5);
+      pdf.setTextColor(71, 85, 105);
+      let cLeftY = y + 14.5;
+      if (gstinFrom) {
+        pdf.text(`GSTIN: ${gstinFrom}`, leftCardX + 3, cLeftY);
+        cLeftY += 4;
+      }
+      const consignorAddr = fullBill.dispatch_from_address || bSettings?.address || "Factory Plant, Surat, Gujarat";
+      const cAddrLines = pdf.splitTextToSize(`Address: ${consignorAddr}`, cardW - 6);
+      pdf.text(cAddrLines.slice(0, 3), leftCardX + 3, cLeftY);
+
+      // Card 2: Consignee (Deliver To)
+      pdf.setFillColor(248, 250, 252);
+      pdf.setDrawColor(203, 213, 225);
+      pdf.setLineWidth(0.25);
+      pdf.roundedRect(rightCardX, y, cardW, 35, 1, 1, "FD");
+
+      pdf.setFillColor(241, 245, 249);
+      pdf.rect(rightCardX, y, cardW, 6, "F");
+      setPdfFont("bold");
+      pdf.setFontSize(7.5);
+      pdf.setTextColor(30, 41, 59);
+      pdf.text("PART A2: CONSIGNEE (DELIVER TO)", rightCardX + 3, y + 4.2);
+
+      setPdfFont("bold");
+      pdf.setFontSize(8.5);
+      pdf.setTextColor(15, 23, 42);
+      pdf.text(fullBill.customer_name || "Customer", rightCardX + 3, y + 10.5);
+
+      setPdfFont("normal");
+      pdf.setFontSize(7.5);
+      pdf.setTextColor(71, 85, 105);
+      let cRightY = y + 14.5;
+      pdf.text(`GSTIN: ${fullBill.customer_gstin || "URP (Unregistered)"}`, rightCardX + 3, cRightY);
+      cRightY += 4;
+      if (fullBill.customer_phone) {
+        pdf.text(`Mobile: ${fullBill.customer_phone}`, rightCardX + 3, cRightY);
+        cRightY += 4;
+      }
+      const consigneeAddr = fullBill.shipping_address || fullBill.billing_address || "Customer Delivery Address";
+      const dAddrLines = pdf.splitTextToSize(`Delivery: ${consigneeAddr}`, cardW - 6);
+      pdf.text(dAddrLines.slice(0, 3), rightCardX + 3, cRightY);
+
+      y += 38;
+
+      // 4. Part B: Transport & Vehicle Particulars (4-Column Grid)
+      pdf.setFillColor(248, 250, 252);
+      pdf.setDrawColor(203, 213, 225);
+      pdf.setLineWidth(0.25);
+      pdf.roundedRect(margin, y, contentWidth, 22, 1, 1, "FD");
+
+      pdf.setFillColor(241, 245, 249);
+      pdf.rect(margin, y, contentWidth, 6, "F");
+      setPdfFont("bold");
+      pdf.setFontSize(7.5);
+      pdf.setTextColor(30, 41, 59);
+      pdf.text("PART-B: TRANSPORT & VEHICLE PARTICULARS", margin + 3, y + 4.2);
+
+      setPdfFont("normal");
+      pdf.setFontSize(7.5);
       pdf.setTextColor(71, 85, 105);
 
-      const col1X = margin + 4;
+      const col1X = margin + 3;
       const col2X = margin + 48;
-      const col3X = margin + 102;
-      const col4X = margin + 145;
+      const col3X = margin + 96;
+      const col4X = margin + 140;
 
-      pdf.text(`Mode: ${bill.transport_mode || "ROAD"}`, col1X, y + 11);
-      pdf.text(`Distance: ${bill.distance_km || 0} KM`, col1X, y + 16);
+      // Row 1
+      pdf.text("Mode:", col1X, y + 10.5);
+      setPdfFont("bold");
+      pdf.setTextColor(15, 23, 42);
+      pdf.text(fullBill.transport_mode || "ROAD", col1X + 10, y + 10.5);
 
-      pdf.text(`Vehicle No: ${bill.vehicle_number || "-"}`, col2X, y + 11);
-      pdf.text(`Vehicle Type: ${bill.vehicle_type || "REGULAR"}`, col2X, y + 16);
+      setPdfFont("normal");
+      pdf.setTextColor(71, 85, 105);
+      pdf.text("Vehicle No:", col2X, y + 10.5);
+      setPdfFont("bold");
+      pdf.setTextColor(15, 23, 42);
+      pdf.text(fullBill.vehicle_number || "-", col2X + 16, y + 10.5);
 
-      pdf.text(`Transporter: ${bill.transporter_name || "Self / Plant"}`, col3X, y + 11);
-      pdf.text(`Transporter ID: ${bill.transporter_id || "-"}`, col3X, y + 16);
+      setPdfFont("normal");
+      pdf.setTextColor(71, 85, 105);
+      pdf.text("Transporter:", col3X, y + 10.5);
+      setPdfFont("bold");
+      pdf.setTextColor(15, 23, 42);
+      pdf.text(fullBill.transporter_name || "Self / Fleet", col3X + 17, y + 10.5);
 
-      pdf.text(`Driver: ${bill.driver_name || "-"}`, col4X, y + 11);
-      pdf.text(`Mobile: ${bill.driver_mobile || "-"}`, col4X, y + 16);
+      setPdfFont("normal");
+      pdf.setTextColor(71, 85, 105);
+      pdf.text("Driver:", col4X, y + 10.5);
+      setPdfFont("bold");
+      pdf.setTextColor(15, 23, 42);
+      pdf.text(fullBill.driver_name || "-", col4X + 11, y + 10.5);
 
-      y += 28;
+      // Row 2
+      setPdfFont("normal");
+      pdf.setTextColor(71, 85, 105);
+      pdf.text("Distance:", col1X, y + 16.5);
+      setPdfFont("bold");
+      pdf.setTextColor(15, 23, 42);
+      pdf.text(`${fullBill.distance_km || 0} KM`, col1X + 14, y + 16.5);
 
-      // Reference Documents
-      pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(8.5);
-      pdf.setTextColor(30, 41, 59);
-      const refs = [
-        bill.invoice_no ? `Linked Invoice: ${bill.invoice_no} (${formatDate(bill.invoice_date)})` : "",
-        bill.dispatch_no ? `Linked Dispatch: ${bill.dispatch_no}` : "",
-      ]
-        .filter(Boolean)
-        .join("   |   ");
-      if (refs) {
-        pdf.text(refs, margin, y);
-        y += 6;
+      setPdfFont("normal");
+      pdf.setTextColor(71, 85, 105);
+      pdf.text("Vehicle Type:", col2X, y + 16.5);
+      setPdfFont("bold");
+      pdf.setTextColor(15, 23, 42);
+      pdf.text(fullBill.vehicle_type || "REGULAR", col2X + 19, y + 16.5);
+
+      setPdfFont("normal");
+      pdf.setTextColor(71, 85, 105);
+      pdf.text("Transporter ID:", col3X, y + 16.5);
+      setPdfFont("bold");
+      pdf.setTextColor(15, 23, 42);
+      pdf.text(fullBill.transporter_id || "-", col3X + 21, y + 16.5);
+
+      setPdfFont("normal");
+      pdf.setTextColor(71, 85, 105);
+      pdf.text("Driver Mobile:", col4X, y + 16.5);
+      setPdfFont("bold");
+      pdf.setTextColor(15, 23, 42);
+      pdf.text(fullBill.driver_mobile || "-", col4X + 19, y + 16.5);
+
+      y += 25;
+
+      // Linked Reference Badges if present
+      const docRefs = [
+        fullBill.invoice_no ? `Tax Invoice: ${fullBill.invoice_no} (${formatDate(fullBill.invoice_date)})` : "",
+        fullBill.dispatch_no ? `Dispatch Memo: ${fullBill.dispatch_no}` : "",
+      ].filter(Boolean);
+
+      if (docRefs.length > 0) {
+        setPdfFont("bold");
+        pdf.setFontSize(7.5);
+        pdf.setTextColor(30, 41, 59);
+        pdf.text(`Linked Documents: ${docRefs.join("   |   ")}`, margin, y);
+        y += 5;
       }
 
-      // Items Table
-      const tableHeaders = ["#", "Item Description", "HSN", "Qty", "Rate", "Taxable", "GST", "Total"];
-      const colW = [8, 62, 18, 18, 20, 24, 18, 24];
+      // 5. Consignment Goods Table (9 Columns, 182 mm)
+      // Columns: # (8), Item Description (52), HSN (16), Qty (16), Unit (12), Rate (20), Taxable (22), GST (16), Total (20) = 182 mm
+      const headers = ["#", "Item Description", "HSN", "Qty", "Unit", "Rate", "Taxable", "GST", "Total"];
+      const colW = [8, 52, 16, 16, 12, 20, 22, 16, 20];
 
-      pdf.setFillColor(15, 23, 42);
+      // Table Header Row
+      pdf.setFillColor(15, 23, 42); // dark navy
       pdf.rect(margin, y, contentWidth, 7, "F");
       pdf.setTextColor(255, 255, 255);
-      pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(8);
+      setPdfFont("bold");
+      pdf.setFontSize(7.5);
 
-      let curX = margin;
-      tableHeaders.forEach((th, idx) => {
-        const align = idx >= 3 ? "right" : "left";
-        const tx = align === "right" ? curX + colW[idx] - 2 : curX + 2;
-        pdf.text(th, tx, y + 4.8, { align });
-        curX += colW[idx];
+      let hx = margin;
+      headers.forEach((h, idx) => {
+        let align = "left";
+        let textX = hx + 2;
+        if (idx === 0 || idx === 2 || idx === 4) {
+          align = "center";
+          textX = hx + colW[idx] / 2;
+        } else if (idx >= 3 && idx !== 4) {
+          align = "right";
+          textX = hx + colW[idx] - 2;
+        }
+        pdf.text(h, textX, y + 4.8, { align });
+        hx += colW[idx];
       });
 
       y += 7;
 
-      // Table Rows
-      pdf.setTextColor(30, 41, 59);
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(8);
+      // Table Body Rows
+      const items = fullBill.items || [];
+      pdf.setTextColor(15, 23, 42);
 
-      (bill.items || []).forEach((item, index) => {
-        pdf.setFillColor(index % 2 === 0 ? 255 : 248, index % 2 === 0 ? 255 : 250, index % 2 === 0 ? 255 : 252);
-        pdf.rect(margin, y, contentWidth, 6.5, "F");
+      items.forEach((item, idx) => {
+        // Multi-line description wrapping
+        setPdfFont("bold");
+        pdf.setFontSize(7.5);
+        const descLines = pdf.splitTextToSize(item.product_name || "Plastic Goods", colW[1] - 4);
+        const rowHeight = Math.max(7, descLines.length * 4 + 3);
+
+        // Check page overflow
+        if (y + rowHeight > pageHeight - 55) {
+          pdf.addPage();
+          y = 14;
+        }
+
+        // Background alternating row
+        pdf.setFillColor(idx % 2 === 0 ? 255 : 248, idx % 2 === 0 ? 255 : 250, idx % 2 === 0 ? 255 : 252);
+        pdf.rect(margin, y, contentWidth, rowHeight, "F");
+
+        // Subtle divider line
+        pdf.setDrawColor(226, 232, 240);
+        pdf.setLineWidth(0.2);
+        pdf.line(margin, y + rowHeight, margin + contentWidth, y + rowHeight);
 
         let rx = margin;
-        // #
-        pdf.text(String(index + 1), rx + 2, y + 4.5);
-        rx += colW[0];
-        // Product
-        pdf.text(pdf.splitTextToSize(item.product_name, colW[1] - 3)[0] || item.product_name, rx + 2, y + 4.5);
-        rx += colW[1];
-        // HSN
-        pdf.text(item.hsn_code || "3915", rx + 2, y + 4.5);
-        rx += colW[2];
-        // Qty
-        pdf.text(`${Number(item.quantity)} ${item.unit || "KG"}`, rx + colW[3] - 2, y + 4.5, { align: "right" });
-        rx += colW[3];
-        // Rate
-        pdf.text(formatCurrency(item.rate), rx + colW[4] - 2, y + 4.5, { align: "right" });
-        rx += colW[4];
-        // Taxable
-        pdf.text(formatCurrency(item.taxable_amount), rx + colW[5] - 2, y + 4.5, { align: "right" });
-        rx += colW[5];
-        // GST
-        pdf.text(formatCurrency(item.tax_amount), rx + colW[6] - 2, y + 4.5, { align: "right" });
-        rx += colW[6];
-        // Total
-        pdf.text(formatCurrency(item.total_amount), rx + colW[7] - 2, y + 4.5, { align: "right" });
 
-        y += 6.5;
+        // 1. #
+        setPdfFont("normal");
+        pdf.setFontSize(7.5);
+        pdf.setTextColor(71, 85, 105);
+        pdf.text(String(idx + 1), rx + colW[0] / 2, y + 4.8, { align: "center" });
+        rx += colW[0];
+
+        // 2. Item Description
+        setPdfFont("bold");
+        pdf.setTextColor(15, 23, 42);
+        pdf.text(descLines, rx + 2, y + 4.8);
+        rx += colW[1];
+
+        // 3. HSN
+        setPdfFont("normal");
+        pdf.setTextColor(51, 65, 85);
+        pdf.text(String(item.hsn_code || "3915"), rx + colW[2] / 2, y + 4.8, { align: "center" });
+        rx += colW[2];
+
+        // 4. Qty
+        setPdfFont("bold");
+        pdf.setTextColor(15, 23, 42);
+        pdf.text(Number(item.quantity || 0).toLocaleString("en-IN"), rx + colW[3] - 2, y + 4.8, { align: "right" });
+        rx += colW[3];
+
+        // 5. Unit
+        setPdfFont("normal");
+        pdf.setTextColor(71, 85, 105);
+        pdf.text(String(item.unit || "KG"), rx + colW[4] / 2, y + 4.8, { align: "center" });
+        rx += colW[4];
+
+        // 6. Rate
+        setPdfFont("normal");
+        pdf.setTextColor(51, 65, 85);
+        pdf.text(formatPdfCurrency(item.rate), rx + colW[5] - 2, y + 4.8, { align: "right" });
+        rx += colW[5];
+
+        // 7. Taxable
+        pdf.text(formatPdfCurrency(item.taxable_amount), rx + colW[6] - 2, y + 4.8, { align: "right" });
+        rx += colW[6];
+
+        // 8. GST
+        const gstText = item.tax_amount ? formatPdfCurrency(item.tax_amount) : `${item.tax_percent || 0}%`;
+        pdf.text(gstText, rx + colW[7] - 2, y + 4.8, { align: "right" });
+        rx += colW[7];
+
+        // 9. Total
+        setPdfFont("bold");
+        pdf.setTextColor(15, 23, 42);
+        pdf.text(formatPdfCurrency(item.total_amount), rx + colW[8] - 2, y + 4.8, { align: "right" });
+
+        y += rowHeight;
       });
 
-      // Total Row
-      pdf.setFillColor(241, 245, 249);
-      pdf.rect(margin, y, contentWidth, 7.5, "F");
-      pdf.setFont("helvetica", "bold");
-      pdf.text("TOTAL CONSIGNMENT VALUE", margin + 4, y + 5);
+      // Outer table border
+      pdf.setDrawColor(203, 213, 225);
+      pdf.setLineWidth(0.3);
+      pdf.line(margin, y, margin + contentWidth, y);
 
-      pdf.text(formatCurrency(bill.total_taxable_amount), margin + 126, y + 5, { align: "right" });
-      pdf.text(formatCurrency(bill.total_tax_amount), margin + 144, y + 5, { align: "right" });
-      pdf.text(formatCurrency(bill.total_amount), margin + contentWidth - 2, y + 5, { align: "right" });
+      y += 6;
 
-      y += 18;
+      // 6. Totals & Consignment Summary Box (Right Aligned)
+      const summaryW = 84;
+      const summaryX = pageWidth - margin - summaryW;
 
-      // Signatures
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(8.5);
-      pdf.setDrawColor(148, 163, 184);
-      pdf.line(margin + 10, y + 10, margin + 70, y + 10);
-      pdf.line(margin + contentWidth - 70, y + 10, margin + contentWidth - 10, y + 10);
-
-      pdf.text("Transporter / Driver Signature", margin + 40, y + 15, { align: "center" });
-      pdf.text("Authorized Warehouse Dispatch Officer", margin + contentWidth - 40, y + 15, { align: "center" });
-
-      // Bottom Note
-      y += 24;
+      // Left Info Note
+      setPdfFont("normal");
       pdf.setFontSize(7.5);
+      pdf.setTextColor(71, 85, 105);
+      pdf.text(`Total Consignment Items: ${items.length} line item(s)`, margin, y + 4);
+      pdf.text(`Total Weight: ${Number(fullBill.total_weight_kg || 0).toLocaleString("en-IN")} KG`, margin, y + 8.5);
+      pdf.text(`Internal Reference: ${fullBill.ewb_number}`, margin, y + 13);
+
+      // Right Totals Box
+      pdf.setFillColor(248, 250, 252);
+      pdf.setDrawColor(203, 213, 225);
+      pdf.setLineWidth(0.25);
+      pdf.roundedRect(summaryX, y, summaryW, 26, 1, 1, "FD");
+
+      // Row: Taxable Value
+      setPdfFont("normal");
+      pdf.setFontSize(8);
+      pdf.setTextColor(71, 85, 105);
+      pdf.text("Taxable Value:", summaryX + 3, y + 5.5);
+      setPdfFont("bold");
+      pdf.setTextColor(15, 23, 42);
+      pdf.text(formatPdfCurrency(fullBill.total_taxable_amount), summaryX + summaryW - 3, y + 5.5, { align: "right" });
+
+      // Row: GST
+      setPdfFont("normal");
+      pdf.setTextColor(71, 85, 105);
+      pdf.text("Total GST Amount:", summaryX + 3, y + 10.5);
+      setPdfFont("bold");
+      pdf.setTextColor(15, 23, 42);
+      pdf.text(`+ ${formatPdfCurrency(fullBill.total_tax_amount)}`, summaryX + summaryW - 3, y + 10.5, { align: "right" });
+
+      // Row: Grand Total Highlight Box
+      pdf.setFillColor(241, 245, 249);
+      pdf.rect(summaryX, y + 14, summaryW, 12, "F");
+      pdf.setDrawColor(15, 23, 42);
+      pdf.setLineWidth(0.4);
+      pdf.line(summaryX, y + 14, summaryX + summaryW, y + 14);
+
+      setPdfFont("bold");
+      pdf.setFontSize(8.5);
+      pdf.setTextColor(15, 23, 42);
+      pdf.text("TOTAL CONSIGNMENT VALUE:", summaryX + 3, y + 21);
+      pdf.setFontSize(10);
+      pdf.setTextColor(30, 64, 175); // corporate blue
+      pdf.text(formatPdfCurrency(fullBill.total_amount), summaryX + summaryW - 3, y + 21, { align: "right" });
+
+      y += 34;
+
+      // Check space for signature
+      if (y + 35 > pageHeight - 15) {
+        pdf.addPage();
+        y = 20;
+      }
+
+      // 7. Signatures
+      const signW = 75;
+      pdf.setDrawColor(148, 163, 184);
+      pdf.setLineWidth(0.3);
+
+      // Left: Transporter / Driver Signature
+      pdf.line(margin + 5, y + 12, margin + 5 + signW, y + 12);
+      setPdfFont("bold");
+      pdf.setFontSize(8);
+      pdf.setTextColor(30, 41, 59);
+      pdf.text("Transporter / Driver Signature", margin + 5 + signW / 2, y + 16.5, { align: "center" });
+      setPdfFont("normal");
+      pdf.setFontSize(7);
+      pdf.setTextColor(100, 116, 139);
+      pdf.text(`(Driver: ${fullBill.driver_name || "Carrier Representative"})`, margin + 5 + signW / 2, y + 20.5, { align: "center" });
+
+      // Right: Authorized Dispatch Officer Signature
+      const rightSignX = pageWidth - margin - 5 - signW;
+      pdf.line(rightSignX, y + 12, rightSignX + signW, y + 12);
+      setPdfFont("bold");
+      pdf.setFontSize(8);
+      pdf.setTextColor(30, 41, 59);
+      pdf.text("Authorized Warehouse Dispatch Officer", rightSignX + signW / 2, y + 16.5, { align: "center" });
+      setPdfFont("normal");
+      pdf.setFontSize(7);
+      pdf.setTextColor(100, 116, 139);
+      pdf.text(`For ${compName}`, rightSignX + signW / 2, y + 20.5, { align: "center" });
+
+      y += 26;
+
+      // 8. Bottom Statutory Notice
+      setPdfFont("normal");
+      pdf.setFontSize(6.8);
       pdf.setTextColor(148, 163, 184);
       pdf.text(
         "Notice: This document is generated for internal factory dispatch tracking and carrier verification.",
         pageWidth / 2,
-        y,
+        y + 3,
         { align: "center" }
       );
       pdf.text(
-        "It does not substitute an official government e-way bill under Rule 138 of Central Goods and Services Tax Rules, 2017.",
+        "It does NOT substitute an official government e-way bill under Rule 138 of Central Goods and Services Tax Rules, 2017.",
         pageWidth / 2,
-        y + 4,
+        y + 6.5,
         { align: "center" }
       );
 
-      pdf.save(`${bill.ewb_number}_Internal_Transport_Document.pdf`);
+      pdf.save(`${fullBill.ewb_number}_Internal_Transport_Document.pdf`);
     } catch (pdfErr) {
       console.error("PDF Export Error:", pdfErr);
       alert("Failed to generate PDF document");
@@ -1299,68 +1688,111 @@ function PlasticEWayBills() {
             )}
 
             {/* Add New Item Sub-form */}
-            <div style={{ background: "#ffffff", padding: "12px", borderRadius: "6px", border: "1px solid #cbd5e1" }}>
-              <div style={{ fontWeight: 600, fontSize: "12px", marginBottom: "8px", color: "#334155" }}>
-                + Add Item
+            <div className="ewb-add-item-card">
+              <div className="ewb-add-item-header">
+                <strong>+ Add Consignment Line Item</strong>
+                <span style={{ fontSize: "11px", color: "#64748b" }}>
+                  All fields marked with * are required
+                </span>
               </div>
-              <div className="ewb-item-row">
-                <input
-                  type="text"
-                  className="sb-input"
-                  placeholder="Product Description"
-                  value={newItem.product_name}
-                  onChange={(e) => setNewItem({ ...newItem, product_name: e.target.value })}
-                />
-                <input
-                  type="text"
-                  className="sb-input"
-                  placeholder="HSN (e.g. 3915)"
-                  value={newItem.hsn_code}
-                  onChange={(e) => setNewItem({ ...newItem, hsn_code: e.target.value })}
-                />
-                <input
-                  type="number"
-                  className="sb-input"
-                  placeholder="Quantity"
-                  min="1"
-                  value={newItem.quantity}
-                  onChange={(e) => setNewItem({ ...newItem, quantity: e.target.value })}
-                />
-                <select
-                  className="sb-input"
-                  value={newItem.unit}
-                  onChange={(e) => setNewItem({ ...newItem, unit: e.target.value })}
-                >
-                  <option value="KG">KG</option>
-                  <option value="TON">TON</option>
-                  <option value="BAGS">BAGS</option>
-                  <option value="PCS">PCS</option>
-                </select>
-                <input
-                  type="number"
-                  className="sb-input"
-                  placeholder="Rate (₹)"
-                  min="0"
-                  step="0.01"
-                  value={newItem.rate}
-                  onChange={(e) => setNewItem({ ...newItem, rate: e.target.value })}
-                />
-                <input
-                  type="number"
-                  className="sb-input"
-                  placeholder="GST %"
-                  value={newItem.tax_percent}
-                  onChange={(e) => setNewItem({ ...newItem, tax_percent: e.target.value })}
-                />
-                <button
+
+              <div className="ewb-item-form-grid">
+                <div className="ewb-form-group ewb-col-span-2">
+                  <label className="sb-label">
+                    Product Description <span className="text-danger">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="sb-input"
+                    placeholder="e.g. Recycled Plastic Granules"
+                    value={newItem.product_name}
+                    onChange={(e) => setNewItem({ ...newItem, product_name: e.target.value })}
+                  />
+                </div>
+
+                <div className="ewb-form-group">
+                  <label className="sb-label">
+                    HSN / SAC Code <span className="text-danger">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="sb-input"
+                    placeholder="e.g. 3915"
+                    value={newItem.hsn_code}
+                    onChange={(e) => setNewItem({ ...newItem, hsn_code: e.target.value })}
+                  />
+                </div>
+
+                <div className="ewb-form-group">
+                  <label className="sb-label">
+                    Quantity <span className="text-danger">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    className="sb-input"
+                    placeholder="e.g. 100"
+                    min="0.01"
+                    step="any"
+                    value={newItem.quantity}
+                    onChange={(e) => setNewItem({ ...newItem, quantity: e.target.value })}
+                  />
+                </div>
+
+                <div className="ewb-form-group">
+                  <label className="sb-label">
+                    Unit <span className="text-danger">*</span>
+                  </label>
+                  <select
+                    className="sb-input"
+                    value={newItem.unit}
+                    onChange={(e) => setNewItem({ ...newItem, unit: e.target.value })}
+                  >
+                    <option value="KG">KG</option>
+                    <option value="TON">TON</option>
+                    <option value="BAGS">BAGS</option>
+                    <option value="PCS">PCS</option>
+                  </select>
+                </div>
+
+                <div className="ewb-form-group">
+                  <label className="sb-label">
+                    Rate per Unit <span className="text-danger">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    className="sb-input"
+                    placeholder="e.g. 50.00"
+                    min="0"
+                    step="0.01"
+                    value={newItem.rate}
+                    onChange={(e) => setNewItem({ ...newItem, rate: e.target.value })}
+                  />
+                </div>
+
+                <div className="ewb-form-group">
+                  <label className="sb-label">GST / Tax Rate %</label>
+                  <input
+                    type="number"
+                    className="sb-input"
+                    placeholder="e.g. 18"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    value={newItem.tax_percent}
+                    onChange={(e) => setNewItem({ ...newItem, tax_percent: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div style={{ marginTop: "12px", display: "flex", justifyContent: "flex-end" }}>
+                <Button
                   type="button"
-                  className="sb-btn-secondary"
+                  variant="secondary"
                   onClick={handleAddItem}
-                  style={{ height: "38px" }}
                   title="Add Item"
                 >
-                  Add
-                </button>
+                  ➕ Add Item
+                </Button>
               </div>
             </div>
           </div>
@@ -1399,10 +1831,42 @@ function PlasticEWayBills() {
             <div className="ewb-doc-preview-wrap" id="printable-ewb-doc">
               {/* Top Banner */}
               <div className="ewb-doc-header-banner">
-                <h2 className="ewb-doc-title">INTERNAL TRANSPORT / E-WAY BILL PREPARATION DOCUMENT</h2>
                 <span className="ewb-doc-disclaimer">
-                  Not an Official Government E-Way Bill (Internal Warehouse / Transit Management)
+                  NOT AN OFFICIAL GOVERNMENT E-WAY BILL — INTERNAL TRANSPORT / E-WAY BILL PREPARATION DOCUMENT
                 </span>
+              </div>
+
+              {/* Company Branding & Document Title Header */}
+              <div className="ewb-doc-header-main">
+                <div className="ewb-doc-company-block">
+                  {businessSettings?.logo && (
+                    <img
+                      src={businessSettings.logo}
+                      alt="Company Logo"
+                      className="ewb-doc-logo"
+                    />
+                  )}
+                  <div>
+                    <h2 className="ewb-doc-company-name">
+                      {selectedBill.dispatch_from_name || businessSettings?.business_name || "SmartBilling Polymers"}
+                    </h2>
+                    <div className="ewb-doc-company-sub">
+                      {selectedBill.dispatch_from_address || businessSettings?.address}
+                    </div>
+                    {(selectedBill.dispatch_from_gstin || businessSettings?.tax_number) && (
+                      <div className="ewb-doc-company-sub">
+                        <strong>GSTIN:</strong> {selectedBill.dispatch_from_gstin || businessSettings?.tax_number}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="ewb-doc-title-block">
+                  <div className="ewb-doc-type-title">INTERNAL E-WAY BILL</div>
+                  <div className="ewb-doc-type-sub">TRANSPORT & DISPATCH MEMO</div>
+                  <div className="ewb-doc-ref-badge">
+                    <strong>Ref:</strong> {selectedBill.ewb_number}
+                  </div>
+                </div>
               </div>
 
               {/* Document Reference Info */}
@@ -1428,7 +1892,9 @@ function PlasticEWayBills() {
                 <div className="ewb-meta-col" style={{ textAlign: "right" }}>
                   <div className="ewb-meta-item">
                     <strong>Status:</strong>{" "}
-                    <span className="ewb-badge ewb-badge-ready">{selectedBill.status}</span>
+                    <span className={`ewb-badge ewb-badge-${String(selectedBill.status).toLowerCase().replace(/_/g, "-")}`}>
+                      {selectedBill.status}
+                    </span>
                   </div>
                   <div className="ewb-meta-item">
                     <strong>Generated At:</strong> {new Date().toLocaleString("en-IN")}
@@ -1443,121 +1909,151 @@ function PlasticEWayBills() {
               <div className="ewb-doc-section-title">Part A: Consignor & Consignee Particulars</div>
               <div className="ewb-doc-parties-grid">
                 <div className="ewb-doc-party-card">
-                  <div style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase", fontWeight: 700 }}>
-                    Dispatch From (Consignor)
+                  <div className="ewb-party-badge">
+                    PART A1: CONSIGNOR (DISPATCH FROM)
                   </div>
                   <div className="ewb-doc-party-name">
-                    {selectedBill.dispatch_from_name || "SmartBilling Plant"}
+                    {selectedBill.dispatch_from_name || businessSettings?.business_name || "SmartBilling Plant"}
                   </div>
-                  {selectedBill.dispatch_from_gstin && (
-                    <div><strong>GSTIN:</strong> {selectedBill.dispatch_from_gstin}</div>
+                  {(selectedBill.dispatch_from_gstin || businessSettings?.tax_number) && (
+                    <div className="ewb-party-line">
+                      <strong>GSTIN:</strong> {selectedBill.dispatch_from_gstin || businessSettings?.tax_number}
+                    </div>
                   )}
-                  <div><strong>Address:</strong> {selectedBill.dispatch_from_address || "Kim Industrial Area, Surat"}</div>
+                  <div className="ewb-party-line">
+                    <strong>Address:</strong> {selectedBill.dispatch_from_address || businessSettings?.address || "Kim Industrial Area, Surat"}
+                  </div>
                 </div>
 
                 <div className="ewb-doc-party-card">
-                  <div style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase", fontWeight: 700 }}>
-                    Deliver To (Consignee)
+                  <div className="ewb-party-badge">
+                    PART A2: CONSIGNEE (DELIVER TO)
                   </div>
                   <div className="ewb-doc-party-name">{selectedBill.customer_name}</div>
-                  {selectedBill.customer_gstin && (
-                    <div><strong>GSTIN:</strong> {selectedBill.customer_gstin}</div>
-                  )}
+                  <div className="ewb-party-line">
+                    <strong>GSTIN:</strong> {selectedBill.customer_gstin || "URP (Unregistered)"}
+                  </div>
                   {selectedBill.customer_phone && (
-                    <div><strong>Contact:</strong> 📞 {selectedBill.customer_phone}</div>
+                    <div className="ewb-party-line">
+                      <strong>Contact:</strong> 📞 {selectedBill.customer_phone}
+                    </div>
                   )}
-                  <div><strong>Shipping Address:</strong> {selectedBill.shipping_address || selectedBill.billing_address}</div>
+                  <div className="ewb-party-line">
+                    <strong>Shipping Address:</strong> {selectedBill.shipping_address || selectedBill.billing_address || "Customer Address"}
+                  </div>
                 </div>
               </div>
 
               {/* Part B: Transport & Carrier Details */}
               <div className="ewb-doc-section-title">Part B: Carrier & Vehicle Particulars</div>
-              <div className="ewb-doc-meta-grid" style={{ marginBottom: "16px" }}>
-                <div className="ewb-meta-col">
-                  <div className="ewb-meta-item">
-                    <strong>Transport Mode:</strong> {selectedBill.transport_mode || "ROAD"}
-                  </div>
-                  <div className="ewb-meta-item">
-                    <strong>Vehicle Registration #:</strong>{" "}
-                    <span style={{ fontSize: "14px", fontWeight: 700, color: "#0f172a" }}>
-                      {selectedBill.vehicle_number}
-                    </span>
-                  </div>
-                  <div className="ewb-meta-item">
-                    <strong>Vehicle Type:</strong> {selectedBill.vehicle_type || "REGULAR"}
-                  </div>
+              <div className="ewb-transport-grid">
+                <div className="ewb-t-item">
+                  <span className="ewb-t-label">Transport Mode</span>
+                  <span className="ewb-t-val">{selectedBill.transport_mode || "ROAD"}</span>
                 </div>
-                <div className="ewb-meta-col">
-                  <div className="ewb-meta-item">
-                    <strong>Transporter Name:</strong> {selectedBill.transporter_name || "Self / Factory Fleet"}
-                  </div>
-                  <div className="ewb-meta-item">
-                    <strong>Driver Name:</strong> {selectedBill.driver_name || "-"}
-                  </div>
-                  <div className="ewb-meta-item">
-                    <strong>Driver Mobile:</strong> {selectedBill.driver_mobile || "-"}
-                  </div>
+                <div className="ewb-t-item">
+                  <span className="ewb-t-label">Vehicle Registration #</span>
+                  <span className="ewb-t-val highlight">{selectedBill.vehicle_number}</span>
+                </div>
+                <div className="ewb-t-item">
+                  <span className="ewb-t-label">Vehicle Type</span>
+                  <span className="ewb-t-val">{selectedBill.vehicle_type || "REGULAR"}</span>
+                </div>
+                <div className="ewb-t-item">
+                  <span className="ewb-t-label">Approx Distance</span>
+                  <span className="ewb-t-val">{selectedBill.distance_km || 0} KM</span>
+                </div>
+                <div className="ewb-t-item">
+                  <span className="ewb-t-label">Transporter Name</span>
+                  <span className="ewb-t-val">{selectedBill.transporter_name || "Self / Factory Fleet"}</span>
+                </div>
+                <div className="ewb-t-item">
+                  <span className="ewb-t-label">Transporter ID</span>
+                  <span className="ewb-t-val">{selectedBill.transporter_id || "-"}</span>
+                </div>
+                <div className="ewb-t-item">
+                  <span className="ewb-t-label">Driver Name</span>
+                  <span className="ewb-t-val">{selectedBill.driver_name || "-"}</span>
+                </div>
+                <div className="ewb-t-item">
+                  <span className="ewb-t-label">Driver Mobile</span>
+                  <span className="ewb-t-val">{selectedBill.driver_mobile || "-"}</span>
                 </div>
               </div>
 
               {/* Goods Table */}
-              <div className="ewb-doc-section-title">Consignment Goods & Tax Breakdown</div>
+              <div className="ewb-doc-section-title">Part C: Consignment Goods & Tax Breakdown</div>
               <table className="ewb-doc-table">
                 <thead>
                   <tr>
-                    <th style={{ width: "35px" }}>#</th>
-                    <th>Product Description</th>
-                    <th>HSN</th>
-                    <th className="text-right">Qty</th>
-                    <th className="text-right">Rate</th>
-                    <th className="text-right">Taxable</th>
-                    <th className="text-right">GST Rate</th>
-                    <th className="text-right">Total (₹)</th>
+                    <th style={{ width: "32px" }} className="text-center">#</th>
+                    <th>Item Description</th>
+                    <th className="text-center" style={{ width: "65px" }}>HSN</th>
+                    <th className="text-right" style={{ width: "70px" }}>Qty</th>
+                    <th className="text-center" style={{ width: "48px" }}>Unit</th>
+                    <th className="text-right" style={{ width: "80px" }}>Rate</th>
+                    <th className="text-right" style={{ width: "90px" }}>Taxable</th>
+                    <th className="text-right" style={{ width: "80px" }}>GST</th>
+                    <th className="text-right" style={{ width: "95px" }}>Total</th>
                   </tr>
                 </thead>
                 <tbody>
                   {(selectedBill.items || []).map((it, idx) => (
                     <tr key={idx}>
-                      <td>{idx + 1}</td>
+                      <td className="text-center">{idx + 1}</td>
                       <td>
                         <strong>{it.product_name}</strong>
                       </td>
-                      <td><code>{it.hsn_code || "3915"}</code></td>
+                      <td className="text-center"><code>{it.hsn_code || "3915"}</code></td>
                       <td className="text-right">
-                        {it.quantity} {it.unit}
+                        {Number(it.quantity || 0).toLocaleString("en-IN")}
                       </td>
+                      <td className="text-center">{it.unit || "KG"}</td>
                       <td className="text-right">{formatCurrency(it.rate)}</td>
                       <td className="text-right">{formatCurrency(it.taxable_amount)}</td>
-                      <td className="text-right">{it.tax_percent}% ({formatCurrency(it.tax_amount)})</td>
+                      <td className="text-right">{formatCurrency(it.tax_amount)} ({it.tax_percent}%)</td>
                       <td className="text-right">
                         <strong>{formatCurrency(it.total_amount)}</strong>
                       </td>
                     </tr>
                   ))}
-                  <tr className="ewb-doc-total-row">
-                    <td colSpan="3" style={{ textAlign: "right" }}>
-                      TOTAL CONSIGNMENT VALUE:
-                    </td>
-                    <td className="text-right">{selectedBill.total_weight_kg || 0} KG</td>
-                    <td></td>
-                    <td className="text-right">{formatCurrency(selectedBill.total_taxable_amount)}</td>
-                    <td className="text-right">+{formatCurrency(selectedBill.total_tax_amount)}</td>
-                    <td className="text-right" style={{ fontSize: "14px", color: "#0f172a" }}>
-                      {formatCurrency(selectedBill.total_amount)}
-                    </td>
-                  </tr>
                 </tbody>
               </table>
+
+              {/* Totals Summary */}
+              <div className="ewb-summary-wrap">
+                <div className="ewb-summary-left">
+                  <div><strong>Total Line Items:</strong> {(selectedBill.items || []).length}</div>
+                  <div><strong>Total Weight:</strong> {Number(selectedBill.total_weight_kg || 0).toLocaleString("en-IN")} KG</div>
+                  <div><strong>Internal Reference:</strong> {selectedBill.ewb_number}</div>
+                </div>
+                <div className="ewb-summary-right">
+                  <div className="ewb-sum-row">
+                    <span>Taxable Value:</span>
+                    <strong>{formatCurrency(selectedBill.total_taxable_amount)}</strong>
+                  </div>
+                  <div className="ewb-sum-row">
+                    <span>Total GST Amount:</span>
+                    <strong>+{formatCurrency(selectedBill.total_tax_amount)}</strong>
+                  </div>
+                  <div className="ewb-sum-row total">
+                    <span>TOTAL CONSIGNMENT VALUE:</span>
+                    <strong className="grand-val">{formatCurrency(selectedBill.total_amount)}</strong>
+                  </div>
+                </div>
+              </div>
 
               {/* Signatures */}
               <div className="ewb-doc-signatures">
                 <div className="ewb-sign-block">
-                  Signature of Carrier / Driver<br />
-                  ({selectedBill.driver_name || "Driver"})
+                  <div className="ewb-sign-line"></div>
+                  <div className="ewb-sign-role">Transporter / Driver Signature</div>
+                  <div className="ewb-sign-name">({selectedBill.driver_name || "Carrier Representative"})</div>
                 </div>
                 <div className="ewb-sign-block">
-                  Authorized Warehouse Officer<br />
-                  SmartBilling Polymers Plant
+                  <div className="ewb-sign-line"></div>
+                  <div className="ewb-sign-role">Authorized Warehouse Dispatch Officer</div>
+                  <div className="ewb-sign-name">For {selectedBill.dispatch_from_name || businessSettings?.business_name || "SmartBilling Plant"}</div>
                 </div>
               </div>
 
