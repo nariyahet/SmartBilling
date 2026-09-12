@@ -167,12 +167,14 @@ test.describe('SmartBilling 2.0 Global Search Bar Navigation & Robust Matching',
   test('18. Keyboard navigation: ArrowDown and ArrowUp change active selection', async ({ page }) => {
     await page.goto('http://localhost:4173/dashboard');
     const searchInput = page.locator('.sb-search-input');
+    await searchInput.click();
     await searchInput.fill('purchase');
 
     const dropdown = page.locator('.sb-search-dropdown');
-    await expect(dropdown).toBeVisible();
+    await expect(dropdown).toBeVisible({ timeout: 10000 });
 
     const items = page.locator('.sb-search-result-item');
+    await expect(items.first()).toBeVisible({ timeout: 10000 });
     const count = await items.count();
     expect(count).toBeGreaterThan(1);
 

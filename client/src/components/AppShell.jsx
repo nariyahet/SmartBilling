@@ -315,25 +315,25 @@ function AppShell({
       return;
     }
 
-    if (e.key === "ArrowDown") {
+    if (e.key === "ArrowDown" || e.key === "Down") {
       e.preventDefault();
       if (searchResults.length > 0) {
+        setIsSearchOpen(true);
         setSearchActiveIndex((prev) => (prev + 1) % searchResults.length);
-        setIsSearchOpen(true);
       }
       return;
     }
 
-    if (e.key === "ArrowUp") {
+    if (e.key === "ArrowUp" || e.key === "Up") {
       e.preventDefault();
       if (searchResults.length > 0) {
-        setSearchActiveIndex((prev) => (prev - 1 + searchResults.length) % searchResults.length);
         setIsSearchOpen(true);
+        setSearchActiveIndex((prev) => (prev - 1 + searchResults.length) % searchResults.length);
       }
       return;
     }
 
-    if (e.key === "Escape") {
+    if (e.key === "Escape" || e.key === "Esc") {
       setIsSearchOpen(false);
       return;
     }
