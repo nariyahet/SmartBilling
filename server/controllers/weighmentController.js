@@ -158,8 +158,15 @@ exports.createWeighment = async (req, res) => {
       });
     }
 
-    // Net weight: Gross (w1) - Tare (w2)
-    const netWeight = Math.abs(w1 - w2);
+    if (w2 > 0 && w2 >= w1) {
+      return res.status(400).json({
+        success: false,
+        message: "Tare weight (second weight) must be less than gross weight (first weight)",
+      });
+    }
+
+    // Net weight: Gross (w1) - Tare (w2). If w2 is 0, ticket is open pending tare measurement
+    const netWeight = (w1 > 0 && w2 > 0) ? (w1 - w2) : 0;
 
     let weighmentNo = req.body.weighment_no ? String(req.body.weighment_no).trim() : "";
     if (!weighmentNo) {
@@ -216,6 +223,8 @@ exports.createWeighment = async (req, res) => {
         company_id: companyId,
         weighment_no: weighmentNo,
         truck_number: assignedTruckNumber,
+        first_weight: w1,
+        second_weight: w2,
         net_weight: netWeight,
       },
     });
@@ -224,6 +233,83 @@ exports.createWeighment = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to record weighment",
+    });
+  }
+};
+
+exports.updateWeighment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const companyId = req.user.company_id;
+    const { second_weight, remarks, operator_name } = req.body;
+
+    const [rows] = await db.promise().query(
+      "SELECT * FROM weighments WHERE id = ? AND company_id = ? LIMIT 1",
+      [id, companyId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Weighment not found",
+      });
+    }
+
+    const weighment = rows[0];
+    const w1 = Number(weighment.first_weight) || 0;
+    const w2 = Number(second_weight !== undefined ? second_weight : weighment.second_weight) || 0;
+
+    if (w2 < 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Second weight (tare) cannot be negative",
+      });
+    }
+
+    if (w2 > 0 && w2 >= w1) {
+      return res.status(400).json({
+        success: false,
+        message: `Tare weight (${w2} KG) must be less than gross weight (${w1} KG)`,
+      });
+    }
+
+    const netWeight = (w1 > 0 && w2 > 0) ? (w1 - w2) : 0;
+
+    await db.promise().query(
+      `UPDATE weighments SET
+        second_weight = ?,
+        net_weight = ?,
+        operator_name = COALESCE(?, operator_name),
+        remarks = COALESCE(?, remarks),
+        updated_at = CURRENT_TIMESTAMP
+       WHERE id = ? AND company_id = ?`,
+      [
+        w2,
+        netWeight,
+        operator_name ? operator_name.trim() : null,
+        remarks !== undefined ? (remarks ? remarks.trim() : null) : null,
+        id,
+        companyId,
+      ]
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Weighment updated successfully with tare weight",
+      weighment: {
+        id: weighment.id,
+        weighment_no: weighment.weighment_no,
+        truck_number: weighment.truck_number,
+        first_weight: w1,
+        second_weight: w2,
+        net_weight: netWeight,
+      },
+    });
+  } catch (error) {
+    console.error("Update Weighment Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update weighment",
     });
   }
 };

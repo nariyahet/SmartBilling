@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const db = require("../config/db");
 const Admin = require("../models/adminModel");
 const { success, error } = require("../utils/response");
+const { seedCompanyAccounts } = require("../utils/accountSeeder");
 
 // Helper to generate a unique slug for a company
 const generateUniqueSlug = async (companyName, conn) => {
@@ -80,7 +81,7 @@ exports.register = async (req, res) => {
     );
   }
 
-  const conn = db.promise();
+  const conn = await db.promise().getConnection();
 
   try {
     // Check if email already exists
@@ -142,10 +143,13 @@ exports.register = async (req, res) => {
       [companyId, companyName, email]
     );
 
-    // 7. Commit transaction
+    // 7. Seed Chart of Accounts & Banking Masters
+    await seedCompanyAccounts(conn, companyId);
+
+    // 8. Commit transaction
     await conn.commit();
 
-    // 8. Fetch the newly created company data with exact timestamps
+    // 9. Fetch the newly created company data with exact timestamps
     const [companyRows] = await conn.query(
       `SELECT id, name, slug, status, is_demo, subscription_status, trial_start_at, trial_end_at
        FROM companies
@@ -155,7 +159,7 @@ exports.register = async (req, res) => {
 
     const createdCompany = companyRows[0];
 
-    // 9. Generate JWT
+    // 10. Generate JWT
     if (!process.env.JWT_SECRET) {
       console.error("JWT_SECRET is missing");
       return error(res, "Server configuration error", 500);
@@ -191,6 +195,8 @@ exports.register = async (req, res) => {
     await conn.rollback();
     console.error("Registration Transaction Error:", err);
     return error(res, "Registration failed due to a server error", 500);
+  } finally {
+    conn.release();
   }
 };
 

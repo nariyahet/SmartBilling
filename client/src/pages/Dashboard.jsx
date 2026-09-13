@@ -219,8 +219,8 @@ function Dashboard() {
         }
 
         // 5. Sales Report (Daily & Monthly trends)
-        if (salesRepRes.status === "fulfilled" && salesRepRes.value.data?.report) {
-          const rep = salesRepRes.value.data.report;
+        if (salesRepRes.status === "fulfilled" && (salesRepRes.value.data?.report || salesRepRes.value.data?.dailySales || salesRepRes.value.data?.success)) {
+          const rep = salesRepRes.value.data.report || salesRepRes.value.data;
           setDailySales(Array.isArray(rep.dailySales) ? rep.dailySales : []);
           setMonthlySales(Array.isArray(rep.monthlySales) ? rep.monthlySales : []);
         }

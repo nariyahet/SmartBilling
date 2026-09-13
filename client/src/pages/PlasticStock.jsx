@@ -338,7 +338,7 @@ function PlasticStock() {
               </button>
             </div>
 
-            <div style={{ padding: "20px" }}>
+            <div className="movement-table-container">
               {ledgerLoading ? (
                 <p>Loading movements...</p>
               ) : movements.length === 0 ? (

@@ -2,8 +2,10 @@ const express = require("express");
 const router = express.Router();
 const requisitionController = require("../controllers/procurementRequisitionController");
 const authMiddleware = require("../middleware/authMiddleware");
+const trialMiddleware = require("../middleware/trialMiddleware");
 
 router.use(authMiddleware);
+router.use(trialMiddleware);
 
 router.get("/next-no", requisitionController.getNextPRNo);
 router.get("/", requisitionController.getRequisitions);

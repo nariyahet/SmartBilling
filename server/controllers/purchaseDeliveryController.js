@@ -146,19 +146,25 @@ exports.getPendingItems = async (req, res) => {
 };
 
 exports.recordDelivery = async (req, res) => {
-  const conn = db.promise();
+  const conn = await db.promise().getConnection();
   try {
     const companyId = req.user.company_id;
     const adminId = req.user.id;
     const {
+      id,
+      delivery_id,
+      delivery_no,
       purchase_order_id,
       purchase_order_item_id,
       delivered_qty,
       accepted_qty,
       rejected_qty,
+      rejection_reason,
       delivery_date,
+      vehicle_no,
+      transporter,
+      lr_no,
       challan_no,
-      truck_number,
       truck_inward_id,
       purchase_bill_id,
       notes,
@@ -172,7 +178,51 @@ exports.recordDelivery = async (req, res) => {
       return res.status(400).json({ success: false, message: "Accepted quantity must be greater than zero" });
     }
 
-    await conn.query("START TRANSACTION");
+    await conn.beginTransaction();
+
+    // 1. Idempotency Check: Prevent duplicate processing if delivery ID or delivery number already exists
+    const checkDeliveryId = id || delivery_id;
+    if (checkDeliveryId) {
+      const [existingDel] = await conn.query(
+        "SELECT * FROM plastic_purchase_deliveries WHERE id = ? AND company_id = ? FOR UPDATE",
+        [checkDeliveryId, companyId]
+      );
+      if (existingDel.length > 0) {
+        const [existingMvmt] = await conn.query(
+          "SELECT id FROM raw_material_stock_movements WHERE company_id = ? AND reference_type = 'PURCHASE_DELIVERY' AND reference_id = ?",
+          [companyId, checkDeliveryId]
+        );
+        if (existingMvmt.length > 0) {
+          await conn.query("ROLLBACK");
+          return res.status(409).json({
+            success: false,
+            message: `Delivery #${existingDel[0].delivery_no} has already been processed and stocked. Duplicate confirmation rejected.`,
+            data: {
+              deliveryId: checkDeliveryId,
+              delivery_no: existingDel[0].delivery_no,
+            },
+          });
+        }
+      }
+    }
+
+    if (delivery_no) {
+      const [existingDelNo] = await conn.query(
+        "SELECT id, delivery_no FROM plastic_purchase_deliveries WHERE delivery_no = ? AND company_id = ?",
+        [delivery_no, companyId]
+      );
+      if (existingDelNo.length > 0) {
+        await conn.query("ROLLBACK");
+        return res.status(409).json({
+          success: false,
+          message: `Delivery number ${delivery_no} already exists. Duplicate delivery rejected.`,
+          data: {
+            deliveryId: existingDelNo[0].id,
+            delivery_no: existingDelNo[0].delivery_no,
+          },
+        });
+      }
+    }
 
     // Fetch PO Header
     const [pos] = await conn.query(
@@ -202,7 +252,7 @@ exports.recordDelivery = async (req, res) => {
     }
 
     const poItem = poItems[0];
-    const deliveryNo = await generateNextDeliveryNo(conn, companyId);
+    const generatedDeliveryNo = delivery_no || (await generateNextDeliveryNo(conn, companyId));
 
     // Calculate delay days
     let delayDays = 0;
@@ -224,7 +274,7 @@ exports.recordDelivery = async (req, res) => {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'DELIVERED', ?, ?)`,
       [
         companyId,
-        deliveryNo,
+        generatedDeliveryNo,
         po.id,
         poItem.id,
         truck_inward_id || null,
@@ -244,7 +294,9 @@ exports.recordDelivery = async (req, res) => {
       ]
     );
 
-    // Update PO Item quantities
+    const newDeliveryId = delResult.insertId;
+
+    // Update PO Item quantities (only accepted_qty counts towards received)
     const newReceivedQty = Number(poItem.received_qty) + accQty;
     const newPendingQty = Math.max(0, Number(poItem.ordered_qty) - newReceivedQty);
     const itemStatus = newPendingQty <= 0 ? "FULFILLED" : "PARTIAL";
@@ -302,22 +354,116 @@ exports.recordDelivery = async (req, res) => {
       ]
     );
 
-    await conn.query("COMMIT");
+    // Stock Inflow: Update raw_material_stock by accepted_qty ONLY (Exclude rejected_qty)
+    // Check if this delivery was attached to an existing Purchase Bill that already credited stock
+    let alreadyStockedByBill = false;
+    if (purchase_bill_id) {
+      const [billItems] = await conn.query(
+        "SELECT id FROM purchase_bill_items WHERE purchase_bill_id = ? AND raw_material_id = ? AND company_id = ?",
+        [purchase_bill_id, poItem.raw_material_id, companyId]
+      );
+      if (billItems.length > 0) {
+        alreadyStockedByBill = true;
+      }
+    }
+
+    if (!alreadyStockedByBill && accQty > 0) {
+      const deliveryValue = accQty * currentRate;
+
+      // Fetch current stock FOR UPDATE
+      const [stockRows] = await conn.query(
+        `SELECT id, quantity, average_rate, stock_value
+         FROM raw_material_stock
+         WHERE company_id = ? AND raw_material_id = ?
+         FOR UPDATE`,
+        [companyId, poItem.raw_material_id]
+      );
+
+      let currentStockQty = 0;
+      let currentStockValue = 0;
+      if (stockRows.length > 0) {
+        currentStockQty = Number(stockRows[0].quantity) || 0;
+        currentStockValue = Number(stockRows[0].stock_value) || 0;
+      }
+
+      const updatedStockQty = currentStockQty + accQty;
+      const updatedStockValue = currentStockValue + deliveryValue;
+      const updatedAvgRate = updatedStockQty > 0 ? updatedStockValue / updatedStockQty : currentRate;
+
+      // Upsert raw_material_stock
+      await conn.query(
+        `INSERT INTO raw_material_stock
+          (company_id, raw_material_id, quantity, average_rate, stock_value)
+         VALUES (?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE
+           quantity = VALUES(quantity),
+           average_rate = VALUES(average_rate),
+           stock_value = VALUES(stock_value),
+           updated_at = CURRENT_TIMESTAMP`,
+        [
+          companyId,
+          poItem.raw_material_id,
+          updatedStockQty,
+          updatedAvgRate,
+          updatedStockValue,
+        ]
+      );
+
+      // Audit movement in raw_material_stock_movements
+      await conn.query(
+        `INSERT INTO raw_material_stock_movements
+          (
+            company_id,
+            raw_material_id,
+            movement_type,
+            reference_type,
+            reference_id,
+            quantity,
+            rate,
+            total_value,
+            balance_quantity,
+            movement_date,
+            remarks,
+            created_by
+          )
+         VALUES (?, ?, 'PURCHASE_DELIVERY', 'PURCHASE_DELIVERY', ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          companyId,
+          poItem.raw_material_id,
+          newDeliveryId,
+          accQty,
+          currentRate,
+          deliveryValue,
+          updatedStockQty,
+          delivery_date || new Date().toISOString().slice(0, 10),
+          `Delivery ${generatedDeliveryNo} against PO ${po.po_no} (Accepted: ${accQty} KG)`,
+          adminId,
+        ]
+      );
+    }
+
+    await conn.commit();
 
     res.status(201).json({
       success: true,
-      message: `Delivery ${deliveryNo} recorded against PO ${po.po_no}. Accepted: ${accQty} KG, Pending: ${newPendingQty} KG`,
+      message: `Delivery ${generatedDeliveryNo} recorded against PO ${po.po_no}. Accepted: ${accQty} KG, Pending: ${newPendingQty} KG`,
       data: {
-        deliveryId: delResult.insertId,
-        delivery_no: deliveryNo,
+        deliveryId: newDeliveryId,
+        delivery_no: generatedDeliveryNo,
         received_qty: newReceivedQty,
         pending_qty: newPendingQty,
         po_status: newPOStatus,
       },
     });
   } catch (error) {
-    await conn.query("ROLLBACK");
+    try {
+      await conn.rollback();
+    } catch (rbErr) {
+      console.error("Rollback Error:", rbErr);
+    }
     console.error("Record Delivery Error:", error);
     res.status(500).json({ success: false, message: error.message || "Failed to record delivery" });
+  } finally {
+    conn.release();
   }
 };

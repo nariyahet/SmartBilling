@@ -118,7 +118,7 @@ exports.getSupplierPaymentById = async (req, res) => {
 };
 
 exports.recordSupplierPayment = async (req, res) => {
-  const conn = db.promise();
+  const conn = await db.promise().getConnection();
   try {
     const companyId = req.user.company_id;
     const adminId = req.user.id;
@@ -217,6 +217,8 @@ exports.recordSupplierPayment = async (req, res) => {
   } catch (error) {
     console.error("Record Supplier Payment Error:", error);
     res.status(500).json({ success: false, message: error.message || "Failed to record payment" });
+  } finally {
+    conn.release();
   }
 };
 

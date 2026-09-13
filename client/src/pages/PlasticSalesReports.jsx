@@ -54,13 +54,19 @@ function PlasticSalesReports({ defaultTab = "SALES" }) {
         API.get(`/plastic-erp/reports/profit-margin${qs}`),
       ]);
 
-      if (sRes.data?.success) setSalesData(sRes.data.summary);
-      if (dRes.data?.success) setDispatchData(dRes.data.summary);
-      if (pRes.data?.success) setPaymentData(pRes.data.summary);
-      if (mRes.data?.success) setProfitData(mRes.data.summary);
+      if (sRes.data?.success) setSalesData(sRes.data.summary || sRes.data);
+      if (dRes.data?.success) setDispatchData(dRes.data.summary || dRes.data);
+      if (pRes.data?.success) setPaymentData(pRes.data.summary || pRes.data);
+      if (mRes.data?.success) {
+        const mSum = mRes.data.summary || mRes.data;
+        setProfitData({
+          ...mSum,
+          items: mRes.data.items || mSum.items || [],
+        });
+      }
     } catch (err) {
       console.error("Failed to load reports:", err);
-      alert("Failed to load sales and financial reports");
+      alert(err.response?.data?.message || "Failed to load sales and financial reports");
     } finally {
       setLoading(false);
     }
@@ -211,6 +217,7 @@ function PlasticSalesReports({ defaultTab = "SALES" }) {
             <div className="grid-2-sections">
               {/* Top Customers */}
               <Card title="Top Customers by Sales Value">
+                <div className="report-table-wrapper">
                 <table className="report-table">
                   <thead>
                     <tr>
@@ -241,10 +248,12 @@ function PlasticSalesReports({ defaultTab = "SALES" }) {
                     )}
                   </tbody>
                 </table>
+                </div>
               </Card>
 
               {/* Top Products */}
               <Card title="Top Products by Sales Volume">
+                <div className="report-table-wrapper">
                 <table className="report-table">
                   <thead>
                     <tr>
@@ -278,6 +287,7 @@ function PlasticSalesReports({ defaultTab = "SALES" }) {
                     )}
                   </tbody>
                 </table>
+                </div>
               </Card>
             </div>
           </div>
@@ -304,6 +314,7 @@ function PlasticSalesReports({ defaultTab = "SALES" }) {
             <div className="grid-2-sections">
               {/* Transport Fleet Breakdown */}
               <Card title="Dispatches by Transporter / Fleet">
+                <div className="report-table-wrapper">
                 <table className="report-table">
                   <thead>
                     <tr>
@@ -332,10 +343,12 @@ function PlasticSalesReports({ defaultTab = "SALES" }) {
                     )}
                   </tbody>
                 </table>
+                </div>
               </Card>
 
               {/* Destination Breakdown */}
               <Card title="Top Delivery Destinations">
+                <div className="report-table-wrapper">
                 <table className="report-table">
                   <thead>
                     <tr>
@@ -364,6 +377,7 @@ function PlasticSalesReports({ defaultTab = "SALES" }) {
                     )}
                   </tbody>
                 </table>
+                </div>
               </Card>
             </div>
           </div>
@@ -390,6 +404,7 @@ function PlasticSalesReports({ defaultTab = "SALES" }) {
             <div className="grid-2-sections">
               {/* Mode Breakdown */}
               <Card title="Collections by Payment Channel">
+                <div className="report-table-wrapper">
                 <table className="report-table">
                   <thead>
                     <tr>
@@ -420,10 +435,12 @@ function PlasticSalesReports({ defaultTab = "SALES" }) {
                     )}
                   </tbody>
                 </table>
+                </div>
               </Card>
 
               {/* Top Paying Customers */}
               <Card title="Top Realized Collections by Customer">
+                <div className="report-table-wrapper">
                 <table className="report-table">
                   <thead>
                     <tr>
@@ -454,6 +471,7 @@ function PlasticSalesReports({ defaultTab = "SALES" }) {
                     )}
                   </tbody>
                 </table>
+                </div>
               </Card>
             </div>
           </div>
@@ -494,6 +512,7 @@ function PlasticSalesReports({ defaultTab = "SALES" }) {
             </div>
 
             <Card title="Product Profit & Gross Margin Analysis">
+              <div className="report-table-wrapper">
               <table className="report-table">
                 <thead>
                   <tr>
@@ -516,18 +535,18 @@ function PlasticSalesReports({ defaultTab = "SALES" }) {
                   ) : (
                     profitData.items.map((it, i) => {
                       const gp = Number(it.gross_profit || 0);
-                      const margin = Number(it.margin_pct || 0);
+                      const margin = Number(it.margin_pct !== undefined ? it.margin_pct : (it.margin_percent || 0));
                       return (
                         <tr key={i}>
                           <td>
                             <strong>{it.fg_name}</strong>
                           </td>
-                          <td className="text-right">{Number(it.total_qty || 0).toLocaleString()} KG</td>
+                          <td className="text-right">{Number(it.total_qty || it.quantity || 0).toLocaleString()} KG</td>
                           <td className="text-right font-semibold">
                             ₹{Number(it.revenue || 0).toLocaleString("en-IN")}
                           </td>
                           <td className="text-right text-muted">
-                            ₹{Number(it.cost || 0).toLocaleString("en-IN")}
+                            ₹{Number(it.actual_cost || it.cost_value || it.cost || 0).toLocaleString("en-IN")}
                           </td>
                           <td className={`text-right font-bold ${gp >= 0 ? "text-success" : "text-danger"}`}>
                             ₹{gp.toLocaleString("en-IN")}
@@ -548,6 +567,7 @@ function PlasticSalesReports({ defaultTab = "SALES" }) {
                   )}
                 </tbody>
               </table>
+              </div>
             </Card>
           </div>
         )}

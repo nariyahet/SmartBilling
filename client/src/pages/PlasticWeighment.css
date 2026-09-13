@@ -35,6 +35,34 @@
   background: #f3e8ff;
 }
 
+.btn-record-tare {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-record-tare:hover {
+  background: #dbeafe;
+  border-color: #93c5fd;
+}
+
+.pending-tare-badge {
+  display: inline-block;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid #fde68a;
+}
+
 /* SLIP MODAL */
 .slip-modal-card {
   background: #ffffff;

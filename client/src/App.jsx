@@ -11,7 +11,6 @@ import InvoicePreview from "./pages/InvoicePreview";
 import InvoicesHistory from "./pages/InvoicesHistory";
 import SalesReport from "./pages/SalesReport";
 import BusinessSettings from "./pages/BusinessSettings";
-import PlasticDashboard from "./pages/PlasticDashboard";
 import PlasticSuppliers from "./pages/PlasticSuppliers";
 import PlasticRawMaterials from "./pages/PlasticRawMaterials";
 import PlasticTruckInward from "./pages/PlasticTruckInward";

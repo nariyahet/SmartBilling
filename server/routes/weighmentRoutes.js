@@ -11,5 +11,6 @@ router.use(trialMiddleware);
 router.get("/", weighmentController.getWeighments);
 router.get("/:id", weighmentController.getWeighmentById);
 router.post("/", weighmentController.createWeighment);
+router.put("/:id", weighmentController.updateWeighment);
 
 module.exports = router;

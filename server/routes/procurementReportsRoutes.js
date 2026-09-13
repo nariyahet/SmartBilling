@@ -2,8 +2,10 @@ const express = require("express");
 const router = express.Router();
 const reportsController = require("../controllers/procurementReportsController");
 const authMiddleware = require("../middleware/authMiddleware");
+const trialMiddleware = require("../middleware/trialMiddleware");
 
 router.use(authMiddleware);
+router.use(trialMiddleware);
 
 router.get("/requisitions", reportsController.getPurchaseRequisitionReport);
 router.get("/orders", reportsController.getPurchaseOrderReport);

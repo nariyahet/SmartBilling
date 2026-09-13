@@ -71,7 +71,7 @@ exports.getPayrollById = async (req, res) => {
 };
 
 exports.processMonthlyPayroll = async (req, res) => {
-  const pdb = db.promise();
+  const conn = await db.promise().getConnection();
   try {
     const companyId = req.user.company_id;
     const adminId = req.user.id;
@@ -85,7 +85,7 @@ exports.processMonthlyPayroll = async (req, res) => {
     }
 
     // Check if payroll for this month and year already exists
-    const [existing] = await pdb.query(
+    const [existing] = await conn.query(
       "SELECT id, status FROM plastic_payrolls WHERE company_id = ? AND year = ? AND month = ? LIMIT 1",
       [companyId, y, m]
     );
@@ -95,10 +95,10 @@ exports.processMonthlyPayroll = async (req, res) => {
     const endDate = `${y}-${String(m).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
     const batchNo = `PAYROLL-${y}-${String(m).padStart(2, "0")}`;
 
-    await pdb.beginTransaction();
+    await conn.beginTransaction();
 
     // 1. Fetch all ACTIVE employees with their salary structures
-    const [employees] = await pdb.query(
+    const [employees] = await conn.query(
       `SELECT e.*, s.salary_type, s.base_salary, s.hra, s.conveyance_allowance,
               s.medical_allowance, s.special_allowance, s.overtime_rate_per_hour,
               s.pf_deduction, s.esic_deduction, s.professional_tax, s.other_deductions
@@ -112,12 +112,12 @@ exports.processMonthlyPayroll = async (req, res) => {
     );
 
     if (employees.length === 0) {
-      await pdb.rollback();
+      await conn.rollback();
       return res.status(400).json({ success: false, message: "No active employees found to process payroll" });
     }
 
     // 2. Fetch monthly attendance metrics per employee
-    const [attendanceRows] = await pdb.query(
+    const [attendanceRows] = await conn.query(
       `SELECT
          employee_id,
          COUNT(CASE WHEN status = 'PRESENT' THEN 1 END) AS present_days,
@@ -138,7 +138,7 @@ exports.processMonthlyPayroll = async (req, res) => {
     });
 
     // 3. Fetch active advances per employee
-    const [advancesRows] = await pdb.query(
+    const [advancesRows] = await conn.query(
       `SELECT id, employee_id, outstanding_amount, monthly_installment
        FROM plastic_employee_advances
        WHERE company_id = ? AND status = 'ACTIVE' AND outstanding_amount > 0`,
@@ -156,9 +156,9 @@ exports.processMonthlyPayroll = async (req, res) => {
     if (existing.length > 0) {
       payrollId = existing[0].id;
       // Delete old items before recomputing
-      await pdb.query("DELETE FROM plastic_payroll_items WHERE payroll_id = ? AND company_id = ?", [payrollId, companyId]);
+      await conn.query("DELETE FROM plastic_payroll_items WHERE payroll_id = ? AND company_id = ?", [payrollId, companyId]);
     } else {
-      const [pRes] = await pdb.query(
+      const [pRes] = await conn.query(
         `INSERT INTO plastic_payrolls (
           company_id, payroll_batch_no, month, year, start_date, end_date,
           total_employees, status, notes, processed_by
@@ -249,7 +249,7 @@ exports.processMonthlyPayroll = async (req, res) => {
       totalNet += netSalary;
       totalOvertimePay += overtimeAmount;
 
-      await pdb.query(
+      await conn.query(
         `INSERT INTO plastic_payroll_items (
           company_id, payroll_id, employee_id, payslip_no, base_salary,
           present_days, absent_days, half_days, paid_leaves, overtime_hours,
@@ -285,7 +285,7 @@ exports.processMonthlyPayroll = async (req, res) => {
     }
 
     // Update payroll totals
-    await pdb.query(
+    await conn.query(
       `UPDATE plastic_payrolls SET
         total_employees = ?,
         total_gross_salary = ?,
@@ -312,7 +312,7 @@ exports.processMonthlyPayroll = async (req, res) => {
     // Phase 5: Auto-post accounting journal for payroll provision
     try {
       const { postPayrollAccounting } = require("../utils/accountingHelper");
-      await postPayrollAccounting(pdb, {
+      await postPayrollAccounting(conn, {
         companyId,
         payroll: {
           id: payrollId,
@@ -329,7 +329,7 @@ exports.processMonthlyPayroll = async (req, res) => {
       console.error("Payroll accounting post error:", accErr);
     }
 
-    await pdb.commit();
+    await conn.commit();
 
     res.status(201).json({
       success: true,
@@ -348,20 +348,22 @@ exports.processMonthlyPayroll = async (req, res) => {
       },
     });
   } catch (error) {
-    await pdb.rollback();
+    await conn.rollback();
     console.error("Process Monthly Payroll Error:", error);
     res.status(500).json({ success: false, message: error.message || "Failed to process payroll" });
+  } finally {
+    conn.release();
   }
 };
 
 exports.updatePayrollStatus = async (req, res) => {
-  const pdb = db.promise();
+  const conn = await db.promise().getConnection();
   try {
     const companyId = req.user.company_id;
     const { id } = req.params;
     const { status, payment_date, payment_mode } = req.body;
 
-    const [payrolls] = await pdb.query(
+    const [payrolls] = await conn.query(
       "SELECT * FROM plastic_payrolls WHERE id = ? AND company_id = ? LIMIT 1",
       [id, companyId]
     );
@@ -372,22 +374,22 @@ exports.updatePayrollStatus = async (req, res) => {
 
     const payroll = payrolls[0];
 
-    await pdb.beginTransaction();
+    await conn.beginTransaction();
 
-    await pdb.query(
+    await conn.query(
       "UPDATE plastic_payrolls SET status = ?, payment_date = COALESCE(?, payment_date) WHERE id = ? AND company_id = ?",
       [status, payment_date || null, id, companyId]
     );
 
     // If marked PAID, update all payroll items and recover advances
     if (status === "PAID") {
-      await pdb.query(
+      await conn.query(
         "UPDATE plastic_payroll_items SET payment_status = 'PAID', payment_mode = ? WHERE payroll_id = ? AND company_id = ?",
         [payment_mode || "BANK_TRANSFER", id, companyId]
       );
 
       // Deduct advance recoveries from employee advances
-      const [itemsWithAdvances] = await pdb.query(
+      const [itemsWithAdvances] = await conn.query(
         "SELECT employee_id, advance_recovery FROM plastic_payroll_items WHERE payroll_id = ? AND company_id = ? AND advance_recovery > 0",
         [id, companyId]
       );
@@ -395,7 +397,7 @@ exports.updatePayrollStatus = async (req, res) => {
       for (const itm of itemsWithAdvances) {
         let remainingToDeduct = Number(itm.advance_recovery);
 
-        const [activeAdv] = await pdb.query(
+        const [activeAdv] = await conn.query(
           "SELECT id, recovery_amount, outstanding_amount FROM plastic_employee_advances WHERE employee_id = ? AND company_id = ? AND status = 'ACTIVE' ORDER BY advance_date ASC",
           [itm.employee_id, companyId]
         );
@@ -407,7 +409,7 @@ exports.updatePayrollStatus = async (req, res) => {
           const newOutstanding = Number(adv.outstanding_amount) - deductAmount;
           const advStatus = newOutstanding === 0 ? "RECOVERED" : "ACTIVE";
 
-          await pdb.query(
+          await conn.query(
             "UPDATE plastic_employee_advances SET recovery_amount = ?, outstanding_amount = ?, status = ? WHERE id = ?",
             [newRecovered, newOutstanding, advStatus, adv.id]
           );
@@ -419,7 +421,7 @@ exports.updatePayrollStatus = async (req, res) => {
       // Phase 5: Auto-post accounting journal for payroll bank settlement
       try {
         const { postPayrollAccounting } = require("../utils/accountingHelper");
-        await postPayrollAccounting(pdb, {
+        await postPayrollAccounting(conn, {
           companyId,
           payroll: {
             id: payroll.id,
@@ -435,13 +437,67 @@ exports.updatePayrollStatus = async (req, res) => {
       }
     }
 
-    await pdb.commit();
+    await conn.commit();
 
     res.status(200).json({ success: true, message: `Payroll status updated to ${status}` });
   } catch (error) {
-    await pdb.rollback();
+    await conn.rollback();
     console.error("Update Payroll Status Error:", error);
     res.status(500).json({ success: false, message: "Failed to update payroll status" });
+  } finally {
+    conn.release();
+  }
+};
+
+exports.deletePayroll = async (req, res) => {
+  const conn = await db.promise().getConnection();
+  try {
+    const companyId = req.user.company_id;
+    const { id } = req.params;
+
+    const [payrolls] = await conn.query(
+      "SELECT id, status, payroll_batch_no FROM plastic_payrolls WHERE id = ? AND company_id = ? LIMIT 1",
+      [id, companyId]
+    );
+
+    if (payrolls.length === 0) {
+      return res.status(404).json({ success: false, message: "Payroll run not found" });
+    }
+
+    const payroll = payrolls[0];
+    if (payroll.status === "PAID") {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot delete a payroll run that has already been marked as PAID. Revert or adjust entries instead."
+      });
+    }
+
+    await conn.beginTransaction();
+
+    // Delete payroll items
+    await conn.query(
+      "DELETE FROM plastic_payroll_items WHERE payroll_id = ? AND company_id = ?",
+      [id, companyId]
+    );
+
+    // Delete payroll master
+    await conn.query(
+      "DELETE FROM plastic_payrolls WHERE id = ? AND company_id = ?",
+      [id, companyId]
+    );
+
+    await conn.commit();
+
+    res.status(200).json({
+      success: true,
+      message: `Payroll run ${payroll.payroll_batch_no} deleted successfully`,
+    });
+  } catch (error) {
+    await conn.rollback();
+    console.error("Delete Payroll Error:", error);
+    res.status(500).json({ success: false, message: error.message || "Failed to delete payroll run" });
+  } finally {
+    conn.release();
   }
 };
 

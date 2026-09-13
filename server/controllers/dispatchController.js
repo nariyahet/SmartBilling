@@ -188,7 +188,7 @@ exports.getDispatchById = async (req, res) => {
 };
 
 exports.createDispatch = async (req, res) => {
-  const conn = db.promise();
+  const conn = await db.promise().getConnection();
   try {
     const companyId = req.user.company_id;
     const adminId = req.user.id;
@@ -413,8 +413,14 @@ exports.createDispatch = async (req, res) => {
         status: initialStatus,
       });
     } catch (txnErr) {
-      await conn.rollback();
+      try {
+        await conn.rollback();
+      } catch (rbErr) {
+        console.error("Rollback Error:", rbErr);
+      }
       throw txnErr;
+    } finally {
+      conn.release();
     }
   } catch (error) {
     console.error("Create Dispatch Error:", error);
@@ -423,7 +429,7 @@ exports.createDispatch = async (req, res) => {
 };
 
 exports.updateDispatchStatus = async (req, res) => {
-  const conn = db.promise();
+  const conn = await db.promise().getConnection();
   try {
     const companyId = req.user.company_id;
     const adminId = req.user.id;
@@ -604,8 +610,14 @@ exports.updateDispatchStatus = async (req, res) => {
         status,
       });
     } catch (txnErr) {
-      await conn.rollback();
+      try {
+        await conn.rollback();
+      } catch (rbErr) {
+        console.error("Rollback Error:", rbErr);
+      }
       throw txnErr;
+    } finally {
+      conn.release();
     }
   } catch (error) {
     console.error("Update Dispatch Status Error:", error);
@@ -617,7 +629,7 @@ exports.updateDispatchStatus = async (req, res) => {
  * Creates and links an invoice using the EXACT SmartBilling existing invoice architecture!
  */
 exports.createInvoiceFromDispatch = async (req, res) => {
-  const conn = db.promise();
+  const conn = await db.promise().getConnection();
   try {
     const companyId = req.user.company_id;
     const adminId = req.user.id;
@@ -684,6 +696,12 @@ exports.createInvoiceFromDispatch = async (req, res) => {
 
       // Find or create product mapping in `products` table if needed
       let prodId = item.product_id;
+      const [fgStockRows] = await conn.query(
+        `SELECT current_stock FROM plastic_finished_goods WHERE id = ? AND company_id = ? LIMIT 1`,
+        [item.finished_good_id, companyId]
+      );
+      const fgStock = fgStockRows.length > 0 ? Number(fgStockRows[0].current_stock) || 0 : 0;
+
       if (!prodId) {
         // Look for existing product with same name
         const [matchedProducts] = await conn.query(
@@ -692,11 +710,15 @@ exports.createInvoiceFromDispatch = async (req, res) => {
         );
         if (matchedProducts.length > 0) {
           prodId = matchedProducts[0].id;
+          await conn.query(
+            `UPDATE products SET stock = ? WHERE id = ? AND company_id = ? AND stock = 0`,
+            [fgStock, prodId, companyId]
+          );
         } else {
-          // Add product record to products table for seamless compatibility with existing invoice history/search
+          // Add product record to products table with finished good current stock
           const [newProd] = await conn.query(
-            `INSERT INTO products (company_id, name, price, stock) VALUES (?, ?, ?, 0)`,
-            [companyId, item.fg_name, item.rate]
+            `INSERT INTO products (company_id, name, price, stock) VALUES (?, ?, ?, ?)`,
+            [companyId, item.fg_name, item.rate, fgStock]
           );
           prodId = newProd.insertId;
         }
@@ -710,7 +732,7 @@ exports.createInvoiceFromDispatch = async (req, res) => {
       invoiceItems.push({
         product_id: prodId,
         product_name: item.fg_name,
-        quantity: Math.round(Number(item.quantity)),
+        quantity: Number(item.quantity),
         price: Number(item.rate),
         total: lineTotal,
       });
@@ -804,8 +826,14 @@ exports.createInvoiceFromDispatch = async (req, res) => {
         },
       });
     } catch (txnErr) {
-      await conn.rollback();
+      try {
+        await conn.rollback();
+      } catch (rbErr) {
+        console.error("Rollback Error:", rbErr);
+      }
       throw txnErr;
+    } finally {
+      conn.release();
     }
   } catch (error) {
     console.error("Create Invoice from Dispatch Error:", error);

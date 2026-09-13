@@ -215,25 +215,15 @@ exports.updateCustomer = (req, res) => {
   );
 };
 
-exports.deleteCustomer = (req, res) => {
-  const { id } = req.params;
-  const companyId = req.user.company_id;
+exports.deleteCustomer = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const companyId = req.user.company_id;
 
-  const checkCustomerSql = `
-    SELECT id, name
-    FROM customers
-    WHERE id = ? AND company_id = ?
-  `;
-
-  db.query(checkCustomerSql, [id, companyId], (checkErr, customerResults) => {
-    if (checkErr) {
-      console.error("Check Customer Error:", checkErr);
-
-      return res.status(500).json({
-        success: false,
-        message: "Failed to check customer",
-      });
-    }
+    const [customerResults] = await db.promise().query(
+      "SELECT id, name FROM customers WHERE id = ? AND company_id = ? LIMIT 1",
+      [id, companyId]
+    );
 
     if (customerResults.length === 0) {
       return res.status(404).json({
@@ -242,60 +232,76 @@ exports.deleteCustomer = (req, res) => {
       });
     }
 
-    const checkInvoiceSql = `
-      SELECT COUNT(*) AS invoiceCount
-      FROM invoices
-      WHERE customer_id = ? AND company_id = ?
-    `;
-
-    db.query(checkInvoiceSql, [id, companyId], (invoiceErr, invoiceResults) => {
-      if (invoiceErr) {
-        console.error("Check Customer Invoices Error:", invoiceErr);
-
-        return res.status(500).json({
-          success: false,
-          message: "Failed to check customer invoices",
-        });
-      }
-
-      const invoiceCount = Number(invoiceResults[0]?.invoiceCount) || 0;
-
-      if (invoiceCount > 0) {
-        return res.status(409).json({
-          success: false,
-          message:
-            "This customer cannot be deleted because invoices are linked to this customer.",
-          invoiceCount,
-        });
-      }
-
-      const deleteSql = `
-        DELETE FROM customers
-        WHERE id = ? AND company_id = ?
-      `;
-
-      db.query(deleteSql, [id, companyId], (deleteErr, result) => {
-        if (deleteErr) {
-          console.error("Delete Customer Error:", deleteErr);
-
-          return res.status(500).json({
-            success: false,
-            message: "Failed to delete customer",
-          });
-        }
-
-        if (result.affectedRows === 0) {
-          return res.status(404).json({
-            success: false,
-            message: "Customer not found",
-          });
-        }
-
-        return res.status(200).json({
-          success: true,
-          message: "Customer deleted successfully",
-        });
+    // Check linked invoices
+    const [invoiceRows] = await db.promise().query(
+      "SELECT COUNT(*) AS count FROM invoices WHERE customer_id = ? AND company_id = ?",
+      [id, companyId]
+    );
+    const invoiceCount = Number(invoiceRows[0]?.count) || 0;
+    if (invoiceCount > 0) {
+      return res.status(409).json({
+        success: false,
+        message: `Cannot delete customer "${customerResults[0].name}" because ${invoiceCount} invoice(s) are linked to this customer.`,
+        invoiceCount,
       });
+    }
+
+    // Check linked sales orders
+    const [orderRows] = await db.promise().query(
+      "SELECT COUNT(*) AS count FROM plastic_sales_orders WHERE customer_id = ? AND company_id = ?",
+      [id, companyId]
+    );
+    const orderCount = Number(orderRows[0]?.count) || 0;
+    if (orderCount > 0) {
+      return res.status(409).json({
+        success: false,
+        message: `Cannot delete customer "${customerResults[0].name}" because ${orderCount} sales order(s) are linked to this customer.`,
+        orderCount,
+      });
+    }
+
+    // Check linked payments
+    const [paymentRows] = await db.promise().query(
+      "SELECT COUNT(*) AS count FROM plastic_payments WHERE customer_id = ? AND company_id = ?",
+      [id, companyId]
+    );
+    const paymentCount = Number(paymentRows[0]?.count) || 0;
+    if (paymentCount > 0) {
+      return res.status(409).json({
+        success: false,
+        message: `Cannot delete customer "${customerResults[0].name}" because ${paymentCount} payment record(s) are linked to this customer.`,
+        paymentCount,
+      });
+    }
+
+    const [deleteResult] = await db.promise().query(
+      "DELETE FROM customers WHERE id = ? AND company_id = ?",
+      [id, companyId]
+    );
+
+    if (deleteResult.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Customer not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Customer deleted successfully",
     });
-  });
+  } catch (error) {
+    console.error("Delete Customer Error:", error);
+    if (error.errno === 1451 || error.code === "ER_ROW_IS_REFERENCED_2") {
+      return res.status(409).json({
+        success: false,
+        message: "Cannot delete this customer because active transactional records (orders, dispatches, payments, or ledger entries) reference this customer.",
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to delete customer",
+    });
+  }
 };

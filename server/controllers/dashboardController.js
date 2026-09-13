@@ -137,33 +137,41 @@ exports.getSalesReport = async (req, res) => {
       ORDER BY month DESC
     `, [companyId]);
 
+    const formattedDailySales = Array.isArray(dailySales)
+      ? dailySales.map((item) => ({
+          date: item.date,
+          total: Number(item.total) || 0,
+        }))
+      : [];
+
+    const formattedMonthlySales = Array.isArray(monthlySales)
+      ? monthlySales.map((item) => ({
+          month: item.month,
+          total: Number(item.total) || 0,
+        }))
+      : [];
+
     res.status(200).json({
       success: true,
-
-      dailySales: Array.isArray(dailySales)
-        ? dailySales.map((item) => ({
-            date: item.date,
-            total: Number(item.total) || 0,
-          }))
-        : [],
-
-      monthlySales: Array.isArray(monthlySales)
-        ? monthlySales.map((item) => ({
-            month: item.month,
-            total: Number(item.total) || 0,
-          }))
-        : [],
+      dailySales: formattedDailySales,
+      monthlySales: formattedMonthlySales,
+      report: {
+        dailySales: formattedDailySales,
+        monthlySales: formattedMonthlySales,
+      },
     });
   } catch (error) {
     console.error("Sales Report Error:", error);
 
     res.status(500).json({
       success: false,
-
       message: "Failed to load sales report",
-
       dailySales: [],
       monthlySales: [],
+      report: {
+        dailySales: [],
+        monthlySales: [],
+      },
     });
   }
 };

@@ -76,10 +76,10 @@ const createInvoice = async (req, res, next) => {
       const productId = Number(item.product_id);
       const quantity = Number(item.quantity);
 
-      if (!productId || !quantity || quantity <= 0 || !Number.isInteger(quantity)) {
+      if (!productId || isNaN(quantity) || quantity <= 0) {
         return res.status(400).json({
           success: false,
-          message: "Invalid product or quantity. Quantity must be a positive integer.",
+          message: "Invalid product or quantity. Quantity must be a positive number.",
         });
       }
 
@@ -98,8 +98,18 @@ const createInvoice = async (req, res, next) => {
       }
 
       const product = products[0];
+      let currentStock = Number(product.stock) || 0;
 
-      if (Number(product.stock) < quantity) {
+      // Check if product is bridged to plastic_finished_goods
+      const [fgRows] = await db.promise().query(
+        `SELECT id, current_stock FROM plastic_finished_goods WHERE (fg_name = ? OR fg_code = ?) AND company_id = ? LIMIT 1`,
+        [product.name, product.name, companyId]
+      );
+      if (fgRows.length > 0 && currentStock === 0) {
+        currentStock = Number(fgRows[0].current_stock) || 0;
+      }
+
+      if (currentStock < quantity) {
         return res.status(400).json({
           success: false,
           message: `Insufficient stock for ${product.name}`,
@@ -143,38 +153,45 @@ const createInvoice = async (req, res, next) => {
 
     let finalTaxPercent = 0;
     if (isTaxEnabled) {
-      const defaultTax =
-        settingsRows[0]?.default_tax_percent !== undefined
-          ? Number(settingsRows[0].default_tax_percent)
-          : 18;
-      const parsedTax =
-        tax_percent !== undefined && tax_percent !== null && tax_percent !== ""
-          ? Number(tax_percent)
-          : defaultTax;
-
-      if (isNaN(parsedTax) || parsedTax < 0 || parsedTax > 100) {
-        return res.status(400).json({
-          success: false,
-          message: "Tax percentage must be a number between 0 and 100",
-        });
+      if (tax_percent !== undefined && tax_percent !== null && tax_percent !== "") {
+        finalTaxPercent = Number(tax_percent);
+      } else if (settingsRows.length > 0 && settingsRows[0].default_tax_percent !== null) {
+        finalTaxPercent = Number(settingsRows[0].default_tax_percent);
+      } else {
+        finalTaxPercent = 18;
       }
-      finalTaxPercent = parsedTax;
-    } else {
-      // If company has GST/Tax disabled, strictly enforce 0% regardless of client input
-      finalTaxPercent = 0;
     }
 
-    const discountAmount = subtotal * (discountPercent / 100);
-    const afterDiscount = subtotal - discountAmount;
-    const taxAmount = isTaxEnabled ? afterDiscount * (finalTaxPercent / 100) : 0;
-    const grandTotal = afterDiscount + taxAmount;
+    if (isNaN(finalTaxPercent) || finalTaxPercent < 0 || finalTaxPercent > 100) {
+      return res.status(400).json({
+        success: false,
+        message: "Tax percentage must be a number between 0 and 100",
+      });
+    }
+
+    const discountAmount = Number(((subtotal * discountPercent) / 100).toFixed(2));
+    const taxableAmount = Math.max(0, subtotal - discountAmount);
+    const taxAmount = Number(((taxableAmount * finalTaxPercent) / 100).toFixed(2));
+    const grandTotal = Number((taxableAmount + taxAmount).toFixed(2));
 
     let invoiceNo = req.body.invoice_no ? String(req.body.invoice_no).trim() : "";
     if (!invoiceNo) {
       invoiceNo = await generateNextSequentialInvoiceNo(companyId);
+    } else {
+      const [existingInvoices] = await db.promise().query(
+        `SELECT id FROM invoices WHERE invoice_no = ? AND company_id = ? LIMIT 1`,
+        [invoiceNo, companyId]
+      );
+
+      if (existingInvoices.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: `Invoice number "${invoiceNo}" already exists`,
+        });
+      }
     }
 
-    const conn = db.promise();
+    const conn = await db.promise().getConnection();
     await conn.beginTransaction();
 
     try {
@@ -248,6 +265,14 @@ const createInvoice = async (req, res, next) => {
              WHERE id = ? AND company_id = ?`,
             [item.quantity, item.product_id, companyId],
           );
+
+          // Synchronize with plastic_finished_goods if linked
+          await conn.query(
+            `UPDATE plastic_finished_goods
+             SET current_stock = GREATEST(0, current_stock - ?)
+             WHERE (fg_name = ? OR fg_code = ?) AND company_id = ?`,
+            [item.quantity, item.product_name, item.product_name, companyId]
+          );
         }
       }
 
@@ -305,8 +330,14 @@ const createInvoice = async (req, res, next) => {
         },
       });
     } catch (txnErr) {
-      await conn.rollback();
+      try {
+        await conn.rollback();
+      } catch (rbErr) {
+        console.error("Rollback Error:", rbErr);
+      }
       throw txnErr;
+    } finally {
+      conn.release();
     }
   } catch (error) {
     next(error);

@@ -158,6 +158,9 @@ exports.createPurchaseBill = async (req, res, next) => {
     const {
       supplier_id,
       truck_inward_id,
+      purchase_order_id,
+      delivery_ids,
+      delivery_id,
       purchase_date,
       items,
       discount_amount = 0,
@@ -330,7 +333,7 @@ exports.createPurchaseBill = async (req, res, next) => {
       : "UNPAID";
 
     // 7. ATOMIC TRANSACTION
-    const conn = db.promise();
+    const conn = await db.promise().getConnection();
     await conn.beginTransaction();
 
     try {
@@ -342,6 +345,7 @@ exports.createPurchaseBill = async (req, res, next) => {
             purchase_bill_no,
             supplier_id,
             truck_inward_id,
+            purchase_order_id,
             purchase_date,
             subtotal,
             discount_amount,
@@ -349,15 +353,16 @@ exports.createPurchaseBill = async (req, res, next) => {
             tax_amount,
             grand_total,
             payment_status,
-            notes,
+            remarks,
             created_by
           )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           companyId,
           purchaseBillNo,
           supplier_id,
           truck_inward_id || null,
+          purchase_order_id || null,
           billDate,
           subtotal,
           discount,
@@ -365,12 +370,45 @@ exports.createPurchaseBill = async (req, res, next) => {
           taxAmount,
           grandTotal,
           validatedPayment,
-          notes ? notes.trim() : null,
+          remarks ? remarks.trim() : (notes ? notes.trim() : null),
           adminId,
         ]
       );
 
       const purchaseBillId = billResult.insertId;
+
+      // Identify deliveries being converted or billed
+      let targetDeliveryIds = [];
+      if (Array.isArray(delivery_ids) && delivery_ids.length > 0) {
+        targetDeliveryIds = delivery_ids.map(Number).filter(Boolean);
+      } else if (delivery_id) {
+        targetDeliveryIds = [Number(delivery_id)];
+      } else if (purchase_order_id) {
+        const [poDels] = await conn.query(
+          "SELECT id FROM plastic_purchase_deliveries WHERE purchase_order_id = ? AND company_id = ? AND purchase_bill_id IS NULL",
+          [purchase_order_id, companyId]
+        );
+        targetDeliveryIds = poDels.map((d) => d.id);
+      } else if (truck_inward_id) {
+        const [tiDels] = await conn.query(
+          "SELECT id FROM plastic_purchase_deliveries WHERE truck_inward_id = ? AND company_id = ? AND purchase_bill_id IS NULL",
+          [truck_inward_id, companyId]
+        );
+        targetDeliveryIds = tiDels.map((d) => d.id);
+      }
+
+      // Map delivered accepted quantities by raw_material_id
+      const deliveredStockByMaterial = {};
+      if (targetDeliveryIds.length > 0) {
+        const [delRows] = await conn.query(
+          "SELECT id, raw_material_id, accepted_qty FROM plastic_purchase_deliveries WHERE id IN (?) AND company_id = ? FOR UPDATE",
+          [targetDeliveryIds, companyId]
+        );
+        for (const del of delRows) {
+          const matId = Number(del.raw_material_id);
+          deliveredStockByMaterial[matId] = (deliveredStockByMaterial[matId] || 0) + Number(del.accepted_qty);
+        }
+      }
 
       // 7b. Insert items and update inventory atomically
       for (const item of validatedItems) {
@@ -380,107 +418,123 @@ exports.createPurchaseBill = async (req, res, next) => {
               company_id,
               purchase_bill_id,
               raw_material_id,
-              material_name,
               quantity,
-              unit,
               rate,
               total
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            VALUES (?, ?, ?, ?, ?, ?)`,
           [
             companyId,
             purchaseBillId,
             item.raw_material_id,
-            item.material_name,
             item.quantity,
-            item.unit,
             item.rate,
             item.total,
           ]
         );
 
-        // Fetch current stock
-        const [stockRows] = await conn.query(
-          `SELECT id, quantity, average_rate, stock_value
-           FROM raw_material_stock
-           WHERE company_id = ? AND raw_material_id = ?
-           FOR UPDATE`,
-          [companyId, item.raw_material_id]
-        );
+        // Check if material quantity was already received via Purchase Delivery
+        const alreadyDeliveredStock = deliveredStockByMaterial[item.raw_material_id] || 0;
+        const qtyFromDelivery = Math.min(item.quantity, alreadyDeliveredStock);
+        const qtyToAddToStock = item.quantity - qtyFromDelivery;
+        deliveredStockByMaterial[item.raw_material_id] = alreadyDeliveredStock - qtyFromDelivery;
 
-        let currentQty = 0;
-        let currentStockValue = 0;
+        // Only add unstocked excess to raw_material_stock (Avoid duplicate stock counting)
+        if (qtyToAddToStock > 0) {
+          // Fetch current stock
+          const [stockRows] = await conn.query(
+            `SELECT id, quantity, average_rate, stock_value
+             FROM raw_material_stock
+             WHERE company_id = ? AND raw_material_id = ?
+             FOR UPDATE`,
+            [companyId, item.raw_material_id]
+          );
 
-        if (stockRows.length > 0) {
-          currentQty = Number(stockRows[0].quantity) || 0;
-          currentStockValue = Number(stockRows[0].stock_value) || 0;
+          let currentQty = 0;
+          let currentStockValue = 0;
+
+          if (stockRows.length > 0) {
+            currentQty = Number(stockRows[0].quantity) || 0;
+            currentStockValue = Number(stockRows[0].stock_value) || 0;
+          }
+
+          const additionalStockValue = qtyToAddToStock * item.rate;
+          const newQty = currentQty + qtyToAddToStock;
+          const newStockValue = currentStockValue + additionalStockValue;
+          const newAvgRate = newQty > 0 ? newStockValue / newQty : item.rate;
+
+          // Upsert stock record
+          await conn.query(
+            `INSERT INTO raw_material_stock
+              (
+                company_id,
+                raw_material_id,
+                quantity,
+                average_rate,
+                stock_value
+              )
+              VALUES (?, ?, ?, ?, ?)
+              ON DUPLICATE KEY UPDATE
+                quantity = VALUES(quantity),
+                average_rate = VALUES(average_rate),
+                stock_value = VALUES(stock_value),
+                updated_at = CURRENT_TIMESTAMP`,
+            [
+              companyId,
+              item.raw_material_id,
+              newQty,
+              newAvgRate,
+              newStockValue,
+            ]
+          );
+
+          // Insert stock movement record (audit trail)
+          await conn.query(
+            `INSERT INTO raw_material_stock_movements
+              (
+                company_id,
+                raw_material_id,
+                movement_type,
+                reference_type,
+                reference_id,
+                quantity,
+                rate,
+                total_value,
+                balance_quantity,
+                movement_date,
+                remarks,
+                created_by
+              )
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              companyId,
+              item.raw_material_id,
+              "PURCHASE",
+              "PURCHASE_BILL",
+              purchaseBillId,
+              qtyToAddToStock,
+              item.rate,
+              additionalStockValue,
+              newQty,
+              billDate,
+              qtyFromDelivery > 0
+                ? `Purchase Bill ${purchaseBillNo} (Added ${qtyToAddToStock} KG, ${qtyFromDelivery} KG previously received via delivery)`
+                : `Purchase Bill ${purchaseBillNo}`,
+              adminId,
+            ]
+          );
         }
+      }
 
-        const newQty = currentQty + item.quantity;
-        const newStockValue = currentStockValue + item.total;
-        const newAvgRate = newQty > 0 ? newStockValue / newQty : item.rate;
-
-        // Upsert stock record
+      // Link processed deliveries to this purchase bill using existing plastic_purchase_deliveries.purchase_bill_id
+      if (targetDeliveryIds.length > 0) {
         await conn.query(
-          `INSERT INTO raw_material_stock
-            (
-              company_id,
-              raw_material_id,
-              quantity,
-              average_rate,
-              stock_value
-            )
-            VALUES (?, ?, ?, ?, ?)
-            ON DUPLICATE KEY UPDATE
-              quantity = VALUES(quantity),
-              average_rate = VALUES(average_rate),
-              stock_value = VALUES(stock_value),
-              updated_at = CURRENT_TIMESTAMP`,
-          [
-            companyId,
-            item.raw_material_id,
-            newQty,
-            newAvgRate,
-            newStockValue,
-          ]
-        );
-
-        // Insert stock movement record (audit trail)
-        await conn.query(
-          `INSERT INTO raw_material_stock_movements
-            (
-              company_id,
-              raw_material_id,
-              movement_type,
-              reference_type,
-              reference_id,
-              quantity,
-              rate,
-              total_value,
-              balance_quantity,
-              movement_date,
-              remarks,
-              created_by
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [
-            companyId,
-            item.raw_material_id,
-            "PURCHASE",
-            "PURCHASE_BILL",
-            purchaseBillId,
-            item.quantity,
-            item.rate,
-            item.total,
-            newQty,
-            billDate,
-            `Purchase Bill ${purchaseBillNo}`,
-            adminId,
-          ]
+          "UPDATE plastic_purchase_deliveries SET purchase_bill_id = ? WHERE id IN (?) AND company_id = ?",
+          [purchaseBillId, targetDeliveryIds, companyId]
         );
       }
 
-      // Phase 5: Auto-post accounting journal, supplier ledger & Input GST
+      // 7c. Post Double-Entry Accounting Journal for Purchase (Kim Plant Standard)
       const { postPurchaseBillAccounting } = require("../utils/accountingHelper");
       await postPurchaseBillAccounting(conn, {
         companyId,
@@ -504,6 +558,7 @@ exports.createPurchaseBill = async (req, res, next) => {
       res.status(201).json({
         success: true,
         message: "Purchase bill created successfully",
+        bill_id: purchaseBillId,
         purchase_bill: {
           id: purchaseBillId,
           purchase_bill_no: purchaseBillNo,
@@ -518,11 +573,162 @@ exports.createPurchaseBill = async (req, res, next) => {
         },
       });
     } catch (txnError) {
-      await conn.rollback();
+      try {
+        await conn.rollback();
+      } catch (rbErr) {
+        console.error("Rollback Error:", rbErr);
+      }
       throw txnError;
+    } finally {
+      conn.release();
     }
   } catch (error) {
     console.error("Create Purchase Bill Error:", error);
     next(error);
+  }
+};
+
+/**
+ * Update Purchase Bill Payment Status
+ * PUT /purchase-bills/:id/payment-status
+ */
+exports.updatePaymentStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { payment_status } = req.body;
+    const companyId = req.user.company_id;
+
+    if (!payment_status || !ALLOWED_PAYMENT_STATUSES.includes(String(payment_status).toUpperCase())) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid payment status. Allowed values: ${ALLOWED_PAYMENT_STATUSES.join(", ")}`,
+      });
+    }
+
+    const normalizedStatus = String(payment_status).toUpperCase();
+
+    const [result] = await db.promise().query(
+      "UPDATE purchase_bills SET payment_status = ? WHERE id = ? AND company_id = ?",
+      [normalizedStatus, id, companyId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Purchase bill not found or belongs to another company",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Payment status updated to ${normalizedStatus} successfully`,
+      payment_status: normalizedStatus,
+    });
+  } catch (error) {
+    console.error("Update Payment Status Error:", error);
+    res.status(500).json({ success: false, message: "Failed to update payment status" });
+  }
+};
+
+/**
+ * Delete Purchase Bill
+ * DELETE /purchase-bills/:id
+ * Atomically reverses any stock movements credited directly by this bill and unlinks deliveries.
+ */
+exports.deletePurchaseBill = async (req, res) => {
+  const conn = await db.promise().getConnection();
+  try {
+    const { id } = req.params;
+    const companyId = req.user.company_id;
+
+    const [bills] = await conn.query(
+      "SELECT * FROM purchase_bills WHERE id = ? AND company_id = ? FOR UPDATE",
+      [id, companyId]
+    );
+
+    if (bills.length === 0) {
+      conn.release();
+      return res.status(404).json({
+        success: false,
+        message: "Purchase bill not found or belongs to another company",
+      });
+    }
+
+    const bill = bills[0];
+
+    // Prevent deletion if recorded payments exist in plastic_payments
+    try {
+      const [payments] = await conn.query(
+        "SELECT id FROM plastic_payments WHERE company_id = ? AND reference_type = 'PURCHASE_BILL' AND reference_id = ?",
+        [companyId, id]
+      );
+      if (payments.length > 0) {
+        conn.release();
+        return res.status(400).json({
+          success: false,
+          message: "Cannot delete purchase bill with recorded payments. Reverse payments first.",
+        });
+      }
+    } catch (payCheckErr) {
+      // plastic_payments might not track reference_type in all environments; continue safely
+    }
+
+    await conn.beginTransaction();
+
+    // 1. Find stock movements credited directly by this purchase bill
+    const [movements] = await conn.query(
+      "SELECT id, raw_material_id, quantity, rate FROM raw_material_stock_movements WHERE company_id = ? AND reference_type = 'PURCHASE_BILL' AND reference_id = ? FOR UPDATE",
+      [companyId, id]
+    );
+
+    // 2. Reverse credited stock
+    for (const mvmt of movements) {
+      const qty = Number(mvmt.quantity) || 0;
+      const rate = Number(mvmt.rate) || 0;
+      const val = qty * rate;
+
+      await conn.query(
+        `UPDATE raw_material_stock
+         SET quantity = GREATEST(0, quantity - ?),
+             stock_value = GREATEST(0, stock_value - ?)
+         WHERE company_id = ? AND raw_material_id = ?`,
+        [qty, val, companyId, mvmt.raw_material_id]
+      );
+    }
+
+    // Delete stock movement records
+    if (movements.length > 0) {
+      await conn.query(
+        "DELETE FROM raw_material_stock_movements WHERE company_id = ? AND reference_type = 'PURCHASE_BILL' AND reference_id = ?",
+        [companyId, id]
+      );
+    }
+
+    // 3. Unlink attached deliveries so they can be billed again
+    await conn.query(
+      "UPDATE plastic_purchase_deliveries SET purchase_bill_id = NULL WHERE purchase_bill_id = ? AND company_id = ?",
+      [id, companyId]
+    );
+
+    // 4. Delete bill items and bill header
+    await conn.query("DELETE FROM purchase_bill_items WHERE purchase_bill_id = ? AND company_id = ?", [id, companyId]);
+    await conn.query("DELETE FROM purchase_bills WHERE id = ? AND company_id = ?", [id, companyId]);
+
+    await conn.commit();
+
+    res.status(200).json({
+      success: true,
+      message: `Purchase bill "${bill.purchase_bill_no}" deleted and credited stock reversed successfully`,
+    });
+  } catch (error) {
+    try {
+      await conn.rollback();
+    } catch (rbErr) {
+      console.error("Rollback Error:", rbErr);
+    }
+    console.error("Delete Purchase Bill Error:", error);
+    res.status(500).json({ success: false, message: error.message || "Failed to delete purchase bill" });
+  } finally {
+    conn.release();
   }
 };

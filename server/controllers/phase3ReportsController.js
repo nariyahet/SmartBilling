@@ -73,8 +73,50 @@ exports.getSalesSummary = async (req, res) => {
       [companyId]
     );
 
+    // 5. Top Products by Volume & Revenue
+    const [topProducts] = await db.promise().query(
+      `SELECT
+        ii.product_name AS fg_name,
+        'PROD' AS fg_code,
+        COALESCE(SUM(ii.quantity), 0) AS total_quantity,
+        COALESCE(SUM(ii.total), 0) AS total_revenue
+       FROM invoice_items ii
+       WHERE ii.company_id = ?
+       GROUP BY ii.product_name
+       ORDER BY total_revenue DESC
+       LIMIT 10`,
+      [companyId]
+    );
+
+    const formattedCustomers = (byCustomer || []).map((c) => ({
+      customer_name: c.customer_name,
+      order_count: c.invoice_count,
+      total_value: c.total_revenue,
+    }));
+
+    const totalOrders = Number(soTotals[0]?.total_orders) || 0;
+    const confirmedOrders = Number(soTotals[0]?.pending_orders) || 0;
+    const totalSalesValue = Number(soTotals[0]?.total_order_value) || 0;
+    const totalDispatchedValue = Number(totals[0]?.total_sales) || 0;
+
+    const summary = {
+      totalOrders,
+      total_orders: totalOrders,
+      confirmedOrders,
+      confirmed_orders: confirmedOrders,
+      totalSalesValue,
+      total_sales_value: totalSalesValue,
+      totalDispatchedValue,
+      total_dispatched_value: totalDispatchedValue,
+      topCustomers: formattedCustomers,
+      topProducts: topProducts || [],
+      byCustomer,
+      byMonth,
+    };
+
     res.status(200).json({
       success: true,
+      summary,
       totals: totals[0] || {},
       salesOrders: soTotals[0] || {},
       byCustomer,
@@ -115,16 +157,33 @@ exports.getDispatchSummary = async (req, res) => {
     // 2. Transporter breakdown
     const [byTransporter] = await db.promise().query(
       `SELECT
-        COALESCE(transporter, 'Own / Direct') AS transporter_name,
-        COUNT(id) AS dispatch_count
-       FROM plastic_dispatches
-       WHERE company_id = ? ${dateCond}
-       GROUP BY transporter_name
-       ORDER BY dispatch_count DESC`,
+        COALESCE(d.transporter, 'Own / Direct') AS transporter,
+        COUNT(DISTINCT d.id) AS trips_count,
+        COALESCE(SUM(di.quantity), 0) AS total_qty
+       FROM plastic_dispatches d
+       LEFT JOIN plastic_dispatch_items di ON d.id = di.dispatch_id AND d.company_id = di.company_id
+       WHERE d.company_id = ? ${dateCond.replace(/dispatch_date/g, "d.dispatch_date")}
+       GROUP BY transporter
+       ORDER BY total_qty DESC`,
       params
     );
 
-    // 3. Vehicle-wise volume
+    // 3. Destination breakdown
+    const [byDestination] = await db.promise().query(
+      `SELECT
+        COALESCE(d.destination, 'Factory Pickup') AS destination,
+        COUNT(DISTINCT d.id) AS shipments_count,
+        COALESCE(SUM(di.quantity), 0) AS total_qty
+       FROM plastic_dispatches d
+       LEFT JOIN plastic_dispatch_items di ON d.id = di.dispatch_id AND d.company_id = di.company_id
+       WHERE d.company_id = ? ${dateCond.replace(/dispatch_date/g, "d.dispatch_date")}
+       GROUP BY destination
+       ORDER BY total_qty DESC
+       LIMIT 10`,
+      params
+    );
+
+    // 4. Vehicle-wise volume
     const [byVehicle] = await db.promise().query(
       `SELECT
         COALESCE(vehicle_number, 'Unassigned') AS vehicle_number,
@@ -138,10 +197,26 @@ exports.getDispatchSummary = async (req, res) => {
       params
     );
 
+    const totalDispatchedQty = byTransporter.reduce((acc, row) => acc + (Number(row.total_qty) || 0), 0);
+    const totalDispatches = counts[0]?.total_dispatches || 0;
+
+    const summary = {
+      totalDispatches,
+      total_dispatches: totalDispatches,
+      totalDispatchedQty,
+      total_dispatched_qty: totalDispatchedQty,
+      byTransporter,
+      byDestination,
+      counts: counts[0] || {},
+    };
+
     res.status(200).json({
       success: true,
-      summary: counts[0] || {},
+      summary,
+      totalDispatches,
+      totalDispatchedQty,
       byTransporter,
+      byDestination,
       byVehicle,
     });
   } catch (error) {
@@ -190,11 +265,46 @@ exports.getPaymentSummary = async (req, res) => {
       params
     );
 
+    // 3. Top paying customers
+    const [byCustomer] = await db.promise().query(
+      `SELECT
+        c.name AS customer_name,
+        COUNT(p.id) AS payment_count,
+        COALESCE(SUM(p.amount), 0) AS total_paid
+       FROM plastic_payments p
+       JOIN customers c ON p.customer_id = c.id AND p.company_id = c.company_id
+       WHERE p.company_id = ? AND p.status = 'RECEIVED' ${dateCond.replace(/payment_date/g, "p.payment_date")}
+       GROUP BY c.id
+       ORDER BY total_paid DESC
+       LIMIT 10`,
+      params
+    );
+
     const totalCollected = byMethod.reduce((acc, row) => acc + (Number(row.total_collected) || 0), 0);
+    const totalPayments = byMethod.reduce((acc, row) => acc + (Number(row.transaction_count) || 0), 0);
+
+    const formattedModes = byMethod.map((m) => ({
+      payment_mode: m.payment_method,
+      receipt_count: m.transaction_count,
+      total_amount: m.total_collected,
+    }));
+
+    const summary = {
+      totalCollected,
+      totalPayments,
+      byMode: formattedModes,
+      byCustomer: byCustomer || [],
+      byMethod,
+      byDate,
+    };
 
     res.status(200).json({
       success: true,
+      summary,
       totalCollected,
+      totalPayments,
+      byMode: formattedModes,
+      byCustomer: byCustomer || [],
       byMethod,
       byDate,
     });
@@ -291,7 +401,9 @@ exports.getProfitMarginReport = async (req, res) => {
         cost_source: costSource,
         cost_value: costValue,
         gross_profit: grossProfit,
+        margin_pct: marginPercent !== null ? Number(marginPercent) : null,
         margin_percent: marginPercent !== null ? Number(marginPercent) : null,
+        actual_cost: costValue,
         cost_data_available: unitCost !== null,
       };
     });
@@ -301,16 +413,26 @@ exports.getProfitMarginReport = async (req, res) => {
       ? ((totalGrossProfit / totalRevenue) * 100).toFixed(2)
       : "0.00";
 
+    const summary = {
+      totalRevenue,
+      totalSalesRevenue: totalRevenue,
+      totalCost: itemsWithCost > 0 ? totalCost : 0,
+      totalCostOfGoodsSold: itemsWithCost > 0 ? totalCost : 0,
+      totalGrossProfit,
+      overallMarginPercent: Number(overallMarginPercent),
+      grossMarginPercentage: Number(overallMarginPercent),
+      totalItemsSold: items.length,
+      itemsWithCostData: itemsWithCost,
+      items: detailedRows,
+    };
+
     res.status(200).json({
       success: true,
-      summary: {
-        totalRevenue,
-        totalCost: itemsWithCost > 0 ? totalCost : 0,
-        totalGrossProfit,
-        overallMarginPercent: Number(overallMarginPercent),
-        totalItemsSold: items.length,
-        itemsWithCostData: itemsWithCost,
-      },
+      summary,
+      totalSalesRevenue: totalRevenue,
+      totalCostOfGoodsSold: itemsWithCost > 0 ? totalCost : 0,
+      totalGrossProfit,
+      grossMarginPercentage: Number(overallMarginPercent),
       items: detailedRows,
     });
   } catch (error) {

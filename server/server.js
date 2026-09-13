@@ -116,23 +116,25 @@ app.use("/api/plastic-erp/inventory", productionInventoryRoutes);
 app.use("/api/plastic-erp/quality", qualityRoutes);
 app.use("/api/plastic-erp/traceability", traceabilityRoutes);
 app.use("/api/plastic-erp/costing", productionCostingRoutes);
-app.use("/api/plastic-erp/reports", plasticReportsRoutes);
+// Phase 3 & Operational Reports (chained fallback routers)
+app.use("/api/plastic-erp/reports", phase3ReportsRoutes); // Sales, dispatch, payment & profit margin
+app.use("/api/plastic-erp/reports", plasticReportsRoutes); // Operational & production reports
 
 // Plastic Recycling ERP Endpoints (Phase 3 Sales, Dispatch & Finance)
 app.use("/api/plastic-erp/sales", salesOrderRoutes);
-app.use("/api/plastic-erp/dispatch", dispatchRoutes);
-app.use("/api/plastic-erp/dispatches", dispatchRoutes);
+app.use("/api/plastic-erp/dispatch", dispatchRoutes); // Canonical dispatch route
+app.use("/api/plastic-erp/dispatches", dispatchRoutes); // Alias for backwards compatibility
 app.use("/api/plastic-erp/transport", transportRoutes);
 app.use("/api/plastic-erp/payments", paymentRoutes);
-app.use("/api/plastic-erp/receivables", receivablesRoutes);
-app.use("/api/plastic-erp/finance/receivables", receivablesRoutes);
-app.use("/api/plastic-erp/ledger", customerLedgerRoutes);
-app.use("/api/plastic-erp/finance/ledger", customerLedgerRoutes);
-app.use("/api/plastic-erp/returns", salesReturnRoutes);
-app.use("/api/plastic-erp/sales-returns", salesReturnRoutes);
+app.use("/api/plastic-erp/receivables", receivablesRoutes); // Canonical receivables route
+app.use("/api/plastic-erp/finance/receivables", receivablesRoutes); // Alias
+app.use("/api/plastic-erp/ledger", customerLedgerRoutes); // Canonical customer ledger
+app.use("/api/plastic-erp/finance/ledger", customerLedgerRoutes); // Alias
+app.use("/api/plastic-erp/returns", salesReturnRoutes); // Canonical sales returns
+app.use("/api/plastic-erp/sales-returns", salesReturnRoutes); // Alias
 app.use("/api/plastic-erp/credit-notes", creditNoteRoutes);
 app.use("/api/plastic-erp/debit-notes", debitNoteRoutes);
-app.use("/api/plastic-erp/phase3-reports", phase3ReportsRoutes);
+app.use("/api/plastic-erp/phase3-reports", phase3ReportsRoutes); // Legacy alias for sales reports
 app.use("/api/plastic-erp/eway-bills", ewayBillRoutes);
 
 // Plastic Recycling ERP Endpoints (Phase 4 HR, Payroll & Expenses)

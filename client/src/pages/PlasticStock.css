@@ -223,6 +223,19 @@
   color: #dc2626;
 }
 
+.movement-table-container {
+  padding: 20px;
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.movement-table {
+  width: 100%;
+  min-width: 620px;
+  border-collapse: collapse;
+}
+
 @media (max-width: 767px) {
   .stock-kpi-row {
     grid-template-columns: 1fr;

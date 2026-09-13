@@ -14,5 +14,6 @@ router.post("/process", payrollController.processMonthlyPayroll);
 router.post("/generate", payrollController.processMonthlyPayroll);
 router.put("/:id/status", payrollController.updatePayrollStatus);
 router.patch("/:id/status", payrollController.updatePayrollStatus);
+router.delete("/:id", payrollController.deletePayroll);
 
 module.exports = router;

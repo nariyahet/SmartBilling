@@ -19,6 +19,9 @@ function PlasticWeighment() {
   // Modal State
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
   const [viewSlip, setViewSlip] = useState(null);
+  const [tareModalWeighment, setTareModalWeighment] = useState(null);
+  const [tareWeightInput, setTareWeightInput] = useState("");
+  const [tareSaving, setTareSaving] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -111,7 +114,7 @@ function PlasticWeighment() {
 
   const w1 = Number(formData.first_weight) || 0;
   const w2 = Number(formData.second_weight) || 0;
-  const netWeightPreview = Math.abs(w1 - w2);
+  const netWeightPreview = (w1 > 0 && w2 > 0 && w1 > w2) ? (w1 - w2) : 0;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -121,6 +124,10 @@ function PlasticWeighment() {
     }
     if (w1 <= 0) {
       alert("1st Weight (Gross) must be a positive number.");
+      return;
+    }
+    if (w2 > 0 && w2 >= w1) {
+      alert("Tare Weight (2nd Weight) must be less than Gross Weight (1st Weight).");
       return;
     }
 
@@ -145,6 +152,39 @@ function PlasticWeighment() {
       alert(err.response?.data?.message || "Failed to record weighment.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleTareSubmit = async (e) => {
+    e.preventDefault();
+    if (!tareModalWeighment) return;
+    const tare = Number(tareWeightInput);
+    const gross = Number(tareModalWeighment.first_weight || 0);
+
+    if (tare <= 0) {
+      alert("Please enter a valid positive tare weight.");
+      return;
+    }
+    if (tare >= gross) {
+      alert(`Tare weight (${tare} KG) must be less than gross weight (${gross} KG).`);
+      return;
+    }
+
+    try {
+      setTareSaving(true);
+      await API.put(`/weighments/${tareModalWeighment.id}`, {
+        second_weight: tare,
+      });
+      setSuccessMsg("Tare weight recorded & net scrap weight finalized! ✅");
+      setTareModalWeighment(null);
+      setTareWeightInput("");
+      await fetchWeighments();
+      setTimeout(() => setSuccessMsg(""), 4000);
+    } catch (err) {
+      console.error("Save tare error:", err);
+      alert(err.response?.data?.message || "Failed to record tare weight.");
+    } finally {
+      setTareSaving(false);
     }
   };
 
@@ -258,18 +298,39 @@ function PlasticWeighment() {
                       <span>{Number(w.first_weight || 0).toLocaleString("en-IN")} KG</span>
                     </td>
                     <td>
-                      <span>{Number(w.second_weight || 0).toLocaleString("en-IN")} KG</span>
+                      {Number(w.second_weight || 0) > 0 ? (
+                        <span>{Number(w.second_weight).toLocaleString("en-IN")} KG</span>
+                      ) : (
+                        <span className="pending-tare-badge">Pending Tare</span>
+                      )}
                     </td>
                     <td>
-                      <strong className="net-weight-highlight">
-                        {Number(w.net_weight || 0).toLocaleString("en-IN")} KG
-                      </strong>
+                      {Number(w.second_weight || 0) > 0 ? (
+                        <strong className="net-weight-highlight">
+                          {Number(w.net_weight || 0).toLocaleString("en-IN")} KG
+                        </strong>
+                      ) : (
+                        <span style={{ color: "#94a3b8", fontStyle: "italic", fontSize: "12px" }}>Awaiting Tare</span>
+                      )}
                     </td>
                     <td>
                       <span className="operator-tag">👤 {w.operator_name || "Scale Operator"}</span>
                     </td>
                     <td>
                       <div className="action-buttons-cell">
+                        {Number(w.second_weight || 0) <= 0 && (
+                          <button
+                            type="button"
+                            className="btn-record-tare"
+                            onClick={() => {
+                              setTareModalWeighment(w);
+                              setTareWeightInput("");
+                            }}
+                            title="Record Outward Tare Weight"
+                          >
+                            ⚖️ Record Tare
+                          </button>
+                        )}
                         <button
                           type="button"
                           className="btn-view-slip"
@@ -496,6 +557,72 @@ function PlasticWeighment() {
                 Close
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tare Weight Modal */}
+      {tareModalWeighment && (
+        <div className="plastic-modal-backdrop" onClick={() => setTareModalWeighment(null)}>
+          <div className="plastic-modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "480px" }}>
+            <div className="modal-header">
+              <h2>⚖️ Record Tare Weight (Vehicle Exit)</h2>
+              <button type="button" className="btn-close-modal" onClick={() => setTareModalWeighment(null)}>
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleTareSubmit} className="plastic-form">
+              <div style={{ background: "#f8fafc", padding: "12px", borderRadius: "8px", marginBottom: "16px", fontSize: "0.9rem" }}>
+                <div><strong>Slip No:</strong> {tareModalWeighment.weighment_no}</div>
+                <div><strong>Truck:</strong> {tareModalWeighment.truck_number}</div>
+                <div><strong>Gross Weight (Inward):</strong> {Number(tareModalWeighment.first_weight || 0).toLocaleString("en-IN")} KG</div>
+              </div>
+
+              <div className="form-group">
+                <label>Tare Weight (Empty Vehicle) in KG *</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  required
+                  placeholder="e.g. 8500"
+                  value={tareWeightInput}
+                  onChange={(e) => setTareWeightInput(e.target.value)}
+                  autoFocus
+                />
+                <small className="help-text">Weight of the empty truck after discharging material</small>
+              </div>
+
+              {Number(tareWeightInput) > 0 && (
+                <div style={{
+                  padding: "10px 14px",
+                  borderRadius: "6px",
+                  marginBottom: "16px",
+                  background: Number(tareWeightInput) < Number(tareModalWeighment.first_weight) ? "#ecfdf5" : "#fef2f2",
+                  color: Number(tareWeightInput) < Number(tareModalWeighment.first_weight) ? "#065f46" : "#991b1b"
+                }}>
+                  {Number(tareWeightInput) < Number(tareModalWeighment.first_weight) ? (
+                    <strong>Final Net Scrap Weight: {(Number(tareModalWeighment.first_weight) - Number(tareWeightInput)).toLocaleString("en-IN")} KG</strong>
+                  ) : (
+                    <span>⚠️ Tare weight cannot exceed gross weight ({Number(tareModalWeighment.first_weight).toLocaleString("en-IN")} KG)</span>
+                  )}
+                </div>
+              )}
+
+              <div className="modal-actions">
+                <button type="button" className="btn-cancel" onClick={() => setTareModalWeighment(null)}>
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-submit"
+                  disabled={tareSaving || !tareWeightInput || Number(tareWeightInput) >= Number(tareModalWeighment.first_weight)}
+                >
+                  {tareSaving ? "Saving..." : "Save Tare & Finalize"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -80,6 +80,12 @@
   gap: 20px;
 }
 
+.report-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .report-table {
   width: 100%;
   min-width: 500px;
