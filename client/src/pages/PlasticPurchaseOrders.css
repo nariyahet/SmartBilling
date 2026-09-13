@@ -356,6 +356,7 @@
 /* ==========================================================================
    PURCHASE ORDER CREATION MODAL & ITEMS TABLE STYLES
    ========================================================================== */
+.sb-modal-box.size-xl.po-create-modal,
 .sb-modal-box.po-create-modal {
   width: 100%;
   max-width: 1060px;
@@ -377,10 +378,11 @@
 
 .po-items-form-table {
   width: 100%;
-  min-width: 640px;
+  min-width: 580px;
   border-collapse: collapse;
   table-layout: fixed;
   font-size: 13.5px;
+  box-sizing: border-box;
 }
 
 .po-items-form-table th {
@@ -409,44 +411,44 @@
 
 /* Column sizing (sum of percentages = 100%) */
 .po-items-form-table .po-col-material {
-  width: 29%;
-  min-width: 170px;
+  width: 28%;
+  min-width: 160px;
   text-align: left;
 }
 
 .po-items-form-table .po-col-qty {
   width: 13%;
-  min-width: 78px;
+  min-width: 72px;
   text-align: right;
 }
 
 .po-items-form-table .po-col-rate {
   width: 13%;
-  min-width: 78px;
+  min-width: 72px;
   text-align: right;
 }
 
 .po-items-form-table .po-col-disc {
   width: 11%;
-  min-width: 68px;
+  min-width: 64px;
   text-align: right;
 }
 
 .po-items-form-table .po-col-tax {
-  width: 10%;
+  width: 11%;
   min-width: 64px;
   text-align: right;
 }
 
 .po-items-form-table .po-col-total {
   width: 13%;
-  min-width: 86px;
+  min-width: 82px;
   text-align: right;
 }
 
 .po-items-form-table .po-col-action {
   width: 11%;
-  min-width: 74px;
+  min-width: 72px;
   text-align: center;
 }
 
@@ -479,10 +481,17 @@
   padding-right: 20px;
 }
 
+.po-items-form-table .po-input-number::-webkit-inner-spin-button,
+.po-items-form-table .po-input-number::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 .po-items-form-table .po-input-number {
+  -moz-appearance: textfield;
   text-align: right;
   font-variant-numeric: tabular-nums;
-  padding-right: 4px;
+  padding-right: 6px;
   padding-left: 6px;
 }
 
@@ -500,6 +509,7 @@
   height: 32px;
   font-size: 12px;
   margin: 0 auto;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .po-create-modal .sb-section-header {
@@ -536,6 +546,20 @@
 @media (max-width: 800px) {
   .po-create-modal .sb-modal-body {
     padding: 16px 12px;
+  }
+
+  .po-items-form-table th {
+    padding: 8px 6px;
+    font-size: 11px;
+  }
+
+  .po-items-form-table td {
+    padding: 6px 4px;
+  }
+
+  .po-items-form-table .po-col-action .sb-ui-btn {
+    padding: 0 6px;
+    font-size: 11.5px;
   }
 }
 

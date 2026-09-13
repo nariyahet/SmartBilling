@@ -877,65 +877,84 @@ test.describe('SmartBilling 2.0 Global Print Functionality & Regression Suite', 
     await expect(table.locator('tbody tr')).toHaveCount(1);
 
     // ------------------------------------------------------------------------
-    // CATEGORY B: Reduced / Half-Screen Desktop (~947px)
+    // CATEGORY B: Desktop & Tablet Viewports (1200px, 1024px, 947px, 900px, 768px)
     // ------------------------------------------------------------------------
-    await page.setViewportSize({ width: 947, height: 800 });
-    const halfScreenMetrics = await page.evaluate(() => {
-      const box = document.querySelector('.sb-modal-box.po-create-modal');
-      const wrapper = document.querySelector('.po-items-table-responsive');
-      const actionBtn = document.querySelector('td.po-col-action button');
-      const wrapRect = wrapper.getBoundingClientRect();
-      const btnRect = actionBtn.getBoundingClientRect();
-      const boxRect = box.getBoundingClientRect();
-      return {
-        boxWidth: box.clientWidth,
-        wrapWidth: wrapper.clientWidth,
-        tableWidth: wrapper.scrollWidth,
-        hasHorizontalScroll: wrapper.scrollWidth > wrapper.clientWidth,
-        btnInside: btnRect.right <= wrapRect.right && btnRect.left >= wrapRect.left,
-        gapFromRight: wrapRect.right - btnRect.right,
-        boxFitsViewport: boxRect.left >= 0 && boxRect.right <= 947,
-      };
-    });
+    const desktopTabletViewports = [
+      { width: 1200, height: 800, minGap: 20 },
+      { width: 1024, height: 800, minGap: 18 },
+      { width: 947, height: 831, minGap: 15 },
+      { width: 900, height: 800, minGap: 10 },
+      { width: 768, height: 800, minGap: 4 },
+    ];
 
-    expect(halfScreenMetrics.boxFitsViewport, 'Modal box must remain inside 947px viewport').toBe(true);
-    expect(halfScreenMetrics.hasHorizontalScroll, '947px half-screen must NOT trigger horizontal scrollbar').toBe(false);
-    expect(halfScreenMetrics.btnInside, 'Action button must be fully inside visible bounds at 947px').toBe(true);
-    expect(halfScreenMetrics.gapFromRight, 'Action button must have breathing room from right edge at 947px').toBeGreaterThan(10);
+    for (const vp of desktopTabletViewports) {
+      await page.setViewportSize({ width: vp.width, height: vp.height });
+      await page.waitForTimeout(100);
+      const metrics = await page.evaluate((vpWidth) => {
+        const box = document.querySelector('.sb-modal-box.po-create-modal');
+        const wrapper = document.querySelector('.po-items-table-responsive');
+        const actionBtn = document.querySelector('td.po-col-action button');
+        const wrapRect = wrapper.getBoundingClientRect();
+        const btnRect = actionBtn.getBoundingClientRect();
+        const boxRect = box.getBoundingClientRect();
+        return {
+          boxFitsViewport: boxRect.left >= 0 && boxRect.right <= vpWidth,
+          hasHorizontalScroll: wrapper.scrollWidth > wrapper.clientWidth,
+          btnInside: btnRect.right <= wrapRect.right && btnRect.left >= wrapRect.left,
+          gapFromRight: wrapRect.right - btnRect.right,
+          pageScrollX: window.scrollX,
+        };
+      }, vp.width);
+
+      expect(metrics.boxFitsViewport, `Modal box must fit inside ${vp.width}px viewport`).toBe(true);
+      expect(metrics.pageScrollX, `No page-level scroll at ${vp.width}px`).toBe(0);
+      expect(metrics.hasHorizontalScroll, `${vp.width}px viewport must NOT trigger table horizontal scroll`).toBe(false);
+      expect(metrics.btnInside, `Action button must be inside visible bounds at ${vp.width}px`).toBe(true);
+      expect(metrics.gapFromRight, `Action button must have breathing room at ${vp.width}px`).toBeGreaterThan(vp.minGap);
+    }
 
     // ------------------------------------------------------------------------
-    // CATEGORY C: Phone (375px)
+    // CATEGORY C: Mobile Viewports (390px, 375px)
     // ------------------------------------------------------------------------
-    await page.setViewportSize({ width: 375, height: 667 });
-    const mobileMetrics = await page.evaluate(() => {
-      const box = document.querySelector('.sb-modal-box.po-create-modal');
-      const wrapper = document.querySelector('.po-items-table-responsive');
-      const actionBtn = document.querySelector('td.po-col-action button');
-      const boxRect = box.getBoundingClientRect();
+    const mobileViewports = [
+      { width: 390, height: 844 },
+      { width: 375, height: 667 },
+    ];
 
-      // Scroll wrapper to far right
-      wrapper.scrollLeft = wrapper.scrollWidth;
-      const scrolledWrapRect = wrapper.getBoundingClientRect();
-      const scrolledBtnRect = actionBtn.getBoundingClientRect();
+    for (const vp of mobileViewports) {
+      await page.setViewportSize({ width: vp.width, height: vp.height });
+      const mobileMetrics = await page.evaluate((vpWidth) => {
+        const box = document.querySelector('.sb-modal-box.po-create-modal');
+        const wrapper = document.querySelector('.po-items-table-responsive');
+        const actionBtn = document.querySelector('td.po-col-action button');
+        const boxRect = box.getBoundingClientRect();
 
-      const cancelBtn = document.querySelector('.sb-modal-footer button:nth-child(1)');
-      const issueBtn = document.querySelector('.sb-modal-footer button:nth-child(2)');
+        // Scroll wrapper to far right to test horizontal reachability
+        wrapper.scrollLeft = wrapper.scrollWidth;
+        const scrolledWrapRect = wrapper.getBoundingClientRect();
+        const scrolledBtnRect = actionBtn.getBoundingClientRect();
 
-      return {
-        boxFitsViewport: boxRect.left >= 0 && boxRect.right <= 375,
-        hasHorizontalScroll: wrapper.scrollWidth > wrapper.clientWidth,
-        btnFullyReachableWhenScrolled:
-          scrolledBtnRect.right <= scrolledWrapRect.right && scrolledBtnRect.left >= scrolledWrapRect.left,
-        footerCancelVisible: !!cancelBtn && cancelBtn.getBoundingClientRect().height > 0,
-        footerIssueVisible: !!issueBtn && issueBtn.getBoundingClientRect().height > 0,
-      };
-    });
+        const cancelBtn = document.querySelector('.sb-modal-footer button:nth-child(1)');
+        const issueBtn = document.querySelector('.sb-modal-footer button:nth-child(2)');
 
-    expect(mobileMetrics.boxFitsViewport, 'Modal box must fit within 375px mobile viewport').toBe(true);
-    expect(mobileMetrics.hasHorizontalScroll, 'Mobile viewport must enable responsive horizontal scroll').toBe(true);
-    expect(mobileMetrics.btnFullyReachableWhenScrolled, 'Action button must be fully reachable when scrolled on mobile').toBe(true);
-    expect(mobileMetrics.footerCancelVisible, 'Footer Cancel button must remain accessible on mobile').toBe(true);
-    expect(mobileMetrics.footerIssueVisible, 'Footer Issue PO button must remain accessible on mobile').toBe(true);
+        return {
+          boxFitsViewport: boxRect.left >= 0 && boxRect.right <= vpWidth,
+          hasHorizontalScroll: wrapper.scrollWidth > wrapper.clientWidth,
+          btnFullyReachableWhenScrolled:
+            scrolledBtnRect.right <= scrolledWrapRect.right && scrolledBtnRect.left >= scrolledWrapRect.left,
+          footerCancelVisible: !!cancelBtn && cancelBtn.getBoundingClientRect().height > 0,
+          footerIssueVisible: !!issueBtn && issueBtn.getBoundingClientRect().height > 0,
+          pageScrollX: window.scrollX,
+        };
+      }, vp.width);
+
+      expect(mobileMetrics.boxFitsViewport, `Modal box must fit inside ${vp.width}px viewport`).toBe(true);
+      expect(mobileMetrics.pageScrollX, `No page-level scroll at ${vp.width}px`).toBe(0);
+      expect(mobileMetrics.hasHorizontalScroll, `${vp.width}px mobile viewport must enable responsive horizontal scroll`).toBe(true);
+      expect(mobileMetrics.btnFullyReachableWhenScrolled, `Action button must be fully reachable when scrolled at ${vp.width}px`).toBe(true);
+      expect(mobileMetrics.footerCancelVisible, `Footer Cancel button must remain accessible at ${vp.width}px`).toBe(true);
+      expect(mobileMetrics.footerIssueVisible, `Footer Issue PO button must remain accessible at ${vp.width}px`).toBe(true);
+    }
 
     // Reset to standard desktop and close modal
     await page.setViewportSize({ width: 1280, height: 800 });
