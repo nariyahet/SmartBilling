@@ -17,3 +17,447 @@
   border-radius: 999px;
   transition: width 0.3s ease;
 }
+
+/* Purchase Order Document Preview & Container */
+.po-document-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.po-preview-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--sb-canvas, #f4f8fb);
+  border: 1px solid var(--sb-border, #e3ebf2);
+  border-radius: 8px;
+}
+
+.po-preview-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.po-preview-items-count {
+  font-size: 0.82rem;
+  color: var(--sb-text-muted, #5a7184);
+  font-weight: 600;
+}
+
+/* Document Format */
+.po-print-document {
+  background: #ffffff;
+  border: 2px solid #0f172a;
+  border-radius: 6px;
+  padding: 28px;
+  color: #0f172a;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+
+.po-doc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 2px solid #0f172a;
+  padding-bottom: 16px;
+  margin-bottom: 20px;
+  gap: 20px;
+}
+
+.po-company-block h2 {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 4px 0;
+  letter-spacing: -0.01em;
+}
+
+.po-company-block p {
+  margin: 2px 0;
+  font-size: 0.83rem;
+  color: #334155;
+}
+
+.po-tagline {
+  font-style: italic;
+  color: #64748b !important;
+  font-weight: 500;
+}
+
+.po-title-block {
+  text-align: right;
+  min-width: 220px;
+}
+
+.po-doc-badge {
+  display: inline-block;
+  background: #0f172a;
+  color: #ffffff;
+  font-size: 1.15rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  padding: 4px 12px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.po-doc-meta-item {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  font-size: 0.85rem;
+  margin: 3px 0;
+}
+
+.po-meta-lbl {
+  color: #64748b;
+  font-weight: 600;
+}
+
+.po-meta-val {
+  color: #0f172a;
+}
+
+.po-party-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+}
+
+.po-box-title {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #475569;
+  border-bottom: 1px solid #cbd5e1;
+  padding-bottom: 4px;
+  margin-bottom: 8px;
+}
+
+.po-party-name {
+  display: block;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 4px;
+}
+
+.po-party-detail {
+  font-size: 0.84rem;
+  color: #334155;
+  margin: 3px 0;
+}
+
+.po-term-lbl {
+  font-weight: 600;
+  color: #64748b;
+  margin-right: 6px;
+}
+
+.po-table-wrap {
+  margin-bottom: 20px;
+  overflow-x: auto;
+}
+
+.po-items-doc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+}
+
+.po-items-doc-table th {
+  background: #f1f5f9;
+  border: 1px solid #0f172a;
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #0f172a;
+}
+
+.po-items-doc-table td {
+  border: 1px solid #cbd5e1;
+  padding: 9px 12px;
+  color: #1e293b;
+  vertical-align: middle;
+}
+
+.po-item-tag {
+  color: #0879d1;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.po-tax-pct {
+  color: #64748b;
+  font-size: 0.75rem;
+}
+
+.po-totals-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  margin-bottom: 24px;
+  padding-top: 6px;
+}
+
+.po-totals-left {
+  flex: 1;
+}
+
+.po-notes-box {
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 6px;
+  padding: 12px 16px;
+  font-size: 0.83rem;
+  color: #334155;
+}
+
+.po-notes-box strong {
+  display: block;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  color: #475569;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+
+.po-notes-box p {
+  margin: 0;
+  line-height: 1.4;
+}
+
+.po-totals-right {
+  width: 320px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 16px 20px;
+}
+
+.po-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.86rem;
+  color: #334155;
+  margin: 4px 0;
+}
+
+.po-grand-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 2px solid #0f172a;
+  margin-top: 10px;
+  padding-top: 10px;
+  font-size: 1.05rem;
+}
+
+.po-grand-total-val {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.po-terms-block {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 14px 18px;
+  margin-bottom: 30px;
+  font-size: 0.8rem;
+  color: #475569;
+}
+
+.po-terms-title {
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #334155;
+  margin-bottom: 6px;
+}
+
+.po-terms-list {
+  margin: 0;
+  padding-left: 20px;
+  line-height: 1.5;
+}
+
+.po-signatures-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 24px;
+  margin-top: 36px;
+  text-align: center;
+}
+
+.po-sig-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.po-sig-line {
+  width: 85%;
+  border-bottom: 1.5px solid #0f172a;
+  margin-bottom: 8px;
+}
+
+.po-sig-col span {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.po-sig-col small {
+  font-size: 0.74rem;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+@media (max-width: 768px) {
+  .po-party-grid {
+    grid-template-columns: 1fr;
+  }
+  .po-doc-header {
+    flex-direction: column;
+  }
+  .po-title-block {
+    text-align: left;
+  }
+  .po-totals-section {
+    flex-direction: column;
+  }
+  .po-totals-right {
+    width: 100%;
+  }
+  .po-signatures-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+/* ==========================================================================
+   PURCHASE ORDER @MEDIA PRINT STYLES
+   ========================================================================== */
+@media print {
+  .no-print,
+  .no-print * {
+    display: none !important;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .sb-page-container {
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+  }
+
+  .sb-modal-backdrop {
+    position: static !important;
+    inset: auto !important;
+    background: #ffffff !important;
+    backdrop-filter: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: block !important;
+    width: 100% !important;
+    min-height: auto !important;
+    box-shadow: none !important;
+    animation: none !important;
+  }
+
+  .sb-modal-box {
+    position: static !important;
+    max-height: none !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
+    animation: none !important;
+    transform: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+  }
+
+  .sb-modal-header,
+  .sb-modal-footer,
+  .sb-modal-close-btn {
+    display: none !important;
+  }
+
+  .sb-modal-body {
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+  }
+
+  .po-document-wrapper {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .po-print-document {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border: 2px solid #0f172a !important;
+    padding: 24px !important;
+    margin: 0 auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-shadow: none !important;
+    box-sizing: border-box !important;
+    page-break-inside: avoid;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  }
+
+  .po-items-doc-table th {
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .po-doc-badge {
+    background: #0f172a !important;
+    color: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .po-sig-line {
+    border-bottom: 1.5px solid #0f172a !important;
+  }
+}

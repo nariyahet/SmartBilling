@@ -337,3 +337,125 @@ exports.updatePurchaseOrderStatus = async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to update purchase order status" });
   }
 };
+
+exports.deletePurchaseOrder = async (req, res) => {
+  const conn = db.promise();
+  try {
+    const companyId = req.user.company_id;
+    const { id } = req.params;
+
+    // 1. Verify PO exists and belongs to company
+    const [pos] = await conn.query(
+      "SELECT * FROM plastic_purchase_orders WHERE id = ? AND company_id = ?",
+      [id, companyId]
+    );
+
+    if (pos.length === 0) {
+      return res.status(404).json({ success: false, message: "Purchase order not found" });
+    }
+
+    const po = pos[0];
+
+    // 2. Business rule: Check if PO has downstream Purchase Delivery records
+    const [deliveries] = await conn.query(
+      "SELECT id, delivery_no FROM plastic_purchase_deliveries WHERE purchase_order_id = ? AND company_id = ? LIMIT 1",
+      [id, companyId]
+    );
+
+    if (deliveries.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot delete Purchase Order ${po.po_no} because downstream Purchase Delivery (${deliveries[0].delivery_no}) exists.`,
+      });
+    }
+
+    // 3. Check for any downstream Purchase Bills linked to this PO
+    try {
+      const [bills] = await conn.query(
+        "SELECT id, purchase_bill_no FROM purchase_bills WHERE purchase_order_id = ? AND company_id = ? LIMIT 1",
+        [id, companyId]
+      );
+      if (bills.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: `Cannot delete Purchase Order ${po.po_no} because downstream Purchase Bill (${bills[0].purchase_bill_no}) is linked to it.`,
+        });
+      }
+    } catch {
+      // Column might not exist in older setups; continue safely
+    }
+
+    // 4. Check for any downstream Truck Inwards linked to this PO
+    try {
+      const [trucks] = await conn.query(
+        "SELECT id, inward_no FROM truck_inwards WHERE purchase_order_id = ? AND company_id = ? LIMIT 1",
+        [id, companyId]
+      );
+      if (trucks.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: `Cannot delete Purchase Order ${po.po_no} because downstream Truck Inward (${trucks[0].inward_no}) is linked to it.`,
+        });
+      }
+    } catch {
+      // Column might not exist in older setups; continue safely
+    }
+
+    // 5. Check if any line items have already recorded received quantities
+    const [receivedItems] = await conn.query(
+      "SELECT id FROM plastic_purchase_order_items WHERE purchase_order_id = ? AND company_id = ? AND received_qty > 0 LIMIT 1",
+      [id, companyId]
+    );
+
+    if (receivedItems.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot delete Purchase Order ${po.po_no} because stock items have already been received against it.`,
+      });
+    }
+
+    await conn.query("START TRANSACTION");
+
+    // 6. Delete PO items
+    await conn.query(
+      "DELETE FROM plastic_purchase_order_items WHERE purchase_order_id = ? AND company_id = ?",
+      [id, companyId]
+    );
+
+    // 7. Delete PO
+    await conn.query(
+      "DELETE FROM plastic_purchase_orders WHERE id = ? AND company_id = ?",
+      [id, companyId]
+    );
+
+    // 8. Preserve Purchase Requisition relationship and workflow
+    if (po.requisition_id) {
+      const [remainingPOs] = await conn.query(
+        "SELECT id FROM plastic_purchase_orders WHERE requisition_id = ? AND company_id = ?",
+        [po.requisition_id, companyId]
+      );
+      if (remainingPOs.length === 0) {
+        // Revert PR status from CONVERTED_TO_PO back to APPROVED so it can be converted again
+        await conn.query(
+          "UPDATE plastic_purchase_requisitions SET status = 'APPROVED' WHERE id = ? AND company_id = ? AND status = 'CONVERTED_TO_PO'",
+          [po.requisition_id, companyId]
+        );
+      }
+    }
+
+    await conn.query("COMMIT");
+
+    res.status(200).json({
+      success: true,
+      message: `Purchase Order ${po.po_no} deleted successfully`,
+    });
+  } catch (error) {
+    await conn.query("ROLLBACK");
+    console.error("Delete Purchase Order Error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to delete purchase order",
+    });
+  }
+};
+

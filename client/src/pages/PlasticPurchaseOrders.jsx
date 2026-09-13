@@ -19,6 +19,14 @@ function PlasticPurchaseOrders() {
   const [orders, setOrders] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [rawMaterials, setRawMaterials] = useState([]);
+  const [companySettings, setCompanySettings] = useState(() => {
+    try {
+      const saved = localStorage.getItem("company");
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
 
   // Filters
   const [supplierFilter, setSupplierFilter] = useState("ALL");
@@ -49,7 +57,7 @@ function PlasticPurchaseOrders() {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const [poRes, sRes, rmRes] = await Promise.all([
+      const [poRes, sRes, rmRes, bsRes] = await Promise.all([
         API.get("/plastic-erp/procurement/orders", {
           params: {
             supplier_id: supplierFilter,
@@ -59,6 +67,7 @@ function PlasticPurchaseOrders() {
         }),
         API.get("/suppliers"),
         API.get("/raw-materials"),
+        API.get("/business-settings").catch(() => ({ data: {} })),
       ]);
 
       const poList = Array.isArray(poRes.data?.data)
@@ -86,6 +95,9 @@ function PlasticPurchaseOrders() {
       setOrders(poList);
       setSuppliers(suppList);
       setRawMaterials(rmList);
+      if (bsRes.data?.settings) {
+        setCompanySettings(bsRes.data.settings);
+      }
     } catch (err) {
       console.error("Error loading purchase orders:", err);
       setOrders([]);
@@ -179,8 +191,26 @@ function PlasticPurchaseOrders() {
       const res = await API.get(`/plastic-erp/procurement/orders/${po.id}`);
       setSelectedPO(res.data?.data);
       setDetailsModalOpen(true);
-    } catch (err) {
+    } catch {
       alert("Failed to load PO details");
+    }
+  };
+
+  const handleDeletePO = async (po) => {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this Purchase Order?"
+    );
+    if (!confirmed) return;
+
+    try {
+      setLoading(true);
+      const res = await API.delete(`/plastic-erp/procurement/orders/${po.id}`);
+      alert(res.data?.message || `Purchase Order ${po.po_no} deleted successfully! ✅`);
+      await fetchData();
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to delete Purchase Order");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -289,6 +319,14 @@ function PlasticPurchaseOrders() {
               Issue
             </Button>
           )}
+          <Button
+            size="sm"
+            variant="danger"
+            onClick={() => handleDeletePO(po)}
+            title="Delete Purchase Order"
+          >
+            Delete
+          </Button>
         </div>
       ),
     },
@@ -296,31 +334,33 @@ function PlasticPurchaseOrders() {
 
   return (
     <div className="sb-page-container">
-      <PageHeader
-        title="Purchase Orders"
-        subtitle="Formal purchase contracts, supplier orders, pending balance monitoring & delivery fulfillment"
-        badge="PROCUREMENT CONTRACTS"
-        actions={
-          <div className="sb-header-actions">
-            <Link to="/plastic-erp/purchase-deliveries">
-              <Button variant="secondary" size="md" icon="🚚">
-                Track Deliveries
+      <div className="no-print">
+        <PageHeader
+          title="Purchase Orders"
+          subtitle="Formal purchase contracts, supplier orders, pending balance monitoring & delivery fulfillment"
+          badge="PROCUREMENT CONTRACTS"
+          actions={
+            <div className="sb-header-actions">
+              <Link to="/plastic-erp/purchase-deliveries">
+                <Button variant="secondary" size="md" icon="🚚">
+                  Track Deliveries
+                </Button>
+              </Link>
+              <Button
+                variant="primary"
+                size="md"
+                icon="+"
+                onClick={() => setCreateModalOpen(true)}
+              >
+                Create Purchase Order
               </Button>
-            </Link>
-            <Button
-              variant="primary"
-              size="md"
-              icon="+"
-              onClick={() => setCreateModalOpen(true)}
-            >
-              Create Purchase Order
-            </Button>
-          </div>
-        }
-      />
+            </div>
+          }
+        />
+      </div>
 
       {/* KPI Cards Grid */}
-      <div className="sb-kpi-grid">
+      <div className="sb-kpi-grid no-print">
         <KpiCard
           title="Total Purchase Orders"
           value={totalPOCount}
@@ -352,7 +392,7 @@ function PlasticPurchaseOrders() {
       </div>
 
       {/* Filters Bar */}
-      <Card className="sb-filter-card" noPadding>
+      <Card className="sb-filter-card no-print" noPadding>
         <div className="sb-filter-row">
           <div className="sb-filter-item search-grow">
             <SearchInput
@@ -395,7 +435,7 @@ function PlasticPurchaseOrders() {
       </Card>
 
       {/* Orders Table */}
-      <Card noPadding>
+      <Card noPadding className="no-print">
         <DataTable
           columns={columns}
           data={orders}
@@ -609,7 +649,7 @@ function PlasticPurchaseOrders() {
         subtitle="Formal contract commitment and receipt status"
         size="lg"
         footer={
-          <div className="sb-modal-footer-actions">
+          <div className="sb-modal-footer-actions no-print">
             <Button
               variant="secondary"
               icon="🖨️"
@@ -635,49 +675,244 @@ function PlasticPurchaseOrders() {
         }
       >
         {selectedPO && (
-          <div>
-            <div className="sb-detail-summary-grid">
-              <div><span className="sb-detail-label">Supplier:</span> <strong>{selectedPO.supplier_name}</strong></div>
-              <div><span className="sb-detail-label">PO Date:</span> <strong>{selectedPO.po_date ? selectedPO.po_date.slice(0, 10) : "-"}</strong></div>
-              <div><span className="sb-detail-label">Delivery Date:</span> <strong>{selectedPO.expected_delivery_date ? selectedPO.expected_delivery_date.slice(0, 10) : "-"}</strong></div>
-              <div><span className="sb-detail-label">Payment Terms:</span> <strong>{selectedPO.payment_terms}</strong></div>
-              <div><span className="sb-detail-label">Shipping Address:</span> <strong>{selectedPO.shipping_address}</strong></div>
-              <div><span className="sb-detail-label">Status:</span> <StatusBadge status={selectedPO.status} /></div>
+          <div className="po-document-wrapper">
+            {/* Action Bar (hidden in print) */}
+            <div className="po-preview-top-bar no-print">
+              <div className="po-preview-badge-row">
+                <StatusBadge status={selectedPO.status} />
+                <span className="po-preview-items-count">
+                  {selectedPO.items?.length || 0} Order Items
+                </span>
+              </div>
+              <div className="po-preview-actions">
+                <Button
+                  variant="primary"
+                  icon="🖨️"
+                  onClick={() => window.print()}
+                >
+                  Print PO (A4)
+                </Button>
+              </div>
             </div>
 
-            <h4 className="sb-section-title">Order Line Items</h4>
-            <div className="sb-table-responsive">
-              <table className="sb-table">
-                <thead>
-                  <tr>
-                    <th>Material</th>
-                    <th>Ordered Qty</th>
-                    <th>Received Qty</th>
-                    <th>Rate</th>
-                    <th>Tax</th>
-                    <th>Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {selectedPO.items?.map((item) => (
-                    <tr key={item.id}>
-                      <td className="sb-font-semibold">{item.material_name}</td>
-                      <td>{Number(item.ordered_qty).toLocaleString()} {item.unit}</td>
-                      <td>{Number(item.received_qty || 0).toLocaleString()} {item.unit}</td>
-                      <td>₹{Number(item.rate).toFixed(2)}</td>
-                      <td>₹{Number(item.tax_amount || 0).toFixed(2)}</td>
-                      <td className="sb-font-semibold">₹{Number(item.total_amount).toFixed(2)}</td>
+            {/* PRINTABLE PURCHASE ORDER DOCUMENT */}
+            <div className="po-print-document">
+              {/* Header: Company Profile & PO Title */}
+              <div className="po-doc-header">
+                <div className="po-company-block">
+                  <h2>{companySettings?.business_name || companySettings?.name || "PLASTIC RECYCLING & COMPOUNDING ERP"}</h2>
+                  {companySettings?.tagline && <p className="po-tagline">{companySettings.tagline}</p>}
+                  <p>{companySettings?.address || "Kim Industrial Estate, NH-8, Surat, Gujarat - 394110"}</p>
+                  <p>
+                    {companySettings?.tax_number && (
+                      <span>GSTIN: <strong>{companySettings.tax_number}</strong> | </span>
+                    )}
+                    State: 24-Gujarat
+                  </p>
+                  <p>
+                    {companySettings?.email && <span>Email: {companySettings.email} | </span>}
+                    {companySettings?.phone && <span>Tel: {companySettings.phone}</span>}
+                  </p>
+                </div>
+                <div className="po-title-block">
+                  <div className="po-doc-badge">PURCHASE ORDER</div>
+                  <div className="po-doc-meta-item">
+                    <span className="po-meta-lbl">PO Number:</span>
+                    <strong className="po-meta-val">{selectedPO.po_no}</strong>
+                  </div>
+                  <div className="po-doc-meta-item">
+                    <span className="po-meta-lbl">PO Date:</span>
+                    <span className="po-meta-val">
+                      {selectedPO.po_date ? new Date(selectedPO.po_date).toLocaleDateString("en-IN") : "-"}
+                    </span>
+                  </div>
+                  <div className="po-doc-meta-item">
+                    <span className="po-meta-lbl">Delivery Date:</span>
+                    <span className="po-meta-val">
+                      {selectedPO.expected_delivery_date ? new Date(selectedPO.expected_delivery_date).toLocaleDateString("en-IN") : "-"}
+                    </span>
+                  </div>
+                  <div className="po-doc-meta-item">
+                    <span className="po-meta-lbl">Status:</span>
+                    <strong className="po-meta-val">{selectedPO.status}</strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* Vendor & Delivery Information Grid */}
+              <div className="po-party-grid">
+                <div className="po-party-box">
+                  <div className="po-box-title">SUPPLIER / VENDOR DETAILS</div>
+                  <strong className="po-party-name">{selectedPO.supplier_name}</strong>
+                  {selectedPO.supplier_business_name && (
+                    <div className="po-party-detail">{selectedPO.supplier_business_name}</div>
+                  )}
+                  {selectedPO.supplier_code && (
+                    <div className="po-party-detail">Supplier Code: <strong>{selectedPO.supplier_code}</strong></div>
+                  )}
+                  {selectedPO.supplier_gst && (
+                    <div className="po-party-detail">GSTIN: <strong>{selectedPO.supplier_gst}</strong></div>
+                  )}
+                  {selectedPO.supplier_address && (
+                    <div className="po-party-detail">{selectedPO.supplier_address}</div>
+                  )}
+                  {(selectedPO.supplier_city || selectedPO.supplier_state) && (
+                    <div className="po-party-detail">
+                      {[selectedPO.supplier_city, selectedPO.supplier_state].filter(Boolean).join(", ")}
+                    </div>
+                  )}
+                  {selectedPO.supplier_mobile && (
+                    <div className="po-party-detail">Phone: {selectedPO.supplier_mobile}</div>
+                  )}
+                  {selectedPO.supplier_email && (
+                    <div className="po-party-detail">Email: {selectedPO.supplier_email}</div>
+                  )}
+                </div>
+
+                <div className="po-party-box">
+                  <div className="po-box-title">SHIPPING & CONTRACT TERMS</div>
+                  <div className="po-party-detail">
+                    <span className="po-term-lbl">Shipping / Plant:</span>
+                    <strong>{selectedPO.shipping_address || "Kim Industrial Area, Surat, Gujarat - 394110"}</strong>
+                  </div>
+                  <div className="po-party-detail">
+                    <span className="po-term-lbl">Payment Terms:</span>
+                    <span>{selectedPO.payment_terms || "30 Days Net"}</span>
+                  </div>
+                  <div className="po-party-detail">
+                    <span className="po-term-lbl">Delivery Terms:</span>
+                    <span>{selectedPO.delivery_terms || "Ex-Plant"}</span>
+                  </div>
+                  {selectedPO.approved_by_name && (
+                    <div className="po-party-detail">
+                      <span className="po-term-lbl">Approved By:</span>
+                      <span>{selectedPO.approved_by_name}</span>
+                    </div>
+                  )}
+                  {selectedPO.created_by_name && (
+                    <div className="po-party-detail">
+                      <span className="po-term-lbl">Created By:</span>
+                      <span>{selectedPO.created_by_name}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Items Table */}
+              <div className="po-table-wrap">
+                <table className="po-items-doc-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: "5%" }}>#</th>
+                      <th style={{ width: "14%" }}>Item Code</th>
+                      <th style={{ width: "29%" }}>Material Description</th>
+                      <th style={{ width: "13%", textAlign: "right" }}>Ordered Qty</th>
+                      <th style={{ width: "12%", textAlign: "right" }}>Unit Rate</th>
+                      <th style={{ width: "12%", textAlign: "right" }}>GST / Tax</th>
+                      <th style={{ width: "15%", textAlign: "right" }}>Total Amount</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {(selectedPO.items || []).map((item, idx) => (
+                      <tr key={item.id || idx}>
+                        <td>{idx + 1}</td>
+                        <td><code>{item.material_code || "—"}</code></td>
+                        <td>
+                          <strong>{item.material_name}</strong>
+                          {item.plastic_type && (
+                            <span className="po-item-tag"> [{item.plastic_type}]</span>
+                          )}
+                        </td>
+                        <td style={{ textAlign: "right" }}>
+                          {Number(item.ordered_qty).toLocaleString("en-IN")} {item.unit || "KG"}
+                        </td>
+                        <td style={{ textAlign: "right" }}>
+                          ₹{Number(item.rate).toFixed(2)}
+                        </td>
+                        <td style={{ textAlign: "right" }}>
+                          ₹{Number(item.tax_amount || 0).toFixed(2)}
+                          {Number(item.tax_percent) > 0 && (
+                            <small className="po-tax-pct"> ({item.tax_percent}%)</small>
+                          )}
+                        </td>
+                        <td style={{ textAlign: "right", fontWeight: 700 }}>
+                          ₹{Number(item.total_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
-            <div className="quote-totals-breakdown">
-              <div><span>Subtotal:</span> <strong>₹{Number(selectedPO.subtotal || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</strong></div>
-              <div><span>Tax Amount:</span> <strong>₹{Number(selectedPO.tax_amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</strong></div>
-              <div><span>Freight Amount:</span> <strong>₹{Number(selectedPO.freight_amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</strong></div>
-              <div className="quote-grand-total"><span>Grand Total:</span> <strong>₹{Number(selectedPO.grand_total || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</strong></div>
+              {/* Calculation Breakdown */}
+              <div className="po-totals-section">
+                <div className="po-totals-left">
+                  {selectedPO.notes && (
+                    <div className="po-notes-box">
+                      <strong>Order Notes / Delivery Instructions:</strong>
+                      <p>{selectedPO.notes}</p>
+                    </div>
+                  )}
+                </div>
+                <div className="po-totals-right">
+                  <div className="po-total-row">
+                    <span>Subtotal:</span>
+                    <strong>₹{Number(selectedPO.subtotal || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</strong>
+                  </div>
+                  {Number(selectedPO.discount_amount) > 0 && (
+                    <div className="po-total-row">
+                      <span>Discount:</span>
+                      <strong>- ₹{Number(selectedPO.discount_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</strong>
+                    </div>
+                  )}
+                  <div className="po-total-row">
+                    <span>GST / Tax:</span>
+                    <strong>+ ₹{Number(selectedPO.tax_amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</strong>
+                  </div>
+                  {Number(selectedPO.freight_amount) > 0 && (
+                    <div className="po-total-row">
+                      <span>Freight / Transport:</span>
+                      <strong>+ ₹{Number(selectedPO.freight_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</strong>
+                    </div>
+                  )}
+                  <div className="po-grand-total-row">
+                    <span>Grand Total:</span>
+                    <strong className="po-grand-total-val">
+                      ₹{Number(selectedPO.grand_total || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                    </strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* Terms & Conditions */}
+              <div className="po-terms-block">
+                <div className="po-terms-title">TERMS & CONDITIONS:</div>
+                <ol className="po-terms-list">
+                  <li>Material must match quality standards and polymer specifications as approved.</li>
+                  <li>Weighment conducted on our Kim plant certified weighbridge will be final and binding.</li>
+                  <li>Payment will be processed according to the agreed payment terms after physical inspection.</li>
+                  <li>Goods must be accompanied by delivery challan and valid E-Way Bill wherever required.</li>
+                </ol>
+              </div>
+
+              {/* Signatures */}
+              <div className="po-signatures-grid">
+                <div className="po-sig-col">
+                  <div className="po-sig-line" />
+                  <span>Prepared By</span>
+                  <small>{selectedPO.created_by_name || "Procurement Officer"}</small>
+                </div>
+                <div className="po-sig-col">
+                  <div className="po-sig-line" />
+                  <span>Verified & Approved By</span>
+                  <small>{selectedPO.approved_by_name || "Plant Manager"}</small>
+                </div>
+                <div className="po-sig-col">
+                  <div className="po-sig-line" />
+                  <span>Authorized Signatory</span>
+                  <small>For {companySettings?.business_name || companySettings?.name || "Company Name"}</small>
+                </div>
+              </div>
             </div>
           </div>
         )}

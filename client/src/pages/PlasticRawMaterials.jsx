@@ -7,6 +7,40 @@ import "./PlasticRawMaterials.css";
 
 const PLASTIC_TYPES = ["ALL", "PET", "PP", "HDPE", "LDPE", "OTHER"];
 
+const SCRAP_FORM_OPTIONS = [
+  "Flakes",
+  "Regrind",
+  "Film",
+  "Drum Scrap",
+  "Rigid Scrap",
+  "Mixed Scrap",
+  "Other",
+];
+
+const GRADE_OPTIONS = [
+  "A Grade",
+  "B Grade",
+  "C Grade",
+  "Premium",
+  "Standard",
+  "Industrial",
+  "Mixed",
+  "Other",
+];
+
+const COLOR_OPTIONS = [
+  "Natural",
+  "Transparent",
+  "White",
+  "Black",
+  "Blue",
+  "Green",
+  "Red",
+  "Yellow",
+  "Mixed",
+  "Other",
+];
+
 function PlasticRawMaterials() {
   const [materials, setMaterials] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -39,6 +73,22 @@ function PlasticRawMaterials() {
     description: "",
     status: "ACTIVE",
   });
+
+  // Dynamic dropdown options: ensure existing values in legacy records are always included and selectable
+  const categoryOptions =
+    formData.category && !SCRAP_FORM_OPTIONS.includes(formData.category)
+      ? [formData.category, ...SCRAP_FORM_OPTIONS]
+      : SCRAP_FORM_OPTIONS;
+
+  const gradeOptions =
+    formData.grade && !GRADE_OPTIONS.includes(formData.grade)
+      ? [formData.grade, ...GRADE_OPTIONS]
+      : GRADE_OPTIONS;
+
+  const colorOptions =
+    formData.color && !COLOR_OPTIONS.includes(formData.color)
+      ? [formData.color, ...COLOR_OPTIONS]
+      : COLOR_OPTIONS;
 
   const fetchMaterials = async () => {
     try {
@@ -82,10 +132,10 @@ function PlasticRawMaterials() {
     setFormData({
       material_code: "",
       material_name: "",
-      category: "BOTTLES",
+      category: "Flakes",
       plastic_type: "PET",
       grade: "A Grade",
-      color: "Transparent",
+      color: "Natural",
       unit: "KG",
       minimum_stock: 500,
       maximum_stock: 50000,
@@ -207,7 +257,7 @@ function PlasticRawMaterials() {
           <form className="search-form" onSubmit={handleSearchSubmit}>
             <input
               type="text"
-              placeholder="Search by material name, code, or category..."
+              placeholder="Search by name, code, category, grade, color, or polymer..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -411,37 +461,52 @@ function PlasticRawMaterials() {
 
                 <div className="form-group">
                   <label>Scrap Form / Category</label>
-                  <input
-                    type="text"
+                  <select
                     name="category"
-                    placeholder="e.g. Bottles, Films, Lumps, Regrind"
                     value={formData.category}
                     onChange={handleFormChange}
-                  />
+                  >
+                    <option value="">Select Scrap Form / Category</option>
+                    {categoryOptions.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
               <div className="form-row-3">
                 <div className="form-group">
                   <label>Grade / Quality</label>
-                  <input
-                    type="text"
+                  <select
                     name="grade"
-                    placeholder="e.g. A Grade / Washed / Mixed"
                     value={formData.grade}
                     onChange={handleFormChange}
-                  />
+                  >
+                    <option value="">Select Grade / Quality</option>
+                    {gradeOptions.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="form-group">
                   <label>Color</label>
-                  <input
-                    type="text"
+                  <select
                     name="color"
-                    placeholder="e.g. Transparent / Blue / Multi"
                     value={formData.color}
                     onChange={handleFormChange}
-                  />
+                  >
+                    <option value="">Select Color</option>
+                    {colorOptions.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="form-group">

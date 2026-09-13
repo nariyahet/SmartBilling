@@ -10,5 +10,6 @@ router.get("/", poController.getPurchaseOrders);
 router.get("/:id", poController.getPurchaseOrderById);
 router.post("/", poController.createPurchaseOrder);
 router.put("/:id/status", poController.updatePurchaseOrderStatus);
+router.delete("/:id", poController.deletePurchaseOrder);
 
 module.exports = router;

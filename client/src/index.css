@@ -898,10 +898,10 @@ a {
   }
 
   /* When an ERP modal is open, ensure background page content is hidden so only the document prints */
-  body:has(.sb-modal-backdrop) .sb-page-content-canvas > *:not(:has(.sb-modal-backdrop)),
-  body:has(.sb-modal-backdrop) .sb-page-container > *:not(:has(.sb-modal-backdrop)),
+  body:has(.sb-modal-backdrop) .sb-page-content-canvas > :not(.sb-modal-backdrop):not(:has(.sb-modal-backdrop)),
+  body:has(.sb-modal-backdrop) .sb-page-container > :not(.sb-modal-backdrop):not(:has(.sb-modal-backdrop)),
   body:has(.plastic-modal-backdrop) .plastic-content-wrap,
-  body:has(.plastic-modal-backdrop) .sb-page-container > *:not(:has(.plastic-modal-backdrop)) {
+  body:has(.plastic-modal-backdrop) .sb-page-container > :not(.plastic-modal-backdrop):not(:has(.plastic-modal-backdrop)) {
     display: none !important;
   }
 }

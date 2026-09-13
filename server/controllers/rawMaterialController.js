@@ -68,9 +68,16 @@ exports.getRawMaterials = async (req, res) => {
     }
 
     if (search && search.trim()) {
-      sql += ` AND (rm.material_name LIKE ? OR rm.material_code LIKE ? OR rm.category LIKE ?)`;
+      sql += ` AND (
+        rm.material_name LIKE ? OR
+        rm.material_code LIKE ? OR
+        rm.category LIKE ? OR
+        rm.grade LIKE ? OR
+        rm.color LIKE ? OR
+        rm.plastic_type LIKE ?
+      )`;
       const term = `%${search.trim()}%`;
-      params.push(term, term, term);
+      params.push(term, term, term, term, term, term);
     }
 
     sql += ` ORDER BY rm.id DESC`;
