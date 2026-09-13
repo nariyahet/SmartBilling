@@ -356,44 +356,82 @@
 /* ==========================================================================
    PURCHASE ORDER @MEDIA PRINT STYLES
    ========================================================================== */
+@page {
+  size: A4 portrait;
+  margin: 10mm 12mm;
+}
+
 @media print {
+  /* Exclude application chrome, navigation, buttons, controls */
   .no-print,
-  .no-print * {
+  .no-print *,
+  .sb-sidebar,
+  .sb-top-header,
+  .sb-drawer-backdrop,
+  .sb-modal-header,
+  .sb-modal-footer,
+  .sb-modal-close-btn,
+  .po-preview-top-bar {
     display: none !important;
   }
 
+  /* Reset document root & body */
   html,
   body {
     background: #ffffff !important;
     color: #0f172a !important;
     margin: 0 !important;
     padding: 0 !important;
+    height: auto !important;
+    min-height: 100% !important;
+    overflow: visible !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
+  /* Ensure app layout shells don't constrain or clip print output */
+  .sb-app-layout,
+  .sb-main-wrapper,
+  .sb-page-content-canvas,
   .sb-page-container {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
     padding: 0 !important;
     margin: 0 !important;
     background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
   }
 
+  /* Flatten modal containers so they render as normal flow printable pages */
   .sb-modal-backdrop {
     position: static !important;
     inset: auto !important;
-    background: #ffffff !important;
+    background: transparent !important;
     backdrop-filter: none !important;
     padding: 0 !important;
     margin: 0 !important;
     display: block !important;
     width: 100% !important;
-    min-height: auto !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
     box-shadow: none !important;
     animation: none !important;
   }
 
   .sb-modal-box {
     position: static !important;
+    height: auto !important;
+    min-height: 0 !important;
     max-height: none !important;
     max-width: 100% !important;
     width: 100% !important;
@@ -405,14 +443,8 @@
     transform: none !important;
     padding: 0 !important;
     margin: 0 !important;
-    background: #ffffff !important;
+    background: transparent !important;
     color: #0f172a !important;
-  }
-
-  .sb-modal-header,
-  .sb-modal-footer,
-  .sb-modal-close-btn {
-    display: none !important;
   }
 
   .sb-modal-body {
@@ -421,26 +453,74 @@
     overflow: visible !important;
     max-height: none !important;
     height: auto !important;
+    min-height: 0 !important;
   }
 
   .po-document-wrapper {
+    display: block !important;
+    position: static !important;
     width: 100% !important;
+    max-width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
+    overflow: visible !important;
+    height: auto !important;
+    min-height: 0 !important;
   }
 
+  /* The printable PO document */
   .po-print-document {
+    display: block !important;
+    position: static !important;
+    visibility: visible !important;
     background: #ffffff !important;
     color: #0f172a !important;
-    border: 2px solid #0f172a !important;
-    padding: 24px !important;
+    border: 1.5px solid #0f172a !important;
+    border-radius: 0 !important;
+    padding: 16px 20px !important;
     margin: 0 auto !important;
     width: 100% !important;
     max-width: 100% !important;
     box-shadow: none !important;
     box-sizing: border-box !important;
-    page-break-inside: avoid;
+    break-inside: auto !important;
+    page-break-inside: auto !important;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  }
+
+  .po-print-document * {
+    visibility: visible !important;
+    box-sizing: border-box;
+  }
+
+  /* Prevent awkward breaks inside logical PO sections */
+  .po-doc-header,
+  .po-party-grid,
+  .po-totals-section,
+  .po-terms-block,
+  .po-signatures-grid {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Table styling & pagination */
+  .po-table-wrap {
+    overflow: visible !important;
+    margin-bottom: 14px !important;
+  }
+
+  .po-items-doc-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  .po-items-doc-table thead {
+    display: table-header-group !important;
+  }
+
+  .po-items-doc-table tr {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
   }
 
   .po-items-doc-table th {

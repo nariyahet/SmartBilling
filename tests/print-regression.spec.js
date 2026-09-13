@@ -526,4 +526,209 @@ test.describe('SmartBilling 2.0 Global Print Functionality & Regression Suite', 
     // Verify no alert or unhandled exception was fired
     expect(dialogMessages.length, `Unexpected alert during PDF generation: ${dialogMessages.join(', ')}`).toBe(0);
   });
+
+  // --------------------------------------------------------------------------
+  // TEST 9: Purchase Order View Modal & Print (A4) Verification
+  // --------------------------------------------------------------------------
+  test('9. Purchase Order: View modal opens, Print PO triggers cleanly without blank pages, and PO content is visible in print media', async ({ page }) => {
+    // Mock procurement orders list and single PO details
+    await page.route('**/api/plastic-erp/procurement/orders**', async (route) => {
+      const url = route.request().url();
+      if (url.includes('/orders/101')) {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            data: {
+              id: 101,
+              po_no: 'PO-2026-Sur99',
+              po_date: '2026-09-12',
+              expected_delivery_date: '2026-09-20',
+              status: 'APPROVED',
+              supplier_name: 'Apex Polymer Suppliers',
+              supplier_business_name: 'Apex Polymer Suppliers Pvt Ltd',
+              supplier_code: 'SUP-APEX',
+              supplier_gst: '24ABCDE1234F1Z5',
+              supplier_address: 'Plot 44, GIDC Industrial Estate, Surat, Gujarat',
+              supplier_city: 'Surat',
+              supplier_state: 'Gujarat',
+              supplier_mobile: '9876543210',
+              supplier_email: 'sales@apexpolymer.com',
+              shipping_address: 'Kim Industrial Area, Surat, Gujarat - 394110',
+              payment_terms: '30 Days Net',
+              delivery_terms: 'Ex-Plant',
+              approved_by_name: 'Plant Manager',
+              created_by_name: 'Procurement Officer',
+              items: [
+                {
+                  id: 1,
+                  material_code: 'RM-HDPE-01',
+                  material_name: 'HDPE Blue Drums Scrap',
+                  plastic_type: 'HDPE',
+                  ordered_qty: 5000,
+                  unit: 'KG',
+                  rate: 48.5,
+                  tax_percent: 18,
+                  tax_amount: 43650,
+                  total_amount: 286150,
+                },
+                {
+                  id: 2,
+                  material_code: 'RM-PP-02',
+                  material_name: 'PP Regrind Pellets White',
+                  plastic_type: 'PP',
+                  ordered_qty: 3000,
+                  unit: 'KG',
+                  rate: 62.0,
+                  tax_percent: 18,
+                  tax_amount: 33480,
+                  total_amount: 219480,
+                },
+              ],
+              notes: 'Inspection on delivery required. Weighbridge slip must accompany vehicle.',
+              subtotal: 428500,
+              discount_amount: 0,
+              tax_amount: 77130,
+              freight_amount: 5000,
+              grand_total: 510630,
+            },
+          }),
+        });
+      } else {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            data: [
+              {
+                id: 101,
+                po_no: 'PO-2026-Sur99',
+                po_date: '2026-09-12',
+                expected_delivery_date: '2026-09-20',
+                supplier_name: 'Apex Polymer Suppliers',
+                supplier_code: 'SUP-APEX',
+                supplier_city: 'Surat',
+                total_ordered_qty: 8000,
+                received_qty: 0,
+                grand_total: 510630,
+                status: 'APPROVED',
+              },
+            ],
+          }),
+        });
+      }
+    });
+
+    await page.route('**/api/suppliers', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ suppliers: [{ id: 1, name: 'Apex Polymer Suppliers' }] }),
+      });
+    });
+
+    await page.route('**/api/raw-materials', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ raw_materials: [] }),
+      });
+    });
+
+    await page.route('**/api/business-settings', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          settings: {
+            business_name: 'SmartBilling Recycling ERP',
+            tagline: 'Sustainable Polymer Processing',
+            address: 'Kim Industrial Estate, NH-8, Surat, Gujarat - 394110',
+            tax_number: '24ABCDE1234F1Z5',
+            email: 'admin@smartbilling.com',
+            phone: '9876543210',
+          },
+        }),
+      });
+    });
+
+    await page.goto('http://localhost:4173/plastic-erp/purchase-orders');
+
+    // Wait for PO table to load and click View
+    const viewButton = page.getByRole('button', { name: 'View' }).first();
+    await expect(viewButton).toBeVisible({ timeout: 10000 });
+    await viewButton.click();
+
+    // Verify modal is open and shows complete PO content
+    const modalBackdrop = page.locator('.sb-modal-backdrop');
+    await expect(modalBackdrop).toBeVisible();
+
+    const poDoc = page.locator('.po-print-document');
+    await expect(poDoc).toBeVisible();
+    await expect(poDoc).toContainText('PO-2026-Sur99');
+    await expect(poDoc).toContainText('Apex Polymer Suppliers');
+    await expect(poDoc).toContainText('HDPE Blue Drums Scrap');
+    await expect(poDoc).toContainText('PP Regrind Pellets White');
+    await expect(poDoc).toContainText('5,10,630');
+
+    // Check "Print PO (A4)" button
+    const printA4Btn = page.getByRole('button', { name: /Print PO \(A4\)/i });
+    await expect(printA4Btn).toBeVisible();
+
+    // Emulate print media
+    await page.emulateMedia({ media: 'print' });
+
+    // 1. Verify PO document container and its elements are VISIBLE in print
+    const poVisibility = await poDoc.evaluate((el) => window.getComputedStyle(el).visibility);
+    expect(poVisibility).toBe('visible');
+
+    const poDisplay = await poDoc.evaluate((el) => window.getComputedStyle(el).display);
+    expect(poDisplay).toBe('block');
+
+    // 2. Verify inner PO content is present and not empty
+    const printedContent = await poDoc.innerText();
+    expect(printedContent.length).toBeGreaterThan(200);
+    expect(printedContent).toContain('PURCHASE ORDER');
+    expect(printedContent).toContain('Apex Polymer Suppliers');
+    expect(printedContent).toContain('HDPE Blue Drums Scrap');
+    expect(printedContent).toContain('TERMS & CONDITIONS');
+
+    // 3. Verify screen UI elements (sidebar, top header, modal close/print buttons) are HIDDEN in print
+    const sidebarDisplay = await page.locator('.sb-sidebar').evaluate((el) => window.getComputedStyle(el).display);
+    expect(sidebarDisplay).toBe('none');
+
+    const topHeaderDisplay = await page.locator('.sb-top-header').evaluate((el) => window.getComputedStyle(el).display);
+    expect(topHeaderDisplay).toBe('none');
+
+    const topBarDisplay = await page.locator('.po-preview-top-bar').evaluate((el) => window.getComputedStyle(el).display);
+    expect(topBarDisplay).toBe('none');
+
+    const modalFooterDisplay = await page.locator('.sb-modal-footer').evaluate((el) => window.getComputedStyle(el).display);
+    expect(modalFooterDisplay).toBe('none');
+
+    // Reset to screen media
+    await page.emulateMedia({ media: 'screen' });
+
+    // 4. Test clicking Print PO (A4) invokes window.print without exceptions
+    let printInvoked = false;
+    await page.exposeFunction('mockPrintNotifier', () => {
+      printInvoked = true;
+    });
+    await page.evaluate(() => {
+      window.print = () => {
+        /** @type {any} */ (window).mockPrintNotifier();
+      };
+    });
+
+    await printA4Btn.click();
+    expect(printInvoked).toBe(true);
+
+    // 5. Verify closing the modal works normally and returns to application
+    const closeBtn = page.getByRole('button', { name: 'Close', exact: true });
+    await expect(closeBtn).toBeVisible();
+    await closeBtn.click();
+    await expect(modalBackdrop).not.toBeVisible();
+  });
 });

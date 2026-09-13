@@ -639,12 +639,12 @@
 }
 
 @media print {
-  body * {
+  body:has(.ewb-doc-preview-wrap) * {
     visibility: hidden;
   }
 
-  .ewb-doc-preview-wrap,
-  .ewb-doc-preview-wrap * {
+  body:has(.ewb-doc-preview-wrap) .ewb-doc-preview-wrap,
+  body:has(.ewb-doc-preview-wrap) .ewb-doc-preview-wrap * {
     visibility: visible;
   }
 

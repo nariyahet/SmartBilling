@@ -214,6 +214,21 @@ function PlasticPurchaseOrders() {
     }
   };
 
+  const handlePrintPO = () => {
+    if (!selectedPO) return;
+    const originalTitle = document.title;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "visible";
+    if (selectedPO?.po_no) {
+      document.title = `Purchase_Order_${selectedPO.po_no}`;
+    }
+    window.print();
+    setTimeout(() => {
+      document.body.style.overflow = prevOverflow || "hidden";
+      document.title = originalTitle;
+    }, 500);
+  };
+
   // KPIs
   const totalPOCount = Array.isArray(orders) ? orders.length : 0;
   const pendingApprovalCount = Array.isArray(orders) ? orders.filter((o) => o.status === "PENDING_APPROVAL").length : 0;
@@ -653,7 +668,7 @@ function PlasticPurchaseOrders() {
             <Button
               variant="secondary"
               icon="🖨️"
-              onClick={() => window.print()}
+              onClick={handlePrintPO}
             >
               Print PO
             </Button>
@@ -688,7 +703,7 @@ function PlasticPurchaseOrders() {
                 <Button
                   variant="primary"
                   icon="🖨️"
-                  onClick={() => window.print()}
+                  onClick={handlePrintPO}
                 >
                   Print PO (A4)
                 </Button>
