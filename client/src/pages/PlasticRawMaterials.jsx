@@ -66,6 +66,10 @@ function PlasticRawMaterials() {
     grade: "",
     color: "",
     unit: "KG",
+    opening_stock: 0,
+    opening_stock_rate: 0,
+    opening_stock_date: new Date().toISOString().slice(0, 10),
+    current_stock: 0,
     minimum_stock: 500,
     maximum_stock: 50000,
     default_purchase_rate: 0,
@@ -137,6 +141,10 @@ function PlasticRawMaterials() {
       grade: "A Grade",
       color: "Natural",
       unit: "KG",
+      opening_stock: 0,
+      opening_stock_rate: 42.5,
+      opening_stock_date: new Date().toISOString().slice(0, 10),
+      current_stock: 0,
       minimum_stock: 500,
       maximum_stock: 50000,
       default_purchase_rate: 42.5,
@@ -158,6 +166,10 @@ function PlasticRawMaterials() {
       grade: mat.grade || "",
       color: mat.color || "",
       unit: mat.unit || "KG",
+      opening_stock: mat.opening_stock !== undefined && mat.opening_stock !== null ? Number(mat.opening_stock) : 0,
+      opening_stock_rate: mat.opening_stock_rate !== undefined && mat.opening_stock_rate !== null ? Number(mat.opening_stock_rate) : 0,
+      opening_stock_date: mat.opening_stock_date ? String(mat.opening_stock_date).slice(0, 10) : new Date().toISOString().slice(0, 10),
+      current_stock: mat.current_stock !== undefined && mat.current_stock !== null ? Number(mat.current_stock) : 0,
       minimum_stock: mat.minimum_stock || 0,
       maximum_stock: mat.maximum_stock || 0,
       default_purchase_rate: mat.default_purchase_rate || 0,
@@ -187,6 +199,14 @@ function PlasticRawMaterials() {
     }
     if (!formData.plastic_type.trim()) {
       alert("Plastic polymer type is required.");
+      return;
+    }
+    if (Number(formData.opening_stock) < 0) {
+      alert("Opening stock quantity cannot be negative.");
+      return;
+    }
+    if (Number(formData.opening_stock_rate) < 0) {
+      alert("Opening stock rate cannot be negative.");
       return;
     }
 
@@ -360,6 +380,11 @@ function PlasticRawMaterials() {
                         <strong className="stock-number">
                           {Number(mat.current_stock || 0).toLocaleString("en-IN")} {mat.unit || "KG"}
                         </strong>
+                        {Number(mat.opening_stock || 0) > 0 && (
+                          <span className="opening-stock-subtext">
+                            Opening: {Number(mat.opening_stock).toLocaleString("en-IN")} {mat.unit || "KG"}
+                          </span>
+                        )}
                       </td>
                       <td>
                         <span className="threshold-text">
@@ -515,6 +540,116 @@ function PlasticRawMaterials() {
                     <option value="KG">KG (Kilograms)</option>
                     <option value="TON">TON (Metric Tons)</option>
                   </select>
+                </div>
+              </div>
+
+              {/* Stock Information Section */}
+              <div className="form-section-header">
+                <div className="section-title-wrap">
+                  <span className="section-icon">📦</span>
+                  <div>
+                    <h3 className="section-title">Stock Information</h3>
+                    <p className="section-subtitle">Initial inventory balance, valuation rate, and system current stock</p>
+                  </div>
+                </div>
+                {Number(formData.opening_stock || 0) > 0 && Number(formData.opening_stock_rate || 0) > 0 && (
+                  <div className="opening-valuation-badge">
+                    <span>Opening Value: </span>
+                    <strong>
+                      ₹{(Number(formData.opening_stock) * Number(formData.opening_stock_rate)).toLocaleString("en-IN", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </strong>
+                  </div>
+                )}
+              </div>
+
+              <div className="stock-info-card">
+                <div className="form-row-3">
+                  <div className="form-group">
+                    <label>Opening Stock Qty</label>
+                    <div className="input-with-badge">
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        name="opening_stock"
+                        placeholder="0.00"
+                        value={formData.opening_stock}
+                        onChange={handleFormChange}
+                      />
+                      <span className="input-badge">{formData.unit || "KG"}</span>
+                    </div>
+                    <small className="help-text">Initial physical count balance</small>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Opening Stock Rate (₹/{formData.unit || "KG"})</label>
+                    <div className="input-with-badge">
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        name="opening_stock_rate"
+                        placeholder="0.00"
+                        value={formData.opening_stock_rate}
+                        onChange={handleFormChange}
+                      />
+                      <span className="input-badge">₹/{formData.unit || "KG"}</span>
+                    </div>
+                    <small className="help-text">Initial valuation rate per unit</small>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Opening Stock Date</label>
+                    <input
+                      type="date"
+                      name="opening_stock_date"
+                      value={formData.opening_stock_date}
+                      onChange={handleFormChange}
+                    />
+                    <small className="help-text">Effective date for opening balance</small>
+                  </div>
+                </div>
+
+                <div className="form-row-2 current-stock-readonly-row">
+                  <div className="form-group">
+                    <label>Current Stock (System Calculated)</label>
+                    <div className="readonly-stock-display">
+                      <span className="current-stock-val">
+                        {Number(formData.current_stock || 0).toLocaleString("en-IN", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}{" "}
+                        {formData.unit || "KG"}
+                      </span>
+                      <span className="readonly-pill">READ ONLY</span>
+                    </div>
+                    <small className="help-text">
+                      Calculated automatically from stock movements. Direct manual editing is blocked.
+                    </small>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Calculated Opening Stock Value</label>
+                    <div className="readonly-stock-display valuation-calc-box">
+                      <span className="calculated-val-number">
+                        ₹
+                        {(
+                          Number(formData.opening_stock || 0) * Number(formData.opening_stock_rate || 0)
+                        ).toLocaleString("en-IN", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </span>
+                      <span className="valuation-formula-text">
+                        ({Number(formData.opening_stock || 0).toLocaleString("en-IN")} × ₹
+                        {Number(formData.opening_stock_rate || 0).toFixed(2)})
+                      </span>
+                    </div>
+                    <small className="help-text">Opening Stock Qty × Opening Stock Rate</small>
+                  </div>
                 </div>
               </div>
 
