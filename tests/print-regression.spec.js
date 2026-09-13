@@ -731,4 +731,133 @@ test.describe('SmartBilling 2.0 Global Print Functionality & Regression Suite', 
     await closeBtn.click();
     await expect(modalBackdrop).not.toBeVisible();
   });
+
+  // --------------------------------------------------------------------------
+  // TEST 10: Purchase Order Creation Form - Items Table UI Layout
+  // --------------------------------------------------------------------------
+  test('10. Purchase Order Creation: Items row controls have sufficient width, unclipped values, and clean responsive layout', async ({ page }) => {
+    await page.route('**/api/plastic-erp/procurement/orders**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: [] }),
+      });
+    });
+
+    await page.route('**/api/suppliers', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ suppliers: [{ id: 1, supplier_name: 'Apex Polymer Suppliers', supplier_code: 'SUP-APEX' }] }),
+      });
+    });
+
+    await page.route('**/api/raw-materials', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          raw_materials: [
+            { id: 101, material_name: 'HDPE Blue Drums Regrind Pellets', plastic_type: 'HDPE', default_purchase_rate: 45.0, unit: 'KG' },
+            { id: 102, material_name: 'PP Natural Scrap Flakes', plastic_type: 'PP', default_purchase_rate: 38.0, unit: 'KG' },
+          ],
+        }),
+      });
+    });
+
+    await page.route('**/api/business-settings', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ settings: { business_name: 'SmartBilling ERP' } }),
+      });
+    });
+
+    await page.goto('http://localhost:4173/plastic-erp/purchase-orders');
+
+    // Click "+ Create Purchase Order"
+    const createBtn = page.getByRole('button', { name: '+ Create Purchase Order' });
+    await expect(createBtn).toBeVisible({ timeout: 10000 });
+    await createBtn.click();
+
+    // Verify modal is open and has po-create-modal class
+    const modalBox = page.locator('.sb-modal-box.po-create-modal');
+    await expect(modalBox).toBeVisible();
+
+    // Check modal width > 760px on desktop (size-xl is 960px+)
+    const modalWidth = await modalBox.evaluate((el) => el.clientWidth);
+    expect(modalWidth).toBeGreaterThan(760);
+
+    // Verify section title and Add Line button
+    await expect(page.locator('.sb-section-title', { hasText: 'Purchase Order Items' })).toBeVisible();
+    const addLineBtn = page.getByRole('button', { name: 'Add Line' });
+    await expect(addLineBtn).toBeVisible();
+
+    // Verify all 7 columns are present in table header
+    const table = page.locator('.po-items-form-table');
+    await expect(table).toBeVisible();
+    await expect(table.locator('th.po-col-material')).toContainText('Raw Material *');
+    await expect(table.locator('th.po-col-qty')).toContainText('Qty *');
+    await expect(table.locator('th.po-col-rate')).toContainText('Rate (₹)');
+    await expect(table.locator('th.po-col-disc')).toContainText('Disc (₹)');
+    await expect(table.locator('th.po-col-tax')).toContainText('GST %');
+    await expect(table.locator('th.po-col-total')).toContainText('Line Total');
+    await expect(table.locator('th.po-col-action')).toContainText('Action');
+
+    // Verify column and control widths for row 1
+    const materialSelect = table.locator('.po-input-material').first();
+    await expect(materialSelect).toBeVisible();
+    const materialWidth = await materialSelect.evaluate((el) => el.clientWidth);
+    expect(materialWidth, 'Raw Material select must have generous width (>200px)').toBeGreaterThan(200);
+
+    const qtyInput = table.locator('td.po-col-qty input').first();
+    await expect(qtyInput).toBeVisible();
+    const qtyWidth = await qtyInput.evaluate((el) => el.clientWidth);
+    expect(qtyWidth, 'Qty input must have comfortable width (>75px)').toBeGreaterThan(75);
+
+    const rateInput = table.locator('td.po-col-rate input').first();
+    await expect(rateInput).toBeVisible();
+    const rateWidth = await rateInput.evaluate((el) => el.clientWidth);
+    expect(rateWidth, 'Rate input must have comfortable width (>75px)').toBeGreaterThan(75);
+
+    const discInput = table.locator('td.po-col-disc input').first();
+    await expect(discInput).toBeVisible();
+    const discWidth = await discInput.evaluate((el) => el.clientWidth);
+    expect(discWidth, 'Discount input must have comfortable width (>65px)').toBeGreaterThan(65);
+
+    const taxInput = table.locator('td.po-col-tax input').first();
+    await expect(taxInput).toBeVisible();
+    const taxWidth = await taxInput.evaluate((el) => el.clientWidth);
+    expect(taxWidth, 'Tax input must have comfortable width (>60px)').toBeGreaterThan(60);
+
+    // Verify initial values are populated and visible
+    await expect(qtyInput).toHaveValue('1000');
+    await expect(rateInput).toHaveValue('45');
+    await expect(discInput).toHaveValue('0');
+    await expect(taxInput).toHaveValue('18');
+
+    // Select a material and verify no text clipping
+    await materialSelect.selectOption('101');
+    const selectedText = await materialSelect.locator('option:checked').innerText();
+    expect(selectedText).toContain('HDPE Blue Drums Regrind Pellets');
+
+    // Verify line total calculation: (1000 * 45 - 0) * 1.18 = 53,100.00
+    const lineTotalCell = table.locator('.po-line-total-cell').first();
+    await expect(lineTotalCell).toContainText('53100.00');
+
+    // Test "Add Line" adds row 2
+    await addLineBtn.click();
+    await expect(table.locator('tbody tr')).toHaveCount(2);
+
+    // Test "Remove" on second line
+    const removeBtns = table.locator('button:has-text("Remove")');
+    await expect(removeBtns.nth(1)).toBeVisible();
+    await removeBtns.nth(1).click();
+    await expect(table.locator('tbody tr')).toHaveCount(1);
+
+    // Close modal
+    const cancelBtn = page.getByRole('button', { name: 'Cancel' });
+    await cancelBtn.click();
+    await expect(modalBox).not.toBeVisible();
+  });
 });

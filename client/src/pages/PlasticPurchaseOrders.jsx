@@ -465,7 +465,8 @@ function PlasticPurchaseOrders() {
         onClose={() => setCreateModalOpen(false)}
         title="Create Purchase Order"
         subtitle="Formal contract commitment to supplier with item rates, delivery dates and freight"
-        size="lg"
+        size="xl"
+        className="po-create-modal"
         footer={
           <div className="sb-modal-footer-actions">
             <Button variant="secondary" onClick={() => setCreateModalOpen(false)}>
@@ -563,17 +564,17 @@ function PlasticPurchaseOrders() {
             </Button>
           </div>
 
-          <div className="sb-table-responsive">
-            <table className="sb-table">
+          <div className="sb-table-responsive po-items-table-responsive">
+            <table className="sb-table po-items-form-table">
               <thead>
                 <tr>
-                  <th style={{ width: "28%" }}>Raw Material *</th>
-                  <th style={{ width: "16%" }}>Qty *</th>
-                  <th style={{ width: "16%" }}>Rate (₹)</th>
-                  <th style={{ width: "12%" }}>Disc (₹)</th>
-                  <th style={{ width: "12%" }}>GST %</th>
-                  <th style={{ width: "16%" }}>Line Total</th>
-                  <th style={{ width: "8%" }}></th>
+                  <th className="po-col-material">Raw Material *</th>
+                  <th className="po-col-qty">Qty *</th>
+                  <th className="po-col-rate">Rate (₹)</th>
+                  <th className="po-col-disc">Disc (₹)</th>
+                  <th className="po-col-tax">GST %</th>
+                  <th className="po-col-total">Line Total</th>
+                  <th className="po-col-action">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -587,62 +588,78 @@ function PlasticPurchaseOrders() {
 
                   return (
                     <tr key={idx}>
-                      <td>
+                      <td className="po-col-material">
                         <select
                           required
                           value={item.raw_material_id}
                           onChange={(e) => handleItemChange(idx, "raw_material_id", e.target.value)}
-                          className="sb-select"
+                          className="sb-select po-input-material"
                         >
                           <option value="">Select Material</option>
                           {(Array.isArray(rawMaterials) ? rawMaterials : []).map((m) => (
-                            <option key={m.id} value={m.id}>{m.material_name} ({m.plastic_type})</option>
+                            <option key={m.id} value={m.id}>
+                              {m.material_name} {m.plastic_type ? `(${m.plastic_type})` : ""}
+                            </option>
                           ))}
                         </select>
                       </td>
-                      <td>
+                      <td className="po-col-qty">
                         <input
                           type="number"
                           step="0.01"
+                          min="0.01"
+                          required
                           value={item.ordered_qty}
                           onChange={(e) => handleItemChange(idx, "ordered_qty", e.target.value)}
-                          className="sb-input"
+                          className="sb-input po-input-number"
+                          placeholder="Qty"
                         />
                       </td>
-                      <td>
+                      <td className="po-col-rate">
                         <input
                           type="number"
                           step="0.01"
+                          min="0"
+                          required
                           value={item.rate}
                           onChange={(e) => handleItemChange(idx, "rate", e.target.value)}
-                          className="sb-input"
+                          className="sb-input po-input-number"
+                          placeholder="Rate"
                         />
                       </td>
-                      <td>
+                      <td className="po-col-disc">
                         <input
                           type="number"
                           step="1"
+                          min="0"
                           value={item.discount_amount}
                           onChange={(e) => handleItemChange(idx, "discount_amount", e.target.value)}
-                          className="sb-input"
+                          className="sb-input po-input-number"
+                          placeholder="Disc"
                         />
                       </td>
-                      <td>
+                      <td className="po-col-tax">
                         <input
                           type="number"
                           step="1"
+                          min="0"
+                          max="100"
                           value={item.tax_percent}
                           onChange={(e) => handleItemChange(idx, "tax_percent", e.target.value)}
-                          className="sb-input"
+                          className="sb-input po-input-number"
+                          placeholder="GST %"
                         />
                       </td>
-                      <td className="sb-font-semibold">₹{lineTotal.toFixed(2)}</td>
-                      <td>
+                      <td className="po-col-total po-line-total-cell">
+                        ₹{lineTotal.toFixed(2)}
+                      </td>
+                      <td className="po-col-action">
                         <Button
                           size="sm"
                           variant="danger"
                           onClick={() => handleRemoveItem(idx)}
                           disabled={formData.items.length <= 1}
+                          title="Remove Line"
                         >
                           Remove
                         </Button>
