@@ -174,30 +174,47 @@ test.describe('Login Redesign - Verification Suite', () => {
 
   // Responsive layout verification at all requested viewports
   const viewports = [
-    { name: 'Desktop Ultra-Wide', width: 1670, height: 1000 },
-    { name: 'Desktop Standard', width: 1440, height: 900 },
-    { name: 'Desktop Medium', width: 1200, height: 800 },
-    { name: 'Desktop Small', width: 1024, height: 768 },
-    { name: 'Tablet Wide', width: 947, height: 700 },
-    { name: 'Tablet Medium', width: 900, height: 700 },
-    { name: 'Tablet Small', width: 768, height: 1024 },
-    { name: 'Mobile Large', width: 430, height: 932 },
-    { name: 'Mobile Medium', width: 390, height: 844 },
-    { name: 'Mobile Standard', width: 375, height: 667 },
+    // Desktop
+    { name: 'Desktop 1670px', width: 1670, height: 1000 },
+    { name: 'Desktop 1440px', width: 1440, height: 900 },
+    { name: 'Desktop 1200px', width: 1200, height: 800 },
+    { name: 'Desktop 1024px', width: 1024, height: 768 },
+
+    // Half-Screen / Narrow Desktop
+    { name: 'Half-Screen 900px', width: 900, height: 750 },
+    { name: 'Half-Screen 800px', width: 800, height: 750 },
+    { name: 'Half-Screen 768px', width: 768, height: 1024 },
+    { name: 'Half-Screen 700px', width: 700, height: 750 },
+    { name: 'Half-Screen 650px', width: 650, height: 750 },
+    { name: 'Half-Screen 600px', width: 600, height: 750 },
+
+    // Mobile
+    { name: 'Mobile 430px', width: 430, height: 932 },
+    { name: 'Mobile 414px', width: 414, height: 896 },
+    { name: 'Mobile 390px', width: 390, height: 844 },
+    { name: 'Mobile 375px', width: 375, height: 667 },
+    { name: 'Mobile 360px', width: 360, height: 740 },
+    { name: 'Mobile 320px', width: 320, height: 568 },
+
+    // Short Viewport Heights
+    { name: 'Short Desktop 1440x600', width: 1440, height: 600 },
+    { name: 'Short Tablet 1024x600', width: 1024, height: 600 },
+    { name: 'Short Narrow 768x600', width: 768, height: 600 },
+    { name: 'Short Mobile 390x667', width: 390, height: 667 },
   ];
 
   for (const vp of viewports) {
-    test(`Responsive Check - ${vp.name} (${vp.width}px)`, async ({ page }) => {
+    test(`Responsive Check - ${vp.name}`, async ({ page }) => {
       await page.setViewportSize({ width: vp.width, height: vp.height });
       await page.goto(BASE_URL);
 
       // Verify no horizontal scrolling on the page
       const hasHorizontalScroll = await page.evaluate(() => {
-        return document.documentElement.scrollWidth > document.documentElement.clientWidth;
+        return document.documentElement.scrollWidth > window.innerWidth;
       });
-      expect(hasHorizontalScroll, `Horizontal scroll detected at ${vp.width}px`).toBe(false);
+      expect(hasHorizontalScroll, `Horizontal scroll detected at ${vp.width}x${vp.height}`).toBe(false);
 
-      // Verify login card is visible and fits within viewport
+      // Verify login card is visible and fits within viewport width
       const card = page.locator('.sb-login-card');
       await expect(card).toBeVisible();
 
@@ -206,14 +223,32 @@ test.describe('Login Redesign - Verification Suite', () => {
       if (cardBox) {
         expect(cardBox.width).toBeLessThanOrEqual(vp.width);
         expect(cardBox.x).toBeGreaterThanOrEqual(0);
+        expect(cardBox.x + cardBox.width).toBeLessThanOrEqual(vp.width + 1);
       }
 
-      // Verify form elements are all visible and interactive
+      // Verify form elements are all visible and within card boundaries
+      const emailInput = page.getByPlaceholder('Enter your email');
+      const passwordInput = page.getByPlaceholder('Enter your password');
+      const toggleBtn = page.getByRole('button', { name: /Show password|Hide password/i });
+      const loginButton = page.getByRole('button', { name: /Login/i });
+      const registerLink = page.getByRole('link', { name: /Start 3-day free trial/i });
+
       await expect(page.getByRole('heading', { name: /Smart Billing/i })).toBeVisible();
-      await expect(page.getByPlaceholder('Enter your email')).toBeVisible();
-      await expect(page.getByPlaceholder('Enter your password')).toBeVisible();
-      await expect(page.getByRole('button', { name: /Login/i })).toBeVisible();
-      await expect(page.getByRole('link', { name: /Start 3-day free trial/i })).toBeVisible();
+      await expect(emailInput).toBeVisible();
+      await expect(passwordInput).toBeVisible();
+      await expect(toggleBtn).toBeVisible();
+      await expect(loginButton).toBeVisible();
+      await expect(registerLink).toBeVisible();
+
+      // Verify password toggle button is positioned inside the input wrapper
+      const toggleBox = await toggleBtn.boundingBox();
+      const pwBox = await passwordInput.boundingBox();
+      expect(toggleBox).not.toBeNull();
+      expect(pwBox).not.toBeNull();
+      if (toggleBox && pwBox) {
+        expect(toggleBox.x).toBeGreaterThanOrEqual(pwBox.x);
+        expect(toggleBox.x + toggleBox.width).toBeLessThanOrEqual(pwBox.x + pwBox.width + 5);
+      }
     });
   }
 });

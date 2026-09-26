@@ -77,9 +77,11 @@ function Login() {
 
   return (
     <div className="sb-login-wrapper login-page">
-      {/* Subtle Ambient Decorative Orbs */}
-      <div className="sb-login-ambient-1" aria-hidden="true" />
-      <div className="sb-login-ambient-2" aria-hidden="true" />
+      {/* Subtle Ambient Decorative Orbs - strictly contained */}
+      <div className="sb-login-ambient-backdrop" aria-hidden="true">
+        <div className="sb-login-ambient-1" />
+        <div className="sb-login-ambient-2" />
+      </div>
 
       <div className="sb-login-container">
         <div className="sb-login-card login-card">
