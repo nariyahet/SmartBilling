@@ -140,6 +140,12 @@ exports.getSalesReport = async (req, res) => {
     const formattedDailySales = Array.isArray(dailySales)
       ? dailySales.map((item) => ({
           date: item.date,
+          day: item.date
+            ? new Date(item.date).toLocaleDateString("en-IN", {
+                day: "2-digit",
+                month: "short",
+              })
+            : "",
           total: Number(item.total) || 0,
         }))
       : [];

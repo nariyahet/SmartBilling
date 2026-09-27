@@ -420,7 +420,7 @@
 
 .sb-kpi-grid-8 {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
 }
 
@@ -527,7 +527,7 @@
    ========================================================================= */
 .sb-two-col-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
 }
 
@@ -539,6 +539,9 @@
   box-shadow: 0 1px 3px rgba(6, 59, 102, 0.04);
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .sb-panel-header {
@@ -580,6 +583,8 @@
 .sb-chart-wrapper {
   width: 100%;
   min-width: 0;
+  max-width: 100%;
+  height: 260px;
   margin-top: 6px;
 }
 
@@ -604,7 +609,10 @@
   padding: 12px 14px;
   margin-bottom: 16px;
   gap: 6px;
+  min-width: 0;
+  max-width: 100%;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .sb-pipe-step {
@@ -1046,18 +1054,35 @@
 /* ==========================================================================
    10. RESPONSIVE BREAKPOINTS (Desktop, Tablet, Mobile)
    ========================================================================= */
-/* Tablet (768px - 1024px) */
-@media (max-width: 1024px) {
+/* Laptop / Narrow Desktop (1025px - 1200px) */
+@media (max-width: 1200px) {
   .sb-kpi-grid-8 {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .sb-two-col-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .sb-workforce-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1150px) {
+  .sb-two-col-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Tablet (768px - 1024px) */
+@media (max-width: 1024px) {
+  .sb-kpi-grid-8 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sb-two-col-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sb-workforce-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -1066,8 +1091,8 @@
   .sb-dashboard-canvas {
     gap: 16px;
     padding-bottom: 24px;
-    overflow-x: hidden;
     max-width: 100%;
+    min-width: 0;
     box-sizing: border-box;
   }
 

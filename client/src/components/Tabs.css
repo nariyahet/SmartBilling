@@ -10,6 +10,9 @@
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none; /* Firefox */
   padding: 4px;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .sb-tabs-container::-webkit-scrollbar {
@@ -23,6 +26,9 @@
   border-radius: var(--sb-radius-md, 8px);
   padding: 4px;
   display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .sb-tabs-container.variant-pills .sb-tab-btn {

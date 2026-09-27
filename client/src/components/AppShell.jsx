@@ -375,6 +375,21 @@ function AppShell({
   const [collapsed, setCollapsed] = useState(() => {
     return typeof window !== "undefined" && window.innerWidth >= 768 && window.innerWidth <= 1024;
   });
+
+  // Responsive resize handler to adapt sidebar mode across desktop, tablet, and mobile
+  useEffect(() => {
+    const handleResize = () => {
+      const width = window.innerWidth;
+      if (width < 768) {
+        setCollapsed(false);
+      } else if (width <= 1024) {
+        setCollapsed(true);
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   // Mobile off-canvas drawer state
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   // Profile dropdown menu state

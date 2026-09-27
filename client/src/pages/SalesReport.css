@@ -106,6 +106,9 @@
   border-radius: 16px;
   padding: 22px;
   box-shadow: 0 1px 3px rgba(16, 24, 40, 0.05);
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .rep-card-top {
@@ -169,25 +172,30 @@
 .rep-chart-container {
   width: 100%;
   min-width: 0;
+  max-width: 100%;
   height: 320px;
 }
 
 /* Split Grid */
 .rep-split-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 20px;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1100px) {
   .rep-split-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
 /* Table */
 .rep-table-responsive {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .rep-table {

@@ -10,7 +10,8 @@
   background-color: var(--sb-bg, #F4F8FB);
   color: var(--sb-text, #102A43);
   position: relative;
-  overflow-x: hidden;
+  min-width: 0;
+  max-width: 100%;
 }
 
 /* ==========================================================================
@@ -362,6 +363,8 @@
 .sb-main-wrapper {
   margin-left: 270px;
   width: calc(100% - 270px);
+  min-width: 0;
+  max-width: 100%;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -859,6 +862,7 @@
   flex: 1;
   padding: 24px;
   width: 100%;
+  min-width: 0;
   max-width: 1600px;
   box-sizing: border-box;
 }

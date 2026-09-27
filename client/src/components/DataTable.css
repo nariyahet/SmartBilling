@@ -4,6 +4,9 @@
 
 .sb-table-container {
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
   background: #FFFFFF;
   border: 1px solid var(--sb-border, #E3EBF2);
   border-radius: var(--sb-radius-lg, 12px);
@@ -13,6 +16,9 @@
 
 .sb-table-wrapper {
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }

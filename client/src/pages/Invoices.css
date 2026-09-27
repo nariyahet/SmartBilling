@@ -72,7 +72,7 @@
 /* POS 2-Column Grid */
 .inv-pos-grid {
   display: grid;
-  grid-template-columns: 1fr 360px;
+  grid-template-columns: minmax(0, 1fr) 360px;
   gap: 24px;
   align-items: start;
 }
@@ -81,6 +81,8 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .inv-pos-right {
@@ -306,7 +308,11 @@
 }
 
 .inv-items-table-wrap {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .inv-items-table {
@@ -603,9 +609,9 @@
   color: #1E293B;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1150px) {
   .inv-pos-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .inv-pos-right {

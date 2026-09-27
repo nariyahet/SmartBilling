@@ -329,26 +329,55 @@ function Dashboard() {
         }));
       }
 
-      return [
-        { label: "09:00", amount: 0 },
-        { label: "12:00", amount: Number(plasticStats.todaySales || stats.todaySales) * 0.4 },
-        { label: "15:00", amount: Number(plasticStats.todaySales || stats.todaySales) * 0.7 },
-        { label: "18:00", amount: Number(plasticStats.todaySales || stats.todaySales) },
-      ];
+      const todayAmount = Number(plasticStats.todaySales || stats.todaySales || 0);
+      if (todayAmount > 0) {
+        return [
+          { label: "09:00", amount: 0 },
+          { label: "12:00", amount: Math.round(todayAmount * 0.4) },
+          { label: "15:00", amount: Math.round(todayAmount * 0.7) },
+          { label: "18:00", amount: todayAmount },
+        ];
+      }
+
+      return [];
     }
 
     if (period === "year" && monthlySales.length > 0) {
-      return monthlySales.map((m) => ({
-        label: m.month,
-        amount: m.total,
-      }));
+      const sorted = [...monthlySales].sort((a, b) => (a.month || "").localeCompare(b.month || ""));
+      return sorted.map((m) => {
+        const [yr, mo] = (m.month || "").split("-");
+        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const label = mo
+          ? `${monthNames[parseInt(mo, 10) - 1] || mo}${yr ? ` '${yr.slice(2)}` : ""}`
+          : m.month || "";
+        return {
+          label,
+          amount: Number(m.total) || 0,
+        };
+      });
     }
 
     if (dailySales.length > 0) {
-      return dailySales.map((d) => ({
-        label: d.day,
-        amount: d.total,
-      }));
+      // Sort chronologically (oldest to newest, left to right)
+      const sorted = [...dailySales].sort((a, b) => {
+        const tA = new Date(a.date || a.day || 0).getTime();
+        const tB = new Date(b.date || b.day || 0).getTime();
+        return tA - tB;
+      });
+
+      return sorted.map((d) => {
+        let label = d.day;
+        if (!label && d.date) {
+          const dateObj = new Date(d.date);
+          label = !isNaN(dateObj.getTime())
+            ? dateObj.toLocaleDateString("en-IN", { day: "2-digit", month: "short" })
+            : String(d.date);
+        }
+        return {
+          label: label || "-",
+          amount: Number(d.total) || 0,
+        };
+      });
     }
 
     return [];
@@ -780,7 +809,7 @@ function Dashboard() {
             {salesChartData.length === 0 ? (
               <div className="sb-empty-chart-state">No sales transactions found for this timeframe.</div>
             ) : (
-              <ResponsiveContainer width="100%" height={260}>
+              <ResponsiveContainer width="100%" height={260} minWidth={0}>
                 <AreaChart data={salesChartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
@@ -789,7 +818,7 @@ function Dashboard() {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#E3EBF2" vertical={false} />
-                  <XAxis dataKey="label" stroke="#718096" fontSize={12} tickLine={false} />
+                  <XAxis dataKey="label" stroke="#718096" fontSize={12} tickLine={false} interval="preserveStartEnd" />
                   <YAxis
                     stroke="#718096"
                     fontSize={12}
@@ -810,6 +839,8 @@ function Dashboard() {
                     dataKey="amount"
                     stroke="#0879D1"
                     strokeWidth={2.5}
+                    dot={{ r: 3.5, fill: "#0879D1", stroke: "#FFFFFF", strokeWidth: 1.5 }}
+                    activeDot={{ r: 6, fill: "#0879D1", stroke: "#FFFFFF", strokeWidth: 2 }}
                     fillOpacity={1}
                     fill="url(#salesGrad)"
                   />
