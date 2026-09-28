@@ -3,7 +3,7 @@ import { useLocation } from "react-router-dom";
 import API from "../api/axios";
 import PlasticNavbar from "../components/PlasticNavbar";
 import LoadingScreen from "../components/LoadingScreen";
-import { PageHeader, Card, Button } from "../components";
+import { PageHeader, Card, Button, Tabs } from "../components";
 import "./PlasticFinancialReports.css";
 
 const REPORT_TABS = [
@@ -86,7 +86,7 @@ function PlasticFinancialReports({ defaultReport = "trial-balance" }) {
       <main className="sb-main-content">
         <div className="no-print">
           <PageHeader
-            title={isSupplierLedgerView ? "Supplier Ledger & Payables Register" : `${cleanTabTitle} Report`}
+            title={isSupplierLedgerView ? "Supplier Ledger & Payables Register" : `Financial Reports — ${cleanTabTitle}`}
             subtitle={
               isSupplierLedgerView
                 ? "Creditor payables ledger with purchase bills, debit notes, and payment transactions trail"
@@ -111,16 +111,14 @@ function PlasticFinancialReports({ defaultReport = "trial-balance" }) {
           {/* Report Pills Selector */}
           <div className="fin-reports-selector-wrap">
             <div className="fin-pills-scroll">
-              {REPORT_TABS.map((r) => (
-                <button
-                  key={r.id}
-                  type="button"
-                  className={`fin-tab-pill ${activeReport === r.id ? "active" : ""}`}
-                  onClick={() => setActiveReport(r.id)}
-                >
-                  {r.label}
-                </button>
-              ))}
+              <Tabs
+                tabs={REPORT_TABS}
+                activeTab={activeReport}
+                onChange={setActiveReport}
+                variant="pills"
+                className="fin-tabs-bar"
+                tabClassName="fin-tab-pill"
+              />
             </div>
           </div>
 

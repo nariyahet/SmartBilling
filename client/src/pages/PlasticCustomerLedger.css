@@ -44,7 +44,7 @@
   border-radius: 8px;
   font-size: 0.9rem;
   color: var(--sb-text-primary, #102a43);
-  background: white;
+  background-color: white;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 

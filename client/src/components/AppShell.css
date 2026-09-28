@@ -869,15 +869,21 @@
 
 /* Eliminate nested container double-padding when pages render inside AppShell */
 .sb-page-content-canvas .plastic-content-wrap,
-.sb-page-content-canvas .plastic-dashboard-container {
+.sb-page-content-canvas .plastic-dashboard-container,
+.sb-page-content-canvas .plastic-page,
+.sb-page-content-canvas .sb-page-container,
+.sb-page-content-canvas .sb-main-content {
   padding: 0 !important;
+  margin: 0 !important;
   max-width: 100% !important;
+  width: 100% !important;
 }
 
 .sb-page-content-canvas .plastic-suppliers-page,
 .sb-page-content-canvas .plastic-purchase-page,
 .sb-page-content-canvas .plastic-stock-page,
-.sb-page-content-canvas .plastic-dashboard-page {
+.sb-page-content-canvas .plastic-dashboard-page,
+.sb-page-content-canvas .plastic-page {
   min-height: auto !important;
   background: transparent !important;
 }

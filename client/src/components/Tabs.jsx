@@ -10,6 +10,7 @@ function Tabs({
   variant = "pills",
   size = "md",
   className = "",
+  tabClassName = "",
 }) {
   return (
     <div className={`sb-tabs-container variant-${variant} size-${size} ${className}`} role="tablist">
@@ -21,13 +22,13 @@ function Tabs({
             type="button"
             role="tab"
             aria-selected={isActive}
-            className={`sb-tab-btn ${isActive ? "is-active" : ""}`}
+            className={`sb-tab-btn ${isActive ? "is-active active" : ""} ${tabClassName}`.trim()}
             onClick={() => onChange && onChange(tab.id)}
           >
             {tab.icon && <span className="sb-tab-icon" aria-hidden="true">{tab.icon}</span>}
             <span className="sb-tab-label">{tab.label}</span>
             {tab.count !== undefined && tab.count !== null && (
-              <span className={`sb-tab-count ${isActive ? "is-active" : ""}`}>
+              <span className={`sb-tab-count ${isActive ? "is-active active" : ""}`}>
                 {tab.count}
               </span>
             )}
