@@ -168,15 +168,6 @@ function Customers() {
       searchPlaceholder="Search customers by name, phone, or email..."
       searchValue={search}
       onSearchChange={setSearch}
-      headerActions={
-        <button
-          type="button"
-          className="sb-btn-primary"
-          onClick={handleOpenAddModal}
-        >
-          <span>+</span> Add Customer
-        </button>
-      }
     >
       {/* Header Section */}
       <div className="cust-header-bar">

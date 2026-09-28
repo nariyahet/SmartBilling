@@ -178,15 +178,6 @@ function Products() {
       searchPlaceholder="Search products by name..."
       searchValue={searchTerm}
       onSearchChange={setSearchTerm}
-      headerActions={
-        <button
-          type="button"
-          className="sb-btn-primary"
-          onClick={handleOpenAddModal}
-        >
-          <span>+</span> Add Product
-        </button>
-      }
     >
       {/* Header Section */}
       <div className="prod-header-bar">

@@ -350,6 +350,70 @@
   overflow-x: auto;
 }
 
+/* KPI & Aging Cards */
+.fin-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.fin-kpi-card {
+  background: #f8fafc;
+  border: 1px solid var(--sb-border, #e3ebf2);
+  border-radius: 8px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.fin-kpi-card.highlight {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.fin-kpi-card.warning {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.fin-kpi-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--sb-text-muted, #718096);
+  letter-spacing: 0.05em;
+}
+
+.fin-kpi-value {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--sb-text, #102a43);
+}
+
+.fin-section-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--sb-text, #102a43);
+  margin: 1.5rem 0 0.75rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--sb-border, #e3ebf2);
+}
+
+.fin-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+@media (max-width: 900px) {
+  .bs-grid,
+  .fin-grid-2col {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 767px) {
   .fin-filter-grid {
     flex-direction: column;
@@ -358,6 +422,10 @@
 
   .fin-report-desc-pill {
     margin-left: 0;
+  }
+
+  .fin-kpi-grid {
+    grid-template-columns: 1fr;
   }
 }
 

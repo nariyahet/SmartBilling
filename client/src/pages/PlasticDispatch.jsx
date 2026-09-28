@@ -734,7 +734,7 @@ function PlasticDispatch() {
               Dispatch Items
             </h4>
 
-            <div style={{ display: "grid", gridTemplateColumns: "2fr 1.5fr 1fr 1fr auto", gap: "10px", alignItems: "flex-end", background: "var(--sb-canvas)", padding: "14px", borderRadius: "8px", marginBottom: "16px" }}>
+            <div className="sb-line-item-grid-5">
               <div className="sb-form-group" style={{ margin: 0 }}>
                 <label className="sb-label">Finished Good *</label>
                 <select

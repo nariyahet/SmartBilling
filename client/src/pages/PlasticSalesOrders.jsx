@@ -491,7 +491,7 @@ function PlasticSalesOrders() {
               Order Line Items
             </h4>
 
-            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr auto", gap: "10px", alignItems: "flex-end", marginBottom: "12px" }}>
+            <div className="sb-line-item-grid-4">
               <div className="sb-form-group" style={{ margin: 0 }}>
                 <label className="sb-label">Finished Good Material</label>
                 <select

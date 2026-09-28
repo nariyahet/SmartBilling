@@ -147,7 +147,7 @@ function PlasticMachines() {
             <Link to="/plastic-erp">
               <Button variant="secondary">ERP Dashboard</Button>
             </Link>
-            {activeTab === "machines" && (
+            {activeTab === "machines" && machines.length > 0 && (
               <Button variant="primary" onClick={() => setShowMachineModal(true)}>
                 + Add Machine
               </Button>

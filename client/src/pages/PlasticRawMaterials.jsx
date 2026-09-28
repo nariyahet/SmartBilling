@@ -263,9 +263,11 @@ function PlasticRawMaterials() {
             <Link to="/plastic-erp" className="btn-dashboard-nav">
               📊 ERP Dashboard
             </Link>
-            <button type="button" className="btn-add-entity" onClick={handleOpenAddModal}>
-              ➕ Add Raw Material
-            </button>
+            {materials.length > 0 && (
+              <button type="button" className="btn-add-entity" onClick={handleOpenAddModal}>
+                ➕ Add Raw Material
+              </button>
+            )}
           </div>
         </div>
 

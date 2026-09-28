@@ -371,7 +371,7 @@ function PlasticQuality() {
             </h4>
 
             {formData.parameters.map((p, idx) => (
-              <div key={idx} style={{ display: "grid", gridTemplateColumns: "2fr 1.5fr 1.5fr 1fr auto", gap: "8px", marginBottom: "8px", alignItems: "center" }}>
+              <div key={idx} className="sb-quality-param-row">
                 <input
                   type="text"
                   required

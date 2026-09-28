@@ -250,7 +250,7 @@ exports.getBalanceSheet = async (req, res) => {
 
     // 4. Finished Goods Stock Value
     const [fgStock] = await db.promise().query(
-      `SELECT COALESCE(SUM(current_stock * cost_per_kg), 0) AS total_value FROM plastic_finished_goods WHERE company_id = ?`,
+      `SELECT COALESCE(SUM(current_stock * standard_cost), 0) AS total_value FROM plastic_finished_goods WHERE company_id = ?`,
       [companyId]
     );
     const finishedGoodsStock = Number(fgStock[0]?.total_value || 0);
