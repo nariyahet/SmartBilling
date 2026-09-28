@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-const BASE_URL = 'http://localhost:5175';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:5173';
 
 test.describe('Login Redesign - Verification Suite', () => {
   test('1. Visual, structure, and accessibility checks', async ({ page }) => {
@@ -32,7 +32,7 @@ test.describe('Login Redesign - Verification Suite', () => {
     await expect(toggleBtn).toBeVisible();
 
     // Verify Register link exists
-    const registerLink = page.getByRole('link', { name: /Start 3-day free trial/i });
+    const registerLink = page.getByRole('link', { name: /Start 3-month free trial/i });
     await expect(registerLink).toBeVisible();
   });
 
@@ -115,7 +115,7 @@ test.describe('Login Redesign - Verification Suite', () => {
   test('6. Register link navigation', async ({ page }) => {
     await page.goto(BASE_URL);
 
-    const registerLink = page.getByRole('link', { name: /Start 3-day free trial/i });
+    const registerLink = page.getByRole('link', { name: /Start 3-month free trial/i });
     await registerLink.click();
 
     await expect(page).toHaveURL(/.*\/register/, { timeout: 10000 });
@@ -231,7 +231,7 @@ test.describe('Login Redesign - Verification Suite', () => {
       const passwordInput = page.getByPlaceholder('Enter your password');
       const toggleBtn = page.getByRole('button', { name: /Show password|Hide password/i });
       const loginButton = page.getByRole('button', { name: /Login/i });
-      const registerLink = page.getByRole('link', { name: /Start 3-day free trial/i });
+      const registerLink = page.getByRole('link', { name: /Start 3-month free trial/i });
 
       await expect(page.getByRole('heading', { name: /Smart Billing/i })).toBeVisible();
       await expect(emailInput).toBeVisible();

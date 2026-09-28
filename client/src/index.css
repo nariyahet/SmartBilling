@@ -971,3 +971,41 @@ select.sb-select,
   max-width: 100%;
 }
 
+/* --------------------------------------------------------------------------
+   Filter Chips Component Utility (SmartBilling 2.0 Ocean Blue)
+   -------------------------------------------------------------------------- */
+.filter-chip {
+  background: #f1f5f9;
+  border: 1px solid var(--sb-border, #cbd5e1);
+  color: var(--sb-text-secondary, #475569);
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  user-select: none;
+}
+
+.filter-chip:hover {
+  border-color: var(--sb-primary, #0879D1);
+  color: var(--sb-primary, #0879D1);
+}
+
+.filter-chip.active {
+  background: var(--sb-primary, #0879D1) !important;
+  color: #ffffff !important;
+  border-color: var(--sb-primary, #0879D1) !important;
+  box-shadow: 0 2px 6px rgba(8, 121, 209, 0.25);
+}
+
+.filter-chip.active:hover {
+  background: var(--sb-primary-hover, #0769B7) !important;
+  border-color: var(--sb-primary-hover, #0769B7) !important;
+}
+
+.filter-chip:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(8, 121, 209, 0.35);
+}
+

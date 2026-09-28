@@ -263,7 +263,7 @@ function Login() {
           <div className="sb-login-footer">
             New business?{" "}
             <Link to="/register" className="sb-register-link">
-              Start 3-day free trial
+              Start 3-month free trial
             </Link>
           </div>
         </div>

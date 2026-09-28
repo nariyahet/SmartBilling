@@ -100,7 +100,7 @@ function TrialExpired() {
           <span>🔒</span>
         </div>
 
-        <h1>Your 3-day trial has expired</h1>
+        <h1>Your 3-month trial has expired</h1>
         <p className="trial-expired-subtitle">
           Thank you for exploring SmartBilling. Your free trial period has concluded.
           To resume managing invoices, products, and clients, please upgrade your subscription.

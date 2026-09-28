@@ -5,13 +5,25 @@ import "./AppShell.css";
 
 export const AppShellContext = createContext(false);
 
-// Safe exact and prefix route matching helper
+// Safe exact, alias, and prefix route matching helper
 export const isPathActive = (currentPath, targetPath) => {
   if (!currentPath || !targetPath) return false;
-  if (currentPath === targetPath) return true;
-  // Dashboard and settings root routes require exact match
-  if (targetPath === "/dashboard" || targetPath === "/settings") return false;
-  return currentPath.startsWith(targetPath + "/");
+  const curr = currentPath.replace(/\/+$/, "") || "/";
+  const targ = targetPath.replace(/\/+$/, "") || "/";
+  if (curr === targ) return true;
+  // Dashboard, settings, and legacy plastic-erp root require exact match
+  if (targ === "/dashboard" || targ === "/settings" || targ === "/plastic-erp") return false;
+  return curr.startsWith(targ + "/");
+};
+
+// Item-level active check supporting primary path and aliases
+export const isItemActive = (currentPath, item) => {
+  if (!currentPath || !item) return false;
+  if (isPathActive(currentPath, item.path)) return true;
+  if (item.aliases && item.aliases.some((alias) => isPathActive(currentPath, alias))) {
+    return true;
+  }
+  return false;
 };
 
 // Navigation group configuration matching approved SmartBilling 2.0 structure
@@ -30,6 +42,10 @@ const NAV_GROUPS = [
     paths: [
       "/plastic-erp/suppliers",
       "/plastic-erp/raw-materials",
+      "/plastic-erp/truck-inward",
+      "/plastic-erp/weighment",
+      "/plastic-erp/purchase-bills",
+      "/plastic-erp/stock",
       "/plastic-erp/purchase-requisitions",
       "/plastic-erp/supplier-quotations",
       "/plastic-erp/purchase-comparison",
@@ -37,14 +53,14 @@ const NAV_GROUPS = [
       "/plastic-erp/purchase-deliveries",
       "/plastic-erp/supplier-performance",
       "/plastic-erp/procurement-dashboard",
-      "/plastic-erp/truck-inward",
-      "/plastic-erp/weighment",
-      "/plastic-erp/purchase-bills",
-      "/plastic-erp/stock",
     ],
     items: [
       { path: "/plastic-erp/suppliers", label: "Scrap Suppliers Master", icon: "🏢" },
       { path: "/plastic-erp/raw-materials", label: "Raw Materials", icon: "♻️" },
+      { path: "/plastic-erp/truck-inward", label: "Gate Truck Inward", icon: "🚚" },
+      { path: "/plastic-erp/weighment", label: "Weighment", icon: "⚖️" },
+      { path: "/plastic-erp/purchase-bills", label: "Purchase Bills", icon: "📄" },
+      { path: "/plastic-erp/stock", label: "Stock Inventory", icon: "📊" },
       { path: "/plastic-erp/purchase-requisitions", label: "Purchase Requisitions", icon: "📋" },
       { path: "/plastic-erp/supplier-quotations", label: "Supplier Quotations", icon: "🏷️" },
       { path: "/plastic-erp/purchase-comparison", label: "Purchase Comparison", icon: "⚖️" },
@@ -68,6 +84,7 @@ const NAV_GROUPS = [
       "/plastic-erp/operations",
       "/plastic-erp/traceability",
       "/plastic-erp/costing",
+      "/plastic-erp/reports",
     ],
     items: [
       { path: "/plastic-erp/production", label: "Production Management", icon: "🏭" },
@@ -89,35 +106,45 @@ const NAV_GROUPS = [
       "/customers",
       "/products",
       "/plastic-erp/sales-orders",
+      "/plastic-erp/sales",
       "/plastic-erp/dispatch",
+      "/plastic-erp/dispatches",
       "/plastic-erp/delivery-challans",
       "/plastic-erp/transport",
+      "/plastic-erp/transport/vehicles",
+      "/plastic-erp/transport/challans",
       "/plastic-erp/eway-bills",
+      "/plastic-erp/transport/eway-bills",
       "/invoices/create",
       "/invoices/history",
+      "/invoice",
       "/plastic-erp/payments",
       "/plastic-erp/receivables",
+      "/plastic-erp/finance/receivables",
       "/plastic-erp/customer-ledger",
+      "/plastic-erp/finance/ledger",
       "/plastic-erp/sales-returns",
       "/plastic-erp/credit-notes",
+      "/plastic-erp/finance/credit-notes",
       "/plastic-erp/debit-notes",
+      "/plastic-erp/finance/debit-notes",
     ],
     items: [
       { path: "/customers", label: "Customers", icon: "👥" },
       { path: "/products", label: "Products / Finished Goods", icon: "📦" },
-      { path: "/plastic-erp/sales-orders", label: "Sales Orders", icon: "📋" },
-      { path: "/plastic-erp/dispatch", label: "Dispatch", icon: "🚚" },
-      { path: "/plastic-erp/delivery-challans", label: "Delivery Challans", icon: "📄" },
-      { path: "/plastic-erp/transport", label: "Transport", icon: "🚛" },
-      { path: "/plastic-erp/eway-bills", label: "Internal E-Way Bills", icon: "🚚" },
+      { path: "/plastic-erp/sales-orders", label: "Sales Orders", icon: "📋", aliases: ["/plastic-erp/sales"] },
+      { path: "/plastic-erp/dispatch", label: "Dispatch", icon: "🚚", aliases: ["/plastic-erp/dispatches"] },
+      { path: "/plastic-erp/delivery-challans", label: "Delivery Challans", icon: "📄", aliases: ["/plastic-erp/transport/challans"] },
+      { path: "/plastic-erp/transport", label: "Transport", icon: "🚛", aliases: ["/plastic-erp/transport/vehicles"] },
+      { path: "/plastic-erp/eway-bills", label: "Internal E-Way Bills", icon: "🚚", aliases: ["/plastic-erp/transport/eway-bills"] },
       { path: "/invoices/create", label: "Invoice", icon: "🧾" },
-      { path: "/invoices/history", label: "Invoice History", icon: "📋" },
+      { path: "/invoices/history", label: "Invoice History", icon: "📋", aliases: ["/invoice"] },
       { path: "/plastic-erp/payments", label: "Payments", icon: "💵" },
-      { path: "/plastic-erp/receivables", label: "Receivables", icon: "⏳" },
-      { path: "/plastic-erp/customer-ledger", label: "Customer Ledger", icon: "📑" },
+      { path: "/plastic-erp/receivables", label: "Receivables", icon: "⏳", aliases: ["/plastic-erp/finance/receivables"] },
+      { path: "/plastic-erp/customer-ledger", label: "Customer Ledger", icon: "📑", aliases: ["/plastic-erp/finance/ledger"] },
       { path: "/plastic-erp/sales-returns", label: "Sales Returns", icon: "🔄" },
-      { path: "/plastic-erp/credit-notes", label: "Credit Notes", icon: "📉" },
-      { path: "/plastic-erp/debit-notes", label: "Debit Notes", icon: "📈" },
+      { path: "/plastic-erp/credit-notes", label: "Credit Notes", icon: "📉", aliases: ["/plastic-erp/finance/credit-notes"] },
+      { path: "/plastic-erp/debit-notes", label: "Debit Notes", icon: "📈", aliases: ["/plastic-erp/finance/debit-notes"] },
     ],
   },
   {
@@ -166,7 +193,7 @@ const NAV_GROUPS = [
       { path: "/plastic-erp/supplier-ledger", label: "Supplier Ledger", icon: "🚛" },
       { path: "/plastic-erp/gst-management", label: "GST Management", icon: "⚖️" },
       { path: "/plastic-erp/gst-reconciliation", label: "GST Reconciliation", icon: "🔍" },
-      { path: "/plastic-erp/accounting-dashboard", label: "Accounting Dashboard", icon: "📈" },
+      { path: "/plastic-erp/accounting-dashboard", label: "Accounting Dashboard", icon: "📈", aliases: ["/plastic-erp/accounting"] },
     ],
   },
   {
@@ -176,6 +203,7 @@ const NAV_GROUPS = [
     paths: [
       "/plastic-erp/sales-reports",
       "/sales-report",
+      "/plastic-erp/reports/sales",
       "/plastic-erp/dispatch-reports",
       "/plastic-erp/payment-reports",
       "/plastic-erp/customer-ledger-reports",
@@ -183,17 +211,19 @@ const NAV_GROUPS = [
       "/plastic-erp/procurement-reports",
       "/plastic-erp/hr-reports",
       "/plastic-erp/financial-reports",
+      "/plastic-erp/accounting/financial-reports",
+      "/financial-reports",
       "/plastic-erp/executive-analytics",
     ],
     items: [
-      { path: "/plastic-erp/sales-reports", label: "Sales Reports", icon: "📊" },
+      { path: "/plastic-erp/sales-reports", label: "Sales Reports", icon: "📊", aliases: ["/sales-report", "/plastic-erp/reports/sales"] },
       { path: "/plastic-erp/dispatch-reports", label: "Dispatch Reports", icon: "🚚" },
       { path: "/plastic-erp/payment-reports", label: "Payment Reports", icon: "💵" },
       { path: "/plastic-erp/customer-ledger-reports", label: "Customer Ledger Reports", icon: "📑" },
       { path: "/plastic-erp/reports", label: "Production Reports", icon: "🏭" },
       { path: "/plastic-erp/procurement-reports", label: "Procurement Reports", icon: "📦" },
       { path: "/plastic-erp/hr-reports", label: "HR & Expense Reports", icon: "👥" },
-      { path: "/plastic-erp/financial-reports", label: "Financial Reports", icon: "📈" },
+      { path: "/plastic-erp/financial-reports", label: "Financial Reports", icon: "📈", aliases: ["/plastic-erp/accounting/financial-reports", "/financial-reports"] },
       { path: "/plastic-erp/executive-analytics", label: "Executive Analytics", icon: "⚡" },
     ],
   },
@@ -215,7 +245,7 @@ function getRouteInfo(pathname) {
   for (const group of NAV_GROUPS) {
     if (group.items) {
       for (const item of group.items) {
-        if (isPathActive(pathname, item.path)) {
+        if (isItemActive(pathname, item)) {
           return { module: group.label, title: item.label };
         }
       }
@@ -535,6 +565,7 @@ function AppShell({
                     to={group.path}
                     className={`sb-nav-item ${isActive ? "active" : ""}`}
                     onClick={() => setMobileDrawerOpen(false)}
+                    aria-current={isActive ? "page" : undefined}
                     title={collapsed ? group.label : undefined}
                   >
                     <span className="sb-nav-icon">{group.icon}</span>
@@ -544,11 +575,13 @@ function AppShell({
                 );
               }
 
-              // Accordion Group Header
+              // Accordion Group Header (Derived directly from location.pathname)
               const isGroupActive = Boolean(
-                group.paths && group.paths.some((p) => isPathActive(location.pathname, p))
+                (group.paths && group.paths.some((p) => isPathActive(location.pathname, p))) ||
+                (group.items && group.items.some((item) => isItemActive(location.pathname, item)))
               );
-              const isExpanded = expandedGroups[group.id];
+              // Active group containing current route is ALWAYS expanded; others use toggle state
+              const isExpanded = isGroupActive || Boolean(expandedGroups[group.id]);
 
               return (
                 <div key={group.id} className={`sb-nav-group ${isGroupActive ? "group-active" : ""}`}>
@@ -572,13 +605,14 @@ function AppShell({
                   {!collapsed && isExpanded && (
                     <div className="sb-nav-submenu">
                       {group.items.map((subitem) => {
-                        const isSubActive = isPathActive(location.pathname, subitem.path);
+                        const isSubActive = isItemActive(location.pathname, subitem);
                         return (
                           <Link
                             key={subitem.label + subitem.path}
                             to={subitem.path}
                             className={`sb-nav-subitem ${isSubActive ? "active" : ""}`}
                             onClick={() => setMobileDrawerOpen(false)}
+                            aria-current={isSubActive ? "page" : undefined}
                           >
                             <span className="sb-subitem-bullet"></span>
                             <span className="sb-nav-subtext">{subitem.label}</span>

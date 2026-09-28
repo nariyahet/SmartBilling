@@ -69,8 +69,39 @@ function PlasticFinancialReports({ defaultReport = "trial-balance" }) {
   }, [activeReport, period, fromDate, toDate]);
 
   useEffect(() => {
-    fetchReport();
-  }, [fetchReport]);
+    let isCurrent = true;
+    setLoading(true);
+    setError(null);
+
+    const loadData = async () => {
+      try {
+        const params = { period };
+        if (period === "custom" && fromDate && toDate) {
+          params.from_date = fromDate;
+          params.to_date = toDate;
+        }
+        const res = await API.get(`/plastic-erp/accounting/financial-reports/${activeReport}`, { params });
+        if (isCurrent && res.data?.success) {
+          setReportData(res.data);
+        }
+      } catch (err) {
+        if (isCurrent) {
+          console.error(err);
+          setError(err.response?.data?.message || "Failed to generate financial report");
+        }
+      } finally {
+        if (isCurrent) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadData();
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [activeReport, period, fromDate, toDate]);
 
   const handlePrint = () => {
     window.print();

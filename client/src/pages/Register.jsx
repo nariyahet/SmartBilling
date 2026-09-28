@@ -121,7 +121,7 @@ function Register() {
           <h1>Smart Billing</h1>
           <p>Create your business account</p>
           <div className="trial-badge">
-            <span>✨</span> 3-Day Full-Feature Free Trial
+            <span>✨</span> 3-Month Full-Feature Free Trial
           </div>
         </div>
 
@@ -216,7 +216,7 @@ function Register() {
             className="register-button"
             disabled={loading}
           >
-            {loading ? "Setting up your account..." : "Start 3-Day Free Trial"}
+            {loading ? "Setting up your account..." : "Start 3-Month Free Trial"}
           </button>
         </form>
 

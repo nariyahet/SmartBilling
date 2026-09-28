@@ -104,15 +104,12 @@ exports.register = async (req, res) => {
     // 1. Generate unique slug
     const slug = await generateUniqueSlug(companyName, conn);
 
-    // 2. Insert new company with 3-day trial
-    const trialStartAt = new Date();
-    const trialEndAt = new Date(trialStartAt.getTime() + 3 * 24 * 60 * 60 * 1000);
-
+    // 2. Insert new company with 3-month free trial (calendar-month logic)
     const [companyResult] = await conn.query(
       `INSERT INTO companies
        (name, slug, status, is_demo, subscription_status, trial_start_at, trial_end_at)
-       VALUES (?, ?, 'active', 0, 'trial', ?, ?)`,
-      [companyName, slug, trialStartAt, trialEndAt]
+       VALUES (?, ?, 'active', 0, 'trial', NOW(), DATE_ADD(NOW(), INTERVAL 3 MONTH))`,
+      [companyName, slug]
     );
 
     const companyId = companyResult.insertId;
@@ -179,7 +176,7 @@ exports.register = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: "Registration successful. Welcome to your 3-day free trial!",
+      message: "Registration successful. Welcome to your 3-month free trial!",
       data: {
         token,
         admin: {

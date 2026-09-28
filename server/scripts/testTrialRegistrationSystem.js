@@ -221,38 +221,39 @@ async function runTests() {
     // Test E: Trial starts correctly
     // ----------------------------------------------------
     try {
-      const startAt = new Date(companyDataA.trial_start_at).getTime();
-      const now = Date.now();
-      const diffMs = Math.abs(now - startAt);
-      const isWithin2Minutes = diffMs < 120000;
+      const [tsRows] = await pdb.query(
+        "SELECT UNIX_TIMESTAMP(trial_start_at) AS start_ts, UNIX_TIMESTAMP(NOW()) AS now_ts FROM companies WHERE id = ?",
+        [companyIdA]
+      );
+      const diffSec = Math.abs(tsRows[0].now_ts - tsRows[0].start_ts);
+      const isWithin2Minutes = diffSec < 120;
 
       recordTest(
         "Test E: Trial starts correctly",
         isWithin2Minutes,
-        `Start: ${companyDataA.trial_start_at}, diff with current time: ${(diffMs / 1000).toFixed(1)}s`
+        `Start: ${companyDataA.trial_start_at}, diff with db NOW(): ${diffSec}s`
       );
     } catch (err) {
       recordTest("Test E: Trial starts correctly", false, err.message);
     }
 
     // ----------------------------------------------------
-    // Test F: Trial ends approximately 3 days later
+    // Test F: Trial ends approximately 3 months later
     // ----------------------------------------------------
     try {
       const startAt = new Date(companyDataA.trial_start_at).getTime();
       const endAt = new Date(companyDataA.trial_end_at).getTime();
-      const expectedDiffMs = 3 * 24 * 60 * 60 * 1000;
-      const actualDiffMs = endAt - startAt;
-      const deviationMs = Math.abs(actualDiffMs - expectedDiffMs);
-      const isApprox3Days = deviationMs < 60000; // within 1 minute
+      const actualDiffDays = (endAt - startAt) / (1000 * 60 * 60 * 24);
+      // Calendar 3 months is between 88 and 93 days depending on calendar month lengths
+      const isApprox3Months = actualDiffDays >= 88 && actualDiffDays <= 93;
 
       recordTest(
-        "Test F: Trial ends approximately 3 days later",
-        isApprox3Days,
-        `Duration: ${(actualDiffMs / (1000 * 60 * 60 * 24)).toFixed(2)} days (expected 3.00)`
+        "Test F: Trial ends approximately 3 months later",
+        isApprox3Months,
+        `Duration: ${actualDiffDays.toFixed(2)} days (expected ~88-93 days for 3 calendar months)`
       );
     } catch (err) {
-      recordTest("Test F: Trial ends approximately 3 days later", false, err.message);
+      recordTest("Test F: Trial ends approximately 3 months later", false, err.message);
     }
 
     // ----------------------------------------------------
@@ -356,7 +357,7 @@ async function runTests() {
     try {
       // Re-activate Company A's trial temporarily to test data isolation
       await pdb.query(
-        "UPDATE companies SET trial_end_at = DATE_ADD(NOW(), INTERVAL 3 DAY) WHERE id = ?",
+        "UPDATE companies SET trial_end_at = DATE_ADD(NOW(), INTERVAL 3 MONTH) WHERE id = ?",
         [companyIdA]
       );
 
@@ -424,30 +425,35 @@ async function runTests() {
     // ----------------------------------------------------
     try {
       const failSlug = `rollback-test-${Date.now()}`;
+      const conn = await pdb.getConnection();
 
-      // Simulate a failure inside transaction:
-      await pdb.beginTransaction();
-      const [compRes] = await pdb.query(
-        "INSERT INTO companies (name, slug, status, is_demo, subscription_status) VALUES (?, ?, 'active', 0, 'trial')",
-        ["Rollback Test Corp", failSlug]
-      );
-      const tempCompanyId = compRes.insertId;
+      try {
+        // Simulate a failure inside transaction:
+        await conn.beginTransaction();
+        const [compRes] = await conn.query(
+          "INSERT INTO companies (name, slug, status, is_demo, subscription_status) VALUES (?, ?, 'active', 0, 'trial')",
+          ["Rollback Test Corp", failSlug]
+        );
+        const tempCompanyId = compRes.insertId;
 
-      // Intentionally trigger rollback
-      await pdb.rollback();
+        // Intentionally trigger rollback
+        await conn.rollback();
 
-      // Verify that tempCompanyId was NOT persisted
-      const [checkComp] = await pdb.query(
-        "SELECT id FROM companies WHERE id = ? LIMIT 1",
-        [tempCompanyId]
-      );
-      const rolledBack = checkComp.length === 0;
+        // Verify that tempCompanyId was NOT persisted
+        const [checkComp] = await conn.query(
+          "SELECT id FROM companies WHERE id = ? LIMIT 1",
+          [tempCompanyId]
+        );
+        const rolledBack = checkComp.length === 0;
 
-      recordTest(
-        "Test M: Registration transaction rolls back if admin/company creation fails",
-        rolledBack,
-        `Company record after rollback: ${checkComp.length} found`
-      );
+        recordTest(
+          "Test M: Registration transaction rolls back if admin/company creation fails",
+          rolledBack,
+          `Company record after rollback: ${checkComp.length} found`
+        );
+      } finally {
+        conn.release();
+      }
     } catch (err) {
       recordTest("Test M: Registration transaction rolls back if admin/company creation fails", false, err.message);
     }
@@ -463,11 +469,15 @@ async function runTests() {
         await pdb.query("DELETE FROM products WHERE company_id = ?", [companyIdA]);
         await pdb.query("DELETE FROM plastic_customer_ledger WHERE company_id = ?", [companyIdA]);
         await pdb.query("DELETE FROM customers WHERE company_id = ?", [companyIdA]);
+        await pdb.query("DELETE FROM plastic_accounts WHERE company_id = ?", [companyIdA]);
+        await pdb.query("DELETE FROM plastic_account_groups WHERE company_id = ?", [companyIdA]);
         await pdb.query("DELETE FROM business_settings WHERE company_id = ?", [companyIdA]);
         await pdb.query("DELETE FROM admins WHERE company_id = ?", [companyIdA]);
         await pdb.query("DELETE FROM companies WHERE id = ?", [companyIdA]);
       }
       if (companyIdC) {
+        await pdb.query("DELETE FROM plastic_accounts WHERE company_id = ?", [companyIdC]);
+        await pdb.query("DELETE FROM plastic_account_groups WHERE company_id = ?", [companyIdC]);
         await pdb.query("DELETE FROM business_settings WHERE company_id = ?", [companyIdC]);
         await pdb.query("DELETE FROM admins WHERE company_id = ?", [companyIdC]);
         await pdb.query("DELETE FROM companies WHERE id = ?", [companyIdC]);

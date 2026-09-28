@@ -74,7 +74,7 @@ const trialMiddleware = (req, res, next) => {
       if (now > trialEnd) {
         return res.status(403).json({
           success: false,
-          message: "Your 3-day trial has expired.",
+          message: "Your 3-month trial has expired.",
           code: "TRIAL_EXPIRED",
           trial_end_at: company.trial_end_at,
           company_name: company.name,

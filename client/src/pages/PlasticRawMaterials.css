@@ -388,3 +388,38 @@
   cursor: not-allowed;
 }
 
+/* Scoped Filter Chips (Polymer & Status) */
+.plastic-materials-page .filter-chip {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.plastic-materials-page .filter-chip:hover {
+  border-color: var(--sb-primary, #0879D1);
+  color: var(--sb-primary, #0879D1);
+}
+
+.plastic-materials-page .filter-chip.active {
+  background: var(--sb-primary, #0879D1);
+  color: #ffffff;
+  border-color: var(--sb-primary, #0879D1);
+  box-shadow: 0 2px 6px rgba(8, 121, 209, 0.25);
+}
+
+.plastic-materials-page .filter-chip.active:hover {
+  background: var(--sb-primary-hover, #0769B7);
+  border-color: var(--sb-primary-hover, #0769B7);
+}
+
+.plastic-materials-page .filter-chip:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(8, 121, 209, 0.35);
+}
+
