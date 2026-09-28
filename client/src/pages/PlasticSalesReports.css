@@ -41,7 +41,8 @@
   transition: all 0.15s ease;
 }
 
-.prep-tabs .tab-btn.active {
+.prep-tabs .tab-btn.active,
+.prep-tabs .tab-btn[aria-current="page"] {
   background: white;
   color: var(--sb-deep-navy, #063b66);
   box-shadow: 0 1px 3px rgba(6, 59, 102, 0.08);

@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useState, useEffect, useCallback } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import API from "../api/axios";
 import PlasticNavbar from "../components/PlasticNavbar";
 import LoadingScreen from "../components/LoadingScreen";
@@ -8,26 +8,46 @@ import "./PlasticSalesReports.css";
 
 function PlasticSalesReports({ defaultTab = "SALES" }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState(() => {
-    if (location.pathname === "/plastic-erp/payment-reports" || defaultTab === "COLLECTIONS") {
-      return "COLLECTIONS";
-    }
-    if (location.pathname === "/plastic-erp/dispatch-reports" || defaultTab === "DISPATCH") {
-      return "DISPATCH";
-    }
+
+  const getTabFromLocation = useCallback((pathname, search) => {
+    const params = new URLSearchParams(search);
+    const tabParam = params.get("tab")?.toUpperCase();
+    if (tabParam === "DISPATCH" || tabParam === "LOGISTICS") return "DISPATCH";
+    if (tabParam === "COLLECTIONS" || tabParam === "PAYMENTS" || tabParam === "PAYMENT") return "COLLECTIONS";
+    if (tabParam === "PROFIT" || tabParam === "MARGIN") return "PROFIT";
+    if (tabParam === "SALES" || tabParam === "ORDERS") return "SALES";
+
+    if (pathname === "/plastic-erp/payment-reports") return "COLLECTIONS";
+    if (pathname === "/plastic-erp/dispatch-reports") return "DISPATCH";
+    if (pathname === "/plastic-erp/executive-analytics" || pathname === "/plastic-erp/margin-reports") return "PROFIT";
+    if (pathname === "/plastic-erp/sales-reports" || pathname === "/plastic-erp/reports/sales") return "SALES";
+
     return defaultTab;
-  });
+  }, [defaultTab]);
+
+  const [activeTab, setActiveTab] = useState(() => getTabFromLocation(location.pathname, location.search));
 
   useEffect(() => {
-    if (location.pathname === "/plastic-erp/payment-reports") {
-      setActiveTab("COLLECTIONS");
-    } else if (location.pathname === "/plastic-erp/dispatch-reports") {
-      setActiveTab("DISPATCH");
-    } else if (location.pathname === "/plastic-erp/sales-reports") {
-      setActiveTab("SALES");
+    const nextTab = getTabFromLocation(location.pathname, location.search);
+    setActiveTab(nextTab);
+  }, [location.pathname, location.search, getTabFromLocation]);
+
+  const handleTabClick = (tabKey) => {
+    setActiveTab(tabKey);
+    let targetPath = "/plastic-erp/sales-reports";
+    if (tabKey === "DISPATCH") {
+      targetPath = "/plastic-erp/dispatch-reports";
+    } else if (tabKey === "COLLECTIONS") {
+      targetPath = "/plastic-erp/payment-reports";
+    } else if (tabKey === "PROFIT") {
+      targetPath = "/plastic-erp/executive-analytics";
     }
-  }, [location.pathname]);
+    if (location.pathname !== targetPath) {
+      navigate(targetPath);
+    }
+  };
 
   // Date Filters
   const [fromDate, setFromDate] = useState("");
@@ -106,6 +126,8 @@ function PlasticSalesReports({ defaultTab = "SALES" }) {
               ? "Payment & Collections Reports"
               : activeTab === "DISPATCH"
               ? "Dispatch & Logistics Reports"
+              : activeTab === "PROFIT"
+              ? "Profit & Gross Margin Reports"
               : "Sales, Dispatch & Margin Reports"
           }
           subtitle={
@@ -113,6 +135,8 @@ function PlasticSalesReports({ defaultTab = "SALES" }) {
               ? "Comprehensive records across customer receipts, payment methods, channel analytics, and cash flow."
               : activeTab === "DISPATCH"
               ? "Comprehensive analytics across vehicle tracking, dispatch volumes, logistics metrics, and delivery fulfillment."
+              : activeTab === "PROFIT"
+              ? "Executive analytics across batch gross margins, production cost variance, realized invoice profitability, and net returns."
               : "Comprehensive analytics across order volumes, transport logistics, payment collections, and actual production margins."
           }
           badge="EXECUTIVE INTELLIGENCE"
@@ -131,28 +155,32 @@ function PlasticSalesReports({ defaultTab = "SALES" }) {
             <button
               type="button"
               className={`tab-btn ${activeTab === "SALES" ? "active" : ""}`}
-              onClick={() => setActiveTab("SALES")}
+              onClick={() => handleTabClick("SALES")}
+              aria-current={activeTab === "SALES" ? "page" : undefined}
             >
               📊 Sales Orders
             </button>
             <button
               type="button"
               className={`tab-btn ${activeTab === "DISPATCH" ? "active" : ""}`}
-              onClick={() => setActiveTab("DISPATCH")}
+              onClick={() => handleTabClick("DISPATCH")}
+              aria-current={activeTab === "DISPATCH" ? "page" : undefined}
             >
               🚚 Dispatches & Logistics
             </button>
             <button
               type="button"
               className={`tab-btn ${activeTab === "COLLECTIONS" ? "active" : ""}`}
-              onClick={() => setActiveTab("COLLECTIONS")}
+              onClick={() => handleTabClick("COLLECTIONS")}
+              aria-current={activeTab === "COLLECTIONS" ? "page" : undefined}
             >
               💰 Collections & Cash Flow
             </button>
             <button
               type="button"
               className={`tab-btn ${activeTab === "PROFIT" ? "active" : ""}`}
-              onClick={() => setActiveTab("PROFIT")}
+              onClick={() => handleTabClick("PROFIT")}
+              aria-current={activeTab === "PROFIT" ? "page" : undefined}
             >
               📈 Profit & Gross Margin
             </button>

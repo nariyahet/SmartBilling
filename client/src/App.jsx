@@ -170,7 +170,8 @@ function App() {
           <Route path="/plastic-erp/dispatch-reports" element={<PlasticSalesReports defaultTab="DISPATCH" />} />
           <Route path="/plastic-erp/payment-reports" element={<PlasticSalesReports defaultTab="COLLECTIONS" />} />
           <Route path="/plastic-erp/customer-ledger-reports" element={<PlasticCustomerLedger />} />
-          <Route path="/plastic-erp/executive-analytics" element={<Dashboard />} />
+          <Route path="/plastic-erp/executive-analytics" element={<PlasticSalesReports defaultTab="PROFIT" />} />
+          <Route path="/plastic-erp/margin-reports" element={<PlasticSalesReports defaultTab="PROFIT" />} />
 
           {/* Phase 4: HR, Payroll & Expense Management */}
           <Route path="/plastic-erp/employees" element={<PlasticEmployees />} />

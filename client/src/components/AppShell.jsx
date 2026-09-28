@@ -16,9 +16,26 @@ export const isPathActive = (currentPath, targetPath) => {
   return curr.startsWith(targ + "/");
 };
 
-// Item-level active check supporting primary path and aliases
-export const isItemActive = (currentPath, item) => {
+// Item-level active check supporting primary path, aliases, and query parameters
+export const isItemActive = (currentPath, item, currentSearch = "") => {
   if (!currentPath || !item) return false;
+  // If query params are used on sales-reports
+  if (currentSearch && (currentPath.includes("sales-reports") || currentPath.includes("reports/sales"))) {
+    const params = new URLSearchParams(currentSearch);
+    const tab = params.get("tab")?.toLowerCase();
+    if (tab === "dispatch" || tab === "logistics") {
+      return item.path === "/plastic-erp/dispatch-reports";
+    }
+    if (tab === "collections" || tab === "payments" || tab === "payment") {
+      return item.path === "/plastic-erp/payment-reports";
+    }
+    if (tab === "profit" || tab === "margin") {
+      return item.path === "/plastic-erp/executive-analytics";
+    }
+    if (tab === "sales" || tab === "orders") {
+      return item.path === "/plastic-erp/sales-reports";
+    }
+  }
   if (isPathActive(currentPath, item.path)) return true;
   if (item.aliases && item.aliases.some((alias) => isPathActive(currentPath, alias))) {
     return true;
@@ -214,6 +231,7 @@ const NAV_GROUPS = [
       "/plastic-erp/accounting/financial-reports",
       "/financial-reports",
       "/plastic-erp/executive-analytics",
+      "/plastic-erp/margin-reports",
     ],
     items: [
       { path: "/plastic-erp/sales-reports", label: "Sales Reports", icon: "📊", aliases: ["/sales-report", "/plastic-erp/reports/sales"] },
@@ -224,7 +242,7 @@ const NAV_GROUPS = [
       { path: "/plastic-erp/procurement-reports", label: "Procurement Reports", icon: "📦" },
       { path: "/plastic-erp/hr-reports", label: "HR & Expense Reports", icon: "👥" },
       { path: "/plastic-erp/financial-reports", label: "Financial Reports", icon: "📈", aliases: ["/plastic-erp/accounting/financial-reports", "/financial-reports"] },
-      { path: "/plastic-erp/executive-analytics", label: "Executive Analytics", icon: "⚡" },
+      { path: "/plastic-erp/executive-analytics", label: "Executive Analytics", icon: "⚡", aliases: ["/plastic-erp/margin-reports"] },
     ],
   },
   {
@@ -238,14 +256,14 @@ const NAV_GROUPS = [
   },
 ];
 
-function getRouteInfo(pathname) {
+function getRouteInfo(pathname, search = "") {
   if (pathname === "/dashboard") {
     return { module: "Overview", title: "Executive Dashboard" };
   }
   for (const group of NAV_GROUPS) {
     if (group.items) {
       for (const item of group.items) {
-        if (isItemActive(pathname, item)) {
+        if (isItemActive(pathname, item, search)) {
           return { module: group.label, title: item.label };
         }
       }
@@ -505,7 +523,7 @@ function AppShell({
     }));
   };
 
-  const currentRouteInfo = getRouteInfo(location.pathname);
+  const currentRouteInfo = getRouteInfo(location.pathname, location.search);
   const userInitials = getUserInitials(userProfile?.name);
 
   // If already wrapped in an AppShell, render as inner container to avoid duplicate sidebars
@@ -578,7 +596,7 @@ function AppShell({
               // Accordion Group Header (Derived directly from location.pathname)
               const isGroupActive = Boolean(
                 (group.paths && group.paths.some((p) => isPathActive(location.pathname, p))) ||
-                (group.items && group.items.some((item) => isItemActive(location.pathname, item)))
+                (group.items && group.items.some((item) => isItemActive(location.pathname, item, location.search)))
               );
               // Active group containing current route is ALWAYS expanded; others use toggle state
               const isExpanded = isGroupActive || Boolean(expandedGroups[group.id]);
@@ -605,7 +623,7 @@ function AppShell({
                   {!collapsed && isExpanded && (
                     <div className="sb-nav-submenu">
                       {group.items.map((subitem) => {
-                        const isSubActive = isItemActive(location.pathname, subitem);
+                        const isSubActive = isItemActive(location.pathname, subitem, location.search);
                         return (
                           <Link
                             key={subitem.label + subitem.path}
