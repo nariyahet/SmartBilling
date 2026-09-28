@@ -581,6 +581,7 @@
 
 /* Chart Container */
 .sb-chart-wrapper {
+  position: relative;
   width: 100%;
   min-width: 0;
   max-width: 100%;
@@ -597,6 +598,22 @@
   font-size: 13px;
   background: var(--sb-bg, #F4F8FB);
   border-radius: 8px;
+}
+
+.sb-chart-wrapper .sb-empty-chart-state {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  height: auto;
+  z-index: 2;
+  padding: 5px 12px;
+  background: rgba(244, 248, 251, 0.9);
+  backdrop-filter: blur(4px);
+  border: 1px solid var(--sb-border, #E3EBF2);
+  border-radius: 20px;
+  pointer-events: none;
+  white-space: nowrap;
 }
 
 /* Sales Order Pipeline Stepper */

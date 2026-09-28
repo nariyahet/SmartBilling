@@ -12,40 +12,86 @@ test('Verify Internal E-Way Bill Form Labels, Line Item Mapping, and PDF Output'
   const admin = loginData.data?.admin || { id: 4, name: 'Demo Admin', email: 'demo@smartbilling.com', company_id: 1 };
   const company = loginData.data?.company || { id: 1, name: 'Demo Company' };
 
-  await page.goto('http://localhost:4173/');
-  await page.evaluate(
-    ({ token, admin, company }) => {
-      localStorage.setItem('token', token);
-      localStorage.setItem('admin', JSON.stringify(admin));
-      localStorage.setItem('company', JSON.stringify(company));
-    },
-    { token, admin, company }
-  );
+  const BASE_URL = process.env.BASE_URL || 'http://localhost:5173';
 
-  await page.goto('http://localhost:4173/plastic-erp/eway-bills');
-  await expect(page.locator('h1')).toContainText(/Internal E-Way Bill/i);
+  // Create temporary test fixture via API
+  const newEwbPayload = {
+    customer_name: "Rahul Patel",
+    customer_phone: "9876543210",
+    billing_address: "Plot 12, GIDC, Vapi, Gujarat",
+    shipping_address: "Plot 12, GIDC, Vapi, Gujarat",
+    dispatch_from_name: "Shree Plastic Industries",
+    dispatch_from_gstin: "24AAACG1234M1Z5",
+    dispatch_from_address: "Kim Industrial Area, Surat, Gujarat",
+    transport_mode: "ROAD",
+    distance_km: 120,
+    transporter_name: "Gujarat Roadways",
+    vehicle_number: "GJ-05-AB-1234",
+    vehicle_type: "REGULAR",
+    driver_name: "Kishore Kumar",
+    driver_mobile: "9876500000",
+    dispatch_date: new Date().toISOString().split("T")[0],
+    status: "DRAFT",
+    notes: "Test Internal E-Way Bill Document",
+    items: [
+      {
+        product_name: "Recycled Plastic Granules",
+        hsn_code: "3915",
+        quantity: 100,
+        unit: "KG",
+        rate: 50.00,
+        taxable_amount: 5000.00,
+        tax_percent: 18,
+        tax_amount: 900.00,
+        total_amount: 5900.00,
+        weight_kg: 100,
+      },
+    ],
+  };
 
-  // 2. Open Create Modal and verify all 6 Consignment Line Item labels are visible
-  await page.getByRole('button', { name: /\+ New Internal E-Way Bill/i }).click();
-  await expect(page.locator('.sb-modal-box')).toBeVisible();
+  const createRes = await request.post('http://localhost:5000/api/plastic-erp/eway-bills', {
+    headers: { Authorization: `Bearer ${token}` },
+    data: newEwbPayload,
+  });
+  const createdData = await createRes.json();
+  const createdEwb = createdData.ewayBill;
+  const createdEwbNo = createdEwb?.ewb_number || 'EWB-DRAFT-000002';
 
-  // Verify visible labels above each input
-  await expect(page.locator('.ewb-add-item-card')).toBeVisible();
-  await expect(page.locator('label', { hasText: 'Product Description' })).toBeVisible();
-  await expect(page.locator('label', { hasText: 'HSN / SAC Code' })).toBeVisible();
-  await expect(page.locator('label', { hasText: 'Quantity' })).toBeVisible();
-  await expect(page.locator('label', { hasText: /^Unit \*/ })).toBeVisible();
-  await expect(page.locator('label', { hasText: 'Rate per Unit' })).toBeVisible();
-  await expect(page.locator('label', { hasText: 'GST / Tax Rate %' })).toBeVisible();
-  await expect(page.getByRole('button', { name: /Add Item/i })).toBeVisible();
+  try {
+    await page.goto(`${BASE_URL}/`);
+    await page.evaluate(
+      ({ token, admin, company }) => {
+        localStorage.setItem('token', token);
+        localStorage.setItem('admin', JSON.stringify(admin));
+        localStorage.setItem('company', JSON.stringify(company));
+      },
+      { token, admin, company }
+    );
 
-  // Close create modal
-  await page.locator('.sb-modal-close-btn').click();
-  await expect(page.locator('.sb-modal-box')).not.toBeVisible();
+    await page.goto(`${BASE_URL}/plastic-erp/eway-bills`);
+    await expect(page.locator('h1')).toContainText(/Internal E-Way Bill/i);
 
-  // 3. Find EWB-DRAFT-000002 row in the table
-  const row = page.locator('tr', { hasText: 'EWB-DRAFT-000002' }).first();
-  await expect(row).toBeVisible();
+    // 2. Open Create Modal and verify all 6 Consignment Line Item labels are visible
+    await page.getByRole('button', { name: /\+ New Internal E-Way Bill/i }).click();
+    await expect(page.locator('.sb-modal-box')).toBeVisible();
+
+    // Verify visible labels above each input
+    await expect(page.locator('.ewb-add-item-card')).toBeVisible();
+    await expect(page.locator('label', { hasText: 'Product Description' })).toBeVisible();
+    await expect(page.locator('label', { hasText: 'HSN / SAC Code' })).toBeVisible();
+    await expect(page.locator('label', { hasText: 'Quantity' })).toBeVisible();
+    await expect(page.locator('label', { hasText: /^Unit \*/ })).toBeVisible();
+    await expect(page.locator('label', { hasText: 'Rate per Unit' })).toBeVisible();
+    await expect(page.locator('label', { hasText: 'GST / Tax Rate %' })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Add Item/i })).toBeVisible();
+
+    // Close create modal
+    await page.locator('.sb-modal-close-btn').click();
+    await expect(page.locator('.sb-modal-box')).not.toBeVisible();
+
+    // 3. Find created test EWB row in the table
+    const row = page.locator('tr', { hasText: createdEwbNo }).first();
+    await expect(row).toBeVisible();
 
   // 4. Click View button to open preview modal sheet
   await row.getByRole('button', { name: /🖨️ View/i }).click();
@@ -139,7 +185,7 @@ test('Verify Internal E-Way Bill Form Labels, Line Item Mapping, and PDF Output'
   const allDecodedText = decodedWords.join(' ');
 
   // Assertions on the downloaded PDF text
-  expect(allDecodedText).toContain('EWB-DRAFT-000002');
+  expect(allDecodedText).toContain(createdEwbNo);
   expect(allDecodedText).toContain('NOT AN OFFICIAL GOVERNMENT E-WAY BILL');
   expect(allDecodedText).toContain('Shree Plastic Industries');
   expect(allDecodedText).toContain('Rahul Patel');
@@ -155,4 +201,16 @@ test('Verify Internal E-Way Bill Form Labels, Line Item Mapping, and PDF Output'
   // Verify no spaced out numbers
   expect(allDecodedText).not.toContain('5 , 0 0 0');
   expect(allDecodedText).not.toContain('5 , 9 0 0');
+  } finally {
+    // Teardown cleanup: delete temporary test fixture to preserve zero demo transactional data
+    try {
+      if (createdEwb?.id) {
+        await request.delete(`http://localhost:5000/api/plastic-erp/eway-bills/${createdEwb.id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      }
+    } catch {
+      // Ignore cleanup error
+    }
+  }
 });

@@ -56,7 +56,8 @@ test.describe('SmartBilling E2E - Products CRUD Lifecycle', () => {
     // Step 1: Open application & Step 2: Login using Demo account
     // -------------------------------------------------------------
     console.log('[Step 1 & 2] Navigating to login page and authenticating with Demo account...');
-    await page.goto('https://smartbilling-sigma.vercel.app/');
+    const BASE_URL = process.env.BASE_URL || 'http://localhost:5173';
+    await page.goto(BASE_URL);
 
     await expect(page.getByRole('heading', { name: /Smart Billing/i })).toBeVisible({ timeout: 15000 });
     await page.getByPlaceholder('Enter your email').fill('demo@smartbilling.com');

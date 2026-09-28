@@ -63,7 +63,7 @@ function Products() {
     setEditingId(product.id);
     setName(product.name);
     setPrice(product.price);
-    setStock(product.stock);
+    setStock(formatQuantity(product.stock));
     setShowModal(true);
   };
 
@@ -149,6 +149,13 @@ function Products() {
       currency: "INR",
       maximumFractionDigits: 2,
     }).format(Number(amount) || 0);
+  };
+
+  const formatQuantity = (val) => {
+    if (val === null || val === undefined || val === "") return "0";
+    const num = Number(val);
+    if (isNaN(num)) return String(val);
+    return parseFloat(num.toFixed(3)).toString();
   };
 
   const getStockStatus = (stockValue) => {
@@ -331,7 +338,7 @@ function Products() {
                         <strong className="prod-price-text">{formatCurrency(product.price)}</strong>
                       </td>
                       <td>
-                        <span className="prod-stock-num">{product.stock} units</span>
+                        <span className="prod-stock-num">{formatQuantity(product.stock)} units</span>
                       </td>
                       <td>
                         <span className={`prod-status-pill ${stockStatus.className}`}>

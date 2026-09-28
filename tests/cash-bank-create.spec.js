@@ -55,16 +55,18 @@ test.describe('SmartBilling 2.0 - Cash & Bank Transaction Lifecycle E2E Regressi
     await page.fill('input[placeholder*="Kim GIDC"]', 'Industrial Estate');
     await page.fill('input[type="number"]', '1000');
 
-    // Click "Create Account"
+    // Click "Create Account" and wait for API response
     const submitBtn = page.getByRole('button', { name: 'Create Account' });
     await expect(submitBtn).toBeVisible();
+
+    const responsePromise = page.waitForResponse((response) =>
+      response.url().includes('cash-bank/accounts') && response.request().method() === 'POST'
+    );
     await submitBtn.click();
-
-    // Wait for response and modal closure
-    await page.waitForTimeout(2000);
-
-    // Verify dialog messages
-    console.log('Dialog messages captured:', dialogMessages);
+    const response = await responsePromise;
+    expect(response.status()).toBe(201);
+    const data = await response.json();
+    expect(data.success).toBe(true);
 
     // CRITICAL ASSERTIONS:
     // 1. No "conn.beginTransaction is not a function" error dialog!
@@ -73,13 +75,10 @@ test.describe('SmartBilling 2.0 - Cash & Bank Transaction Lifecycle E2E Regressi
       expect(msg).not.toContain('Failed to create account');
     }
 
-    // 2. Verify success message was received
-    expect(dialogMessages).toContain('Account created successfully');
+    // 2. Modal closed
+    await expect(page.locator('.cb-modal-form')).not.toBeVisible({ timeout: 10000 });
 
-    // 3. Modal closed
-    await expect(page.locator('.cb-modal-form')).not.toBeVisible();
-
-    // 4. Verify new account appears in the UI
+    // 3. Verify new account appears in the UI
     await expect(page.locator('h4.bank-card-name', { hasText: uniqueAccName })).toBeVisible({ timeout: 10000 });
   });
 });

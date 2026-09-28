@@ -58,6 +58,7 @@ function PlasticSalesReports({ defaultTab = "SALES" }) {
   const [dispatchData, setDispatchData] = useState(null);
   const [paymentData, setPaymentData] = useState(null);
   const [profitData, setProfitData] = useState(null);
+  const [error, setError] = useState(null);
 
   const fetchReports = async (start, end) => {
     try {
@@ -84,9 +85,10 @@ function PlasticSalesReports({ defaultTab = "SALES" }) {
           items: mRes.data.items || mSum.items || [],
         });
       }
+      setError(null);
     } catch (err) {
       console.error("Failed to load reports:", err);
-      alert(err.response?.data?.message || "Failed to load sales and financial reports");
+      setError(err.response?.data?.message || "Failed to load sales and financial reports");
     } finally {
       setLoading(false);
     }

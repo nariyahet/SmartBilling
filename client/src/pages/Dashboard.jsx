@@ -383,6 +383,17 @@ function Dashboard() {
     return [];
   }, [period, invoices, dailySales, monthlySales, plasticStats.todaySales, stats.todaySales]);
 
+  // Fallback visualization structure when no transactions are recorded
+  const chartRenderData = useMemo(() => {
+    if (salesChartData.length > 0) {
+      return salesChartData;
+    }
+    return [
+      { label: "Start", amount: 0 },
+      { label: "Current", amount: 0 },
+    ];
+  }, [salesChartData]);
+
   // Operational alerts aggregation
   const alertsList = useMemo(() => {
     const list = [];
@@ -806,47 +817,46 @@ function Dashboard() {
           </div>
 
           <div className="sb-chart-wrapper">
-            {salesChartData.length === 0 ? (
+            {salesChartData.length === 0 && (
               <div className="sb-empty-chart-state">No sales transactions found for this timeframe.</div>
-            ) : (
-              <ResponsiveContainer width="100%" height={260} minWidth={0}>
-                <AreaChart data={salesChartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#0879D1" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="#159A9C" stopOpacity={0.0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E3EBF2" vertical={false} />
-                  <XAxis dataKey="label" stroke="#718096" fontSize={12} tickLine={false} interval="preserveStartEnd" />
-                  <YAxis
-                    stroke="#718096"
-                    fontSize={12}
-                    tickLine={false}
-                    tickFormatter={(val) => `₹${val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}`}
-                  />
-                  <Tooltip
-                    formatter={(val) => [formatCurrency(val), "Revenue"]}
-                    contentStyle={{
-                      backgroundColor: "#FFFFFF",
-                      borderRadius: "8px",
-                      borderColor: "#E3EBF2",
-                      boxShadow: "0 4px 12px rgba(6, 59, 102, 0.1)",
-                    }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="amount"
-                    stroke="#0879D1"
-                    strokeWidth={2.5}
-                    dot={{ r: 3.5, fill: "#0879D1", stroke: "#FFFFFF", strokeWidth: 1.5 }}
-                    activeDot={{ r: 6, fill: "#0879D1", stroke: "#FFFFFF", strokeWidth: 2 }}
-                    fillOpacity={1}
-                    fill="url(#salesGrad)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
             )}
+            <ResponsiveContainer width="100%" height={260} minWidth={0}>
+              <AreaChart data={chartRenderData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#0879D1" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="#159A9C" stopOpacity={0.0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#E3EBF2" vertical={false} />
+                <XAxis dataKey="label" stroke="#718096" fontSize={12} tickLine={false} interval="preserveStartEnd" />
+                <YAxis
+                  stroke="#718096"
+                  fontSize={12}
+                  tickLine={false}
+                  tickFormatter={(val) => `₹${val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}`}
+                />
+                <Tooltip
+                  formatter={(val) => [formatCurrency(val), "Revenue"]}
+                  contentStyle={{
+                    backgroundColor: "#FFFFFF",
+                    borderRadius: "8px",
+                    borderColor: "#E3EBF2",
+                    boxShadow: "0 4px 12px rgba(6, 59, 102, 0.1)",
+                  }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="amount"
+                  stroke="#0879D1"
+                  strokeWidth={2.5}
+                  dot={{ r: 3.5, fill: "#0879D1", stroke: "#FFFFFF", strokeWidth: 1.5 }}
+                  activeDot={{ r: 6, fill: "#0879D1", stroke: "#FFFFFF", strokeWidth: 2 }}
+                  fillOpacity={1}
+                  fill="url(#salesGrad)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
         </div>
 

@@ -20,8 +20,9 @@ test.describe('SmartBilling E2E - Authentication and Dashboard', () => {
       await dialog.dismiss();
     });
 
-    // 1. Open the live SmartBilling web application
-    await page.goto('https://smartbilling-sigma.vercel.app/');
+    // 1. Open the SmartBilling web application
+    const baseUrl = process.env.BASE_URL || 'http://localhost:5173';
+    await page.goto(baseUrl);
 
     // 2. Check that the login page loads
     // Verify login heading and brand elements
