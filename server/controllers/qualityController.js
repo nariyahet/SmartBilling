@@ -104,7 +104,7 @@ exports.getInspectionById = async (req, res) => {
 };
 
 exports.createInspection = async (req, res) => {
-  const conn = db.promise();
+  let conn;
   try {
     const companyId = req.user.company_id;
     const adminId = req.user.id;
@@ -128,13 +128,14 @@ exports.createInspection = async (req, res) => {
 
     let inspNo = inspection_no;
     if (!inspNo) {
-      const [countRows] = await conn.query(
+      const [countRows] = await db.promise().query(
         `SELECT COUNT(id) AS count FROM plastic_quality_inspections WHERE company_id = ?`,
         [companyId]
       );
       inspNo = `QC-${1000 + (countRows[0]?.count || 0) + 1}`;
     }
 
+    conn = await db.promise().getConnection();
     await conn.beginTransaction();
 
     const [result] = await conn.query(
@@ -213,18 +214,26 @@ exports.createInspection = async (req, res) => {
 
     await conn.commit();
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "QC inspection recorded successfully",
       inspectionId,
       inspectionNo: inspNo,
     });
   } catch (error) {
-    await conn.rollback();
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        console.error("Rollback failed:", rollbackError);
+      }
+    }
     console.error("Create QC Inspection Error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to record QC inspection",
     });
+  } finally {
+    if (conn) conn.release();
   }
 };

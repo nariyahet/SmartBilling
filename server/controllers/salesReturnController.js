@@ -175,7 +175,7 @@ exports.getSalesReturnById = async (req, res) => {
 };
 
 exports.createSalesReturn = async (req, res) => {
-  const conn = db.promise();
+  let conn = null;
   try {
     const companyId = req.user.company_id;
     const adminId = req.user.id;
@@ -198,7 +198,7 @@ exports.createSalesReturn = async (req, res) => {
     }
 
     // Verify customer
-    const [customers] = await conn.query(
+    const [customers] = await db.promise().query(
       `SELECT id, name FROM customers WHERE id = ? AND company_id = ?`,
       [customer_id, companyId]
     );
@@ -235,7 +235,7 @@ exports.createSalesReturn = async (req, res) => {
     }
 
     // Check tax settings
-    const [settingsRows] = await conn.query(
+    const [settingsRows] = await db.promise().query(
       `SELECT tax_enabled, default_tax_percent FROM business_settings WHERE company_id = ? LIMIT 1`,
       [companyId]
     );
@@ -251,77 +251,82 @@ exports.createSalesReturn = async (req, res) => {
 
     const returnNo = await generateNextReturnNo(companyId);
 
+    conn = await db.promise().getConnection();
     await conn.beginTransaction();
 
-    try {
-      const [returnResult] = await conn.query(
-        `INSERT INTO plastic_sales_returns
-          (company_id, return_no, return_date, customer_id, invoice_id, dispatch_id, reason, status, total_amount, tax_amount, grand_total, notes, created_by)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 'RECEIVED', ?, ?, ?, ?, ?)`,
+    const [returnResult] = await conn.query(
+      `INSERT INTO plastic_sales_returns
+        (company_id, return_no, return_date, customer_id, invoice_id, dispatch_id, reason, status, total_amount, tax_amount, grand_total, notes, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'RECEIVED', ?, ?, ?, ?, ?)`,
+      [
+        companyId,
+        returnNo,
+        return_date,
+        customer_id,
+        invoice_id || null,
+        dispatch_id || null,
+        reason,
+        totalAmount,
+        taxAmount,
+        grandTotal,
+        notes || null,
+        adminId,
+      ]
+    );
+
+    const returnId = returnResult.insertId;
+
+    for (const pItm of preparedItems) {
+      await conn.query(
+        `INSERT INTO plastic_sales_return_items
+          (company_id, return_id, finished_good_id, lot_id, quantity, unit, rate, line_total, qc_disposition)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           companyId,
-          returnNo,
-          return_date,
-          customer_id,
-          invoice_id || null,
-          dispatch_id || null,
-          reason,
-          totalAmount,
-          taxAmount,
-          grandTotal,
-          notes || null,
-          adminId,
+          returnId,
+          pItm.finished_good_id,
+          pItm.lot_id,
+          pItm.quantity,
+          pItm.unit,
+          pItm.rate,
+          pItm.line_total,
+          pItm.qc_disposition,
         ]
       );
-
-      const returnId = returnResult.insertId;
-
-      for (const pItm of preparedItems) {
-        await conn.query(
-          `INSERT INTO plastic_sales_return_items
-            (company_id, return_id, finished_good_id, lot_id, quantity, unit, rate, line_total, qc_disposition)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [
-            companyId,
-            returnId,
-            pItm.finished_good_id,
-            pItm.lot_id,
-            pItm.quantity,
-            pItm.unit,
-            pItm.rate,
-            pItm.line_total,
-            pItm.qc_disposition,
-          ]
-        );
-      }
-
-      await conn.commit();
-
-      res.status(201).json({
-        success: true,
-        message: "Sales return logged successfully in RECEIVED status",
-        returnId,
-        returnNo,
-        status: "RECEIVED",
-      });
-    } catch (txnErr) {
-      await conn.rollback();
-      throw txnErr;
     }
+
+    await conn.commit();
+
+    return res.status(201).json({
+      success: true,
+      message: "Sales return logged successfully in RECEIVED status",
+      returnId,
+      returnNo,
+      status: "RECEIVED",
+    });
   } catch (error) {
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        console.error("Rollback failed:", rollbackError);
+      }
+    }
     console.error("Create Sales Return Error:", error);
-    res.status(500).json({ success: false, message: error.message || "Failed to create sales return" });
+    return res.status(500).json({ success: false, message: error.message || "Failed to create sales return" });
+  } finally {
+    if (conn) conn.release();
   }
 };
 
 exports.completeSalesReturn = async (req, res) => {
-  const conn = db.promise();
+  let conn = null;
   try {
     const companyId = req.user.company_id;
     const adminId = req.user.id;
     const { id } = req.params;
 
-    const [returns] = await conn.query(
+    const [returns] = await db.promise().query(
       `SELECT * FROM plastic_sales_returns WHERE id = ? AND company_id = ?`,
       [id, companyId]
     );
@@ -335,7 +340,7 @@ exports.completeSalesReturn = async (req, res) => {
       return res.status(400).json({ success: false, message: "Sales return is already completed" });
     }
 
-    const [items] = await conn.query(
+    const [items] = await db.promise().query(
       `SELECT sri.*, fg.fg_name, fg.current_stock
        FROM plastic_sales_return_items sri
        JOIN plastic_finished_goods fg ON sri.finished_good_id = fg.id AND sri.company_id = fg.company_id
@@ -343,6 +348,7 @@ exports.completeSalesReturn = async (req, res) => {
       [id, companyId]
     );
 
+    conn = await db.promise().getConnection();
     await conn.beginTransaction();
 
     try {
@@ -487,7 +493,7 @@ exports.completeSalesReturn = async (req, res) => {
 
       await conn.commit();
 
-      res.status(200).json({
+      return res.status(200).json({
         success: true,
         message: "Sales return approved, finished goods restocked, and Credit Note issued successfully",
         returnId: id,
@@ -495,11 +501,19 @@ exports.completeSalesReturn = async (req, res) => {
         status: "COMPLETED",
       });
     } catch (txnErr) {
-      await conn.rollback();
+      if (conn) {
+        try {
+          await conn.rollback();
+        } catch (rollbackError) {
+          console.error("Rollback failed:", rollbackError);
+        }
+      }
       throw txnErr;
     }
   } catch (error) {
     console.error("Complete Sales Return Error:", error);
-    res.status(500).json({ success: false, message: error.message || "Failed to complete sales return" });
+    return res.status(500).json({ success: false, message: error.message || "Failed to complete sales return" });
+  } finally {
+    if (conn) conn.release();
   }
 };

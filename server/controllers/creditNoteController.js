@@ -125,7 +125,7 @@ exports.getCreditNoteById = async (req, res) => {
 };
 
 exports.createCreditNote = async (req, res) => {
-  const conn = db.promise();
+  let conn = null;
   try {
     const companyId = req.user.company_id;
     const adminId = req.user.id;
@@ -148,7 +148,7 @@ exports.createCreditNote = async (req, res) => {
     }
 
     // Verify customer
-    const [customers] = await conn.query(
+    const [customers] = await db.promise().query(
       `SELECT id, name FROM customers WHERE id = ? AND company_id = ?`,
       [customer_id, companyId]
     );
@@ -180,94 +180,99 @@ exports.createCreditNote = async (req, res) => {
 
     const creditNoteNo = await generateNextCreditNoteNo(companyId);
 
+    conn = await db.promise().getConnection();
     await conn.beginTransaction();
 
-    try {
-      const [cnResult] = await conn.query(
-        `INSERT INTO plastic_credit_notes
-          (company_id, credit_note_no, date, customer_id, invoice_id, sales_return_id, reason, amount, tax_percent, tax_amount, total, status, created_by)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ISSUED', ?)`,
+    const [cnResult] = await conn.query(
+      `INSERT INTO plastic_credit_notes
+        (company_id, credit_note_no, date, customer_id, invoice_id, sales_return_id, reason, amount, tax_percent, tax_amount, total, status, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ISSUED', ?)`,
+      [
+        companyId,
+        creditNoteNo,
+        date,
+        customer_id,
+        invoice_id || null,
+        sales_return_id || null,
+        reason,
+        subtotal,
+        taxP,
+        taxAmount,
+        grandTotal,
+        adminId,
+      ]
+    );
+
+    const cnId = cnResult.insertId;
+
+    for (const pItm of preparedItems) {
+      await conn.query(
+        `INSERT INTO plastic_credit_note_items
+          (company_id, credit_note_id, description, quantity, rate, amount)
+         VALUES (?, ?, ?, ?, ?, ?)`,
         [
           companyId,
-          creditNoteNo,
-          date,
-          customer_id,
-          invoice_id || null,
-          sales_return_id || null,
-          reason,
-          subtotal,
-          taxP,
-          taxAmount,
-          grandTotal,
-          adminId,
+          cnId,
+          pItm.description,
+          pItm.quantity,
+          pItm.rate,
+          pItm.amount,
         ]
       );
-
-      const cnId = cnResult.insertId;
-
-      for (const pItm of preparedItems) {
-        await conn.query(
-          `INSERT INTO plastic_credit_note_items
-            (company_id, credit_note_id, description, quantity, rate, amount)
-           VALUES (?, ?, ?, ?, ?, ?)`,
-          [
-            companyId,
-            cnId,
-            pItm.description,
-            pItm.quantity,
-            pItm.rate,
-            pItm.amount,
-          ]
-        );
-      }
-
-      // Post credit to customer ledger
-      await recordLedgerEntry(conn, {
-        companyId,
-        customerId: customer_id,
-        transactionDate: date,
-        referenceType: "CREDIT_NOTE",
-        referenceId: cnId,
-        referenceNo: creditNoteNo,
-        debit: 0.00,
-        credit: grandTotal,
-        notes: `Credit Note ${creditNoteNo} - ${reason}`,
-        createdBy: adminId,
-      });
-
-      // Phase 5: Auto-post accounting journal & GST adjustment
-      const { postCreditNoteAccounting } = require("../utils/accountingHelper");
-      await postCreditNoteAccounting(conn, {
-        companyId,
-        creditNote: {
-          id: cnId,
-          credit_note_no: creditNoteNo,
-          customer_id,
-          date,
-          amount: subtotal,
-          tax_percent: taxP,
-          tax_amount: taxAmount,
-          total: grandTotal,
-          reason,
-        },
-        createdBy: adminId,
-      });
-
-      await conn.commit();
-
-      res.status(201).json({
-        success: true,
-        message: "Credit note issued and customer ledger updated successfully",
-        creditNoteId: cnId,
-        creditNoteNo,
-        total: grandTotal,
-      });
-    } catch (txnErr) {
-      await conn.rollback();
-      throw txnErr;
     }
+
+    // Post credit to customer ledger
+    await recordLedgerEntry(conn, {
+      companyId,
+      customerId: customer_id,
+      transactionDate: date,
+      referenceType: "CREDIT_NOTE",
+      referenceId: cnId,
+      referenceNo: creditNoteNo,
+      debit: 0.00,
+      credit: grandTotal,
+      notes: `Credit Note ${creditNoteNo} - ${reason}`,
+      createdBy: adminId,
+    });
+
+    // Phase 5: Auto-post accounting journal & GST adjustment
+    const { postCreditNoteAccounting } = require("../utils/accountingHelper");
+    await postCreditNoteAccounting(conn, {
+      companyId,
+      creditNote: {
+        id: cnId,
+        credit_note_no: creditNoteNo,
+        customer_id,
+        date,
+        amount: subtotal,
+        tax_percent: taxP,
+        tax_amount: taxAmount,
+        total: grandTotal,
+        reason,
+      },
+      createdBy: adminId,
+    });
+
+    await conn.commit();
+
+    return res.status(201).json({
+      success: true,
+      message: "Credit note issued and customer ledger updated successfully",
+      creditNoteId: cnId,
+      creditNoteNo,
+      total: grandTotal,
+    });
   } catch (error) {
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        console.error("Rollback failed:", rollbackError);
+      }
+    }
     console.error("Create Credit Note Error:", error);
-    res.status(500).json({ success: false, message: error.message || "Failed to create credit note" });
+    return res.status(500).json({ success: false, message: error.message || "Failed to create credit note" });
+  } finally {
+    if (conn) conn.release();
   }
 };

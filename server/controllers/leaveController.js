@@ -169,13 +169,13 @@ exports.createLeaveRequest = async (req, res) => {
 };
 
 exports.approveLeaveRequest = async (req, res) => {
-  const pdb = db.promise();
+  let conn;
   try {
     const companyId = req.user.company_id;
     const adminId = req.user.id;
     const { id } = req.params;
 
-    const [requests] = await pdb.query(
+    const [requests] = await db.promise().query(
       "SELECT * FROM plastic_leave_requests WHERE id = ? AND company_id = ? LIMIT 1",
       [id, companyId]
     );
@@ -192,10 +192,11 @@ exports.approveLeaveRequest = async (req, res) => {
       });
     }
 
-    await pdb.beginTransaction();
+    conn = await db.promise().getConnection();
+    await conn.beginTransaction();
 
     // 1. Mark request APPROVED
-    await pdb.query(
+    await conn.query(
       `UPDATE plastic_leave_requests
        SET status = 'APPROVED', approved_by = ?, approval_date = NOW()
        WHERE id = ? AND company_id = ?`,
@@ -204,7 +205,7 @@ exports.approveLeaveRequest = async (req, res) => {
 
     // 2. Update employee leave balance
     const reqYear = new Date(reqData.start_date).getFullYear();
-    await pdb.query(
+    await conn.query(
       `UPDATE plastic_leave_balances
        SET used = used + ?, balance = balance - ?
        WHERE company_id = ? AND employee_id = ? AND leave_type_id = ? AND year = ?`,
@@ -216,7 +217,7 @@ exports.approveLeaveRequest = async (req, res) => {
     const end = new Date(reqData.end_date);
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
       const dateStr = d.toISOString().slice(0, 10);
-      await pdb.query(
+      await conn.query(
         `INSERT INTO plastic_attendance (
           company_id, employee_id, attendance_date, status, working_hours, notes, marked_by
         ) VALUES (?, ?, ?, 'ON_LEAVE', 0, 'Approved Leave', ?)
@@ -226,13 +227,21 @@ exports.approveLeaveRequest = async (req, res) => {
       );
     }
 
-    await pdb.commit();
+    await conn.commit();
 
     res.status(200).json({ success: true, message: "Leave request approved successfully" });
   } catch (error) {
-    await pdb.rollback();
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        console.error("Rollback failed:", rollbackError);
+      }
+    }
     console.error("Approve Leave Request Error:", error);
     res.status(500).json({ success: false, message: "Failed to approve leave request" });
+  } finally {
+    if (conn) conn.release();
   }
 };
 

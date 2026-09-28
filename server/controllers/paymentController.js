@@ -128,7 +128,7 @@ exports.getPaymentById = async (req, res) => {
 };
 
 exports.createPayment = async (req, res) => {
-  const conn = db.promise();
+  let conn = null;
   try {
     const companyId = req.user.company_id;
     const adminId = req.user.id;
@@ -157,7 +157,7 @@ exports.createPayment = async (req, res) => {
     }
 
     // Verify customer
-    const [customers] = await conn.query(
+    const [customers] = await db.promise().query(
       `SELECT id, name FROM customers WHERE id = ? AND company_id = ?`,
       [customer_id, companyId]
     );
@@ -168,7 +168,7 @@ exports.createPayment = async (req, res) => {
     // If invoice_id is specified, verify ownership
     let invoice = null;
     if (invoice_id) {
-      const [invRows] = await conn.query(
+      const [invRows] = await db.promise().query(
         `SELECT id, invoice_no, grand_total, paid_amount, payment_status FROM invoices WHERE id = ? AND company_id = ?`,
         [invoice_id, companyId]
       );
@@ -180,110 +180,115 @@ exports.createPayment = async (req, res) => {
 
     const paymentNo = await generateNextPaymentNo(companyId);
 
+    conn = await db.promise().getConnection();
     await conn.beginTransaction();
 
-    try {
-      // 1. Insert payment record
-      const [paymentResult] = await conn.query(
-        `INSERT INTO plastic_payments
-          (company_id, payment_no, customer_id, invoice_id, payment_date, amount, payment_method, reference_number, notes, status, created_by)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'RECEIVED', ?)`,
-        [
-          companyId,
-          paymentNo,
-          customer_id,
-          invoice_id || null,
-          payment_date,
-          payAmount,
-          payment_method,
-          reference_number || null,
-          notes || null,
-          adminId,
-        ]
-      );
+    // 1. Insert payment record
+    const [paymentResult] = await conn.query(
+      `INSERT INTO plastic_payments
+        (company_id, payment_no, customer_id, invoice_id, payment_date, amount, payment_method, reference_number, notes, status, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'RECEIVED', ?)`,
+      [
+        companyId,
+        paymentNo,
+        customer_id,
+        invoice_id || null,
+        payment_date,
+        payAmount,
+        payment_method,
+        reference_number || null,
+        notes || null,
+        adminId,
+      ]
+    );
 
-      const paymentId = paymentResult.insertId;
+    const paymentId = paymentResult.insertId;
 
-      // 2. If invoice linked, update invoice paid_amount and payment_status
-      if (invoice) {
-        const newPaidAmount = (Number(invoice.paid_amount) || 0) + payAmount;
-        const grandTotal = Number(invoice.grand_total) || 0;
-        let newStatus = "PARTIAL";
-        if (newPaidAmount >= grandTotal) {
-          newStatus = "PAID";
-        } else if (newPaidAmount <= 0) {
-          newStatus = "UNPAID";
-        }
-
-        await conn.query(
-          `UPDATE invoices
-           SET paid_amount = ?, payment_status = ?
-           WHERE id = ? AND company_id = ?`,
-          [newPaidAmount, newStatus, invoice.id, companyId]
-        );
+    // 2. If invoice linked, update invoice paid_amount and payment_status
+    if (invoice) {
+      const newPaidAmount = (Number(invoice.paid_amount) || 0) + payAmount;
+      const grandTotal = Number(invoice.grand_total) || 0;
+      let newStatus = "PARTIAL";
+      if (newPaidAmount >= grandTotal) {
+        newStatus = "PAID";
+      } else if (newPaidAmount <= 0) {
+        newStatus = "UNPAID";
       }
 
-      // 3. Post credit entry to customer ledger
-      const refNote = invoice
-        ? `Payment ${paymentNo} received for Invoice ${invoice.invoice_no}`
-        : `Payment ${paymentNo} received on account (${payment_method})`;
-
-      await recordLedgerEntry(conn, {
-        companyId,
-        customerId: customer_id,
-        transactionDate: payment_date,
-        referenceType: "PAYMENT",
-        referenceId: paymentId,
-        referenceNo: paymentNo,
-        debit: 0.00,
-        credit: payAmount,
-        notes: notes ? `${refNote} - ${notes}` : refNote,
-        createdBy: adminId,
-      });
-
-      // Phase 5: Auto-post accounting journal & bank/cash ledger transaction
-      const { postPaymentReceivedAccounting } = require("../utils/accountingHelper");
-      await postPaymentReceivedAccounting(conn, {
-        companyId,
-        payment: {
-          id: paymentId,
-          payment_no: paymentNo,
-          amount: payAmount,
-          payment_date,
-          payment_method,
-        },
-        customerId: customer_id,
-        createdBy: adminId,
-      });
-
-      await conn.commit();
-
-      res.status(201).json({
-        success: true,
-        message: "Payment recorded successfully",
-        paymentId,
-        paymentNo,
-        amount: payAmount,
-        status: "RECEIVED",
-      });
-    } catch (txnErr) {
-      await conn.rollback();
-      throw txnErr;
+      await conn.query(
+        `UPDATE invoices
+         SET paid_amount = ?, payment_status = ?
+         WHERE id = ? AND company_id = ?`,
+        [newPaidAmount, newStatus, invoice.id, companyId]
+      );
     }
+
+    // 3. Post credit entry to customer ledger
+    const refNote = invoice
+      ? `Payment ${paymentNo} received for Invoice ${invoice.invoice_no}`
+      : `Payment ${paymentNo} received on account (${payment_method})`;
+
+    await recordLedgerEntry(conn, {
+      companyId,
+      customerId: customer_id,
+      transactionDate: payment_date,
+      referenceType: "PAYMENT",
+      referenceId: paymentId,
+      referenceNo: paymentNo,
+      debit: 0.00,
+      credit: payAmount,
+      notes: notes ? `${refNote} - ${notes}` : refNote,
+      createdBy: adminId,
+    });
+
+    // Phase 5: Auto-post accounting journal & bank/cash ledger transaction
+    const { postPaymentReceivedAccounting } = require("../utils/accountingHelper");
+    await postPaymentReceivedAccounting(conn, {
+      companyId,
+      payment: {
+        id: paymentId,
+        payment_no: paymentNo,
+        amount: payAmount,
+        payment_date,
+        payment_method,
+      },
+      customerId: customer_id,
+      createdBy: adminId,
+    });
+
+    await conn.commit();
+
+    return res.status(201).json({
+      success: true,
+      message: "Payment recorded successfully",
+      paymentId,
+      paymentNo,
+      amount: payAmount,
+      status: "RECEIVED",
+    });
   } catch (error) {
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        console.error("Rollback failed:", rollbackError);
+      }
+    }
     console.error("Create Payment Error:", error);
-    res.status(500).json({ success: false, message: error.message || "Failed to record payment" });
+    return res.status(500).json({ success: false, message: error.message || "Failed to record payment" });
+  } finally {
+    if (conn) conn.release();
   }
 };
 
 exports.cancelPayment = async (req, res) => {
-  const conn = db.promise();
+  let conn = null;
   try {
     const companyId = req.user.company_id;
     const adminId = req.user.id;
     const { id } = req.params;
 
-    const [payments] = await conn.query(
+    const [payments] = await db.promise().query(
       `SELECT * FROM plastic_payments WHERE id = ? AND company_id = ?`,
       [id, companyId]
     );
@@ -297,66 +302,71 @@ exports.cancelPayment = async (req, res) => {
       return res.status(400).json({ success: false, message: "Payment is already cancelled" });
     }
 
+    conn = await db.promise().getConnection();
     await conn.beginTransaction();
 
-    try {
-      // 1. Revert invoice paid amount if linked
-      if (payment.invoice_id) {
-        const [invRows] = await conn.query(
-          `SELECT id, grand_total, paid_amount FROM invoices WHERE id = ? AND company_id = ?`,
-          [payment.invoice_id, companyId]
-        );
-
-        if (invRows.length > 0) {
-          const inv = invRows[0];
-          const newPaid = Math.max(0, (Number(inv.paid_amount) || 0) - Number(payment.amount));
-          const grandTotal = Number(inv.grand_total) || 0;
-          let newStatus = "UNPAID";
-          if (newPaid >= grandTotal) {
-            newStatus = "PAID";
-          } else if (newPaid > 0) {
-            newStatus = "PARTIAL";
-          }
-
-          await conn.query(
-            `UPDATE invoices SET paid_amount = ?, payment_status = ? WHERE id = ? AND company_id = ?`,
-            [newPaid, newStatus, payment.invoice_id, companyId]
-          );
-        }
-      }
-
-      // 2. Post reversing debit entry to customer ledger
-      await recordLedgerEntry(conn, {
-        companyId,
-        customerId: payment.customer_id,
-        transactionDate: new Date(),
-        referenceType: "PAYMENT",
-        referenceId: payment.id,
-        referenceNo: payment.payment_no,
-        debit: Number(payment.amount),
-        credit: 0.00,
-        notes: `Cancelled Payment ${payment.payment_no} Reversal`,
-        createdBy: adminId,
-      });
-
-      // 3. Mark payment as CANCELLED
-      await conn.query(
-        `UPDATE plastic_payments SET status = 'CANCELLED', updated_at = CURRENT_TIMESTAMP WHERE id = ? AND company_id = ?`,
-        [id, companyId]
+    // 1. Revert invoice paid amount if linked
+    if (payment.invoice_id) {
+      const [invRows] = await conn.query(
+        `SELECT id, grand_total, paid_amount FROM invoices WHERE id = ? AND company_id = ?`,
+        [payment.invoice_id, companyId]
       );
 
-      await conn.commit();
+      if (invRows.length > 0) {
+        const inv = invRows[0];
+        const newPaid = Math.max(0, (Number(inv.paid_amount) || 0) - Number(payment.amount));
+        const grandTotal = Number(inv.grand_total) || 0;
+        let newStatus = "UNPAID";
+        if (newPaid >= grandTotal) {
+          newStatus = "PAID";
+        } else if (newPaid > 0) {
+          newStatus = "PARTIAL";
+        }
 
-      res.status(200).json({
-        success: true,
-        message: "Payment cancelled and ledger reversed successfully",
-      });
-    } catch (txnErr) {
-      await conn.rollback();
-      throw txnErr;
+        await conn.query(
+          `UPDATE invoices SET paid_amount = ?, payment_status = ? WHERE id = ? AND company_id = ?`,
+          [newPaid, newStatus, payment.invoice_id, companyId]
+        );
+      }
     }
+
+    // 2. Post reversing debit entry to customer ledger
+    await recordLedgerEntry(conn, {
+      companyId,
+      customerId: payment.customer_id,
+      transactionDate: new Date(),
+      referenceType: "PAYMENT",
+      referenceId: payment.id,
+      referenceNo: payment.payment_no,
+      debit: Number(payment.amount),
+      credit: 0.00,
+      notes: `Cancelled Payment ${payment.payment_no} Reversal`,
+      createdBy: adminId,
+    });
+
+    // 3. Mark payment as CANCELLED
+    await conn.query(
+      `UPDATE plastic_payments SET status = 'CANCELLED', updated_at = CURRENT_TIMESTAMP WHERE id = ? AND company_id = ?`,
+      [id, companyId]
+    );
+
+    await conn.commit();
+
+    return res.status(200).json({
+      success: true,
+      message: "Payment cancelled and ledger reversed successfully",
+    });
   } catch (error) {
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        console.error("Rollback failed:", rollbackError);
+      }
+    }
     console.error("Cancel Payment Error:", error);
-    res.status(500).json({ success: false, message: error.message || "Failed to cancel payment" });
+    return res.status(500).json({ success: false, message: error.message || "Failed to cancel payment" });
+  } finally {
+    if (conn) conn.release();
   }
 };

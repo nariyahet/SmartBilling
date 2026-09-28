@@ -933,9 +933,14 @@ const withConnection = (fn) => async (connOrData, maybeData) => {
   let data = maybeData;
   let isInternalConn = false;
 
-  if (!maybeData && (!connOrData || typeof connOrData.query !== "function")) {
-    data = connOrData;
-    conn = db.promise();
+  // Standalone call: fn(data) OR pool passed without transaction: fn(db.promise(), data)
+  if (maybeData === undefined || !connOrData || typeof connOrData.beginTransaction !== "function") {
+    if (maybeData === undefined) {
+      data = connOrData;
+    } else {
+      data = maybeData;
+    }
+    conn = await db.promise().getConnection();
     await conn.beginTransaction();
     isInternalConn = true;
   }
@@ -947,16 +952,25 @@ const withConnection = (fn) => async (connOrData, maybeData) => {
     }
     return result;
   } catch (error) {
-    if (isInternalConn) {
-      await conn.rollback();
+    if (isInternalConn && conn) {
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        console.error("Accounting withConnection rollback failed:", rollbackError);
+      }
     }
     throw error;
+  } finally {
+    if (isInternalConn && conn) {
+      conn.release();
+    }
   }
 };
 
 module.exports = {
   generateNextJournalNo,
   getAccount,
+  withConnection,
   postJournalEntry: withConnection(postJournalEntry),
   postPurchaseBillAccounting: withConnection(postPurchaseBillAccounting),
   postSalesInvoiceAccounting: withConnection(postSalesInvoiceAccounting),

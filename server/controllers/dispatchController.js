@@ -188,7 +188,7 @@ exports.getDispatchById = async (req, res) => {
 };
 
 exports.createDispatch = async (req, res) => {
-  const conn = await db.promise().getConnection();
+  let conn;
   try {
     const companyId = req.user.company_id;
     const adminId = req.user.id;
@@ -216,7 +216,7 @@ exports.createDispatch = async (req, res) => {
     }
 
     // Verify customer belongs to company
-    const [customers] = await conn.query(
+    const [customers] = await db.promise().query(
       `SELECT id, name FROM customers WHERE id = ? AND company_id = ?`,
       [customer_id, companyId]
     );
@@ -226,7 +226,7 @@ exports.createDispatch = async (req, res) => {
 
     // If sales order provided, verify
     if (sales_order_id) {
-      const [soRows] = await conn.query(
+      const [soRows] = await db.promise().query(
         `SELECT id, status FROM plastic_sales_orders WHERE id = ? AND company_id = ?`,
         [sales_order_id, companyId]
       );
@@ -242,7 +242,7 @@ exports.createDispatch = async (req, res) => {
     let trans = transporter;
 
     if (vehicle_id) {
-      const [vRows] = await conn.query(
+      const [vRows] = await db.promise().query(
         `SELECT * FROM plastic_vehicles WHERE id = ? AND company_id = ?`,
         [vehicle_id, companyId]
       );
@@ -256,6 +256,7 @@ exports.createDispatch = async (req, res) => {
 
     const dispatchNo = await generateNextDispatchNo(companyId);
 
+    conn = await db.promise().getConnection();
     await conn.beginTransaction();
 
     try {
@@ -429,7 +430,7 @@ exports.createDispatch = async (req, res) => {
 };
 
 exports.updateDispatchStatus = async (req, res) => {
-  const conn = await db.promise().getConnection();
+  let conn;
   try {
     const companyId = req.user.company_id;
     const adminId = req.user.id;
@@ -440,7 +441,7 @@ exports.updateDispatchStatus = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid dispatch status" });
     }
 
-    const [dispatches] = await conn.query(
+    const [dispatches] = await db.promise().query(
       `SELECT * FROM plastic_dispatches WHERE id = ? AND company_id = ?`,
       [id, companyId]
     );
@@ -456,6 +457,7 @@ exports.updateDispatchStatus = async (req, res) => {
       return res.status(200).json({ success: true, message: "Status unchanged", status });
     }
 
+    conn = await db.promise().getConnection();
     await conn.beginTransaction();
 
     try {
@@ -629,14 +631,14 @@ exports.updateDispatchStatus = async (req, res) => {
  * Creates and links an invoice using the EXACT SmartBilling existing invoice architecture!
  */
 exports.createInvoiceFromDispatch = async (req, res) => {
-  const conn = await db.promise().getConnection();
+  let conn;
   try {
     const companyId = req.user.company_id;
     const adminId = req.user.id;
     const { id } = req.params;
 
     // 1. Fetch dispatch
-    const [dispatches] = await conn.query(
+    const [dispatches] = await db.promise().query(
       `SELECT * FROM plastic_dispatches WHERE id = ? AND company_id = ?`,
       [id, companyId]
     );
@@ -648,7 +650,7 @@ exports.createInvoiceFromDispatch = async (req, res) => {
     const dispatch = dispatches[0];
 
     // Check if an invoice already exists for this dispatch
-    const [existingInv] = await conn.query(
+    const [existingInv] = await db.promise().query(
       `SELECT id, invoice_no FROM invoices WHERE dispatch_id = ? AND company_id = ?`,
       [id, companyId]
     );
@@ -662,7 +664,7 @@ exports.createInvoiceFromDispatch = async (req, res) => {
     }
 
     // 2. Fetch dispatch items
-    const [dispatchItems] = await conn.query(
+    const [dispatchItems] = await db.promise().query(
       `SELECT di.*, fg.fg_name, fg.product_id
        FROM plastic_dispatch_items di
        JOIN plastic_finished_goods fg ON di.finished_good_id = fg.id AND di.company_id = fg.company_id
@@ -675,7 +677,7 @@ exports.createInvoiceFromDispatch = async (req, res) => {
     }
 
     // 3. Fetch company tax settings
-    const [settingsRows] = await conn.query(
+    const [settingsRows] = await db.promise().query(
       `SELECT tax_enabled, default_tax_percent FROM business_settings WHERE company_id = ? LIMIT 1`,
       [companyId]
     );
@@ -686,6 +688,11 @@ exports.createInvoiceFromDispatch = async (req, res) => {
     const taxPercent = isTaxEnabled
       ? Number(settingsRows[0]?.default_tax_percent !== undefined ? settingsRows[0].default_tax_percent : 18)
       : 0;
+
+    const invoiceNo = await generateNextSequentialInvoiceNo(companyId);
+
+    conn = await db.promise().getConnection();
+    await conn.beginTransaction();
 
     let subtotal = 0;
     const invoiceItems = [];
@@ -741,13 +748,9 @@ exports.createInvoiceFromDispatch = async (req, res) => {
     const discountAmount = 0;
     const taxAmount = isTaxEnabled ? subtotal * (taxPercent / 100) : 0;
     const grandTotal = subtotal + taxAmount;
-    const invoiceNo = await generateNextSequentialInvoiceNo(companyId);
 
-    await conn.beginTransaction();
-
-    try {
-      // 4. Insert into existing invoices table
-      const [invoiceResult] = await conn.query(
+    // 4. Insert into existing invoices table
+    const [invoiceResult] = await conn.query(
         `INSERT INTO invoices
           (
             company_id,
@@ -825,18 +828,17 @@ exports.createInvoiceFromDispatch = async (req, res) => {
           payment_status: "UNPAID",
         },
       });
-    } catch (txnErr) {
+  } catch (error) {
+    if (conn) {
       try {
         await conn.rollback();
       } catch (rbErr) {
         console.error("Rollback Error:", rbErr);
       }
-      throw txnErr;
-    } finally {
-      conn.release();
     }
-  } catch (error) {
     console.error("Create Invoice from Dispatch Error:", error);
     res.status(500).json({ success: false, message: error.message || "Failed to create invoice from dispatch" });
+  } finally {
+    if (conn) conn.release();
   }
 };

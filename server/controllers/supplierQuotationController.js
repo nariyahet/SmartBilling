@@ -136,7 +136,7 @@ exports.getQuotationById = async (req, res) => {
 };
 
 exports.createQuotation = async (req, res) => {
-  const conn = db.promise();
+  let conn;
   try {
     const companyId = req.user.company_id;
     const adminId = req.user.id;
@@ -160,10 +160,6 @@ exports.createQuotation = async (req, res) => {
       });
     }
 
-    await conn.query("START TRANSACTION");
-
-    const quoteNo = await generateNextQuoteNo(conn, companyId);
-
     let subtotal = 0;
     let totalDiscount = 0;
     let totalTax = 0;
@@ -176,7 +172,10 @@ exports.createQuotation = async (req, res) => {
       const qty = Number(itm.quantity);
       const rate = Number(itm.rate);
       if (isNaN(qty) || qty <= 0 || isNaN(rate) || rate < 0) {
-        throw new Error("Invalid quantity or rate in quotation items");
+        return res.status(400).json({
+          success: false,
+          message: "Invalid quantity or rate in quotation items",
+        });
       }
 
       const lineBase = qty * rate;
@@ -209,6 +208,11 @@ exports.createQuotation = async (req, res) => {
         effective_landed_rate: effectiveLanded,
       });
     }
+
+    conn = await db.promise().getConnection();
+    await conn.beginTransaction();
+
+    const quoteNo = await generateNextQuoteNo(conn, companyId);
 
     const [qResult] = await conn.query(
       `INSERT INTO plastic_supplier_quotations (
@@ -265,17 +269,25 @@ exports.createQuotation = async (req, res) => {
       );
     }
 
-    await conn.query("COMMIT");
+    await conn.commit();
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "Supplier quotation created successfully",
       data: { id: quotationId, quotation_no: quoteNo, grand_total: grandTotal },
     });
   } catch (error) {
-    await conn.query("ROLLBACK");
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        console.error("Rollback failed:", rollbackError);
+      }
+    }
     console.error("Create Quotation Error:", error);
-    res.status(500).json({ success: false, message: error.message || "Failed to create quotation" });
+    return res.status(500).json({ success: false, message: error.message || "Failed to create quotation" });
+  } finally {
+    if (conn) conn.release();
   }
 };
 
@@ -373,14 +385,15 @@ exports.compareQuotations = async (req, res) => {
 };
 
 exports.convertQuoteToPO = async (req, res) => {
-  const conn = db.promise();
+  let conn;
   try {
     const companyId = req.user.company_id;
     const adminId = req.user.id;
     const { id } = req.params;
     const { expected_delivery_date, notes } = req.body;
 
-    await conn.query("START TRANSACTION");
+    conn = await db.promise().getConnection();
+    await conn.beginTransaction();
 
     const [quotes] = await conn.query(
       "SELECT * FROM plastic_supplier_quotations WHERE id = ? AND company_id = ? FOR UPDATE",
@@ -388,7 +401,7 @@ exports.convertQuoteToPO = async (req, res) => {
     );
 
     if (quotes.length === 0) {
-      await conn.query("ROLLBACK");
+      await conn.rollback();
       return res.status(404).json({ success: false, message: "Quotation not found" });
     }
 
@@ -400,7 +413,7 @@ exports.convertQuoteToPO = async (req, res) => {
     );
 
     if (items.length === 0) {
-      await conn.query("ROLLBACK");
+      await conn.rollback();
       return res.status(400).json({ success: false, message: "Quotation has no items to convert" });
     }
 
@@ -494,16 +507,24 @@ exports.convertQuoteToPO = async (req, res) => {
       );
     }
 
-    await conn.query("COMMIT");
+    await conn.commit();
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: `Quotation ${quote.quotation_no} accepted and converted to PO ${poNo}`,
       data: { purchaseOrderId: poId, po_no: poNo },
     });
   } catch (error) {
-    await conn.query("ROLLBACK");
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        console.error("Rollback failed:", rollbackError);
+      }
+    }
     console.error("Convert Quote to PO Error:", error);
-    res.status(500).json({ success: false, message: error.message || "Failed to convert quote to PO" });
+    return res.status(500).json({ success: false, message: error.message || "Failed to convert quote to PO" });
+  } finally {
+    if (conn) conn.release();
   }
 };

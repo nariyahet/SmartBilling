@@ -397,7 +397,7 @@ exports.getEWayBillById = async (req, res) => {
  * POST /api/plastic-erp/eway-bills
  */
 exports.createEWayBill = async (req, res) => {
-  const conn = db.promise();
+  let conn;
   try {
     const companyId = req.user.company_id;
     const adminId = req.user.id;
@@ -489,6 +489,7 @@ exports.createEWayBill = async (req, res) => {
       };
     });
 
+    conn = await db.promise().getConnection();
     await conn.beginTransaction();
 
     const [insertResult] = await conn.query(
@@ -569,7 +570,7 @@ exports.createEWayBill = async (req, res) => {
 
     await conn.commit();
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: `Internal E-Way Bill ${ewbNumber} created successfully`,
       ewayBill: {
@@ -580,9 +581,17 @@ exports.createEWayBill = async (req, res) => {
       },
     });
   } catch (error) {
-    await conn.rollback();
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        console.error("Rollback failed:", rollbackError);
+      }
+    }
     console.error("Create EWayBill Error:", error);
-    res.status(500).json({ success: false, message: error.message || "Failed to create Internal E-Way Bill" });
+    return res.status(500).json({ success: false, message: error.message || "Failed to create Internal E-Way Bill" });
+  } finally {
+    if (conn) conn.release();
   }
 };
 
@@ -590,12 +599,12 @@ exports.createEWayBill = async (req, res) => {
  * PUT /api/plastic-erp/eway-bills/:id
  */
 exports.updateEWayBill = async (req, res) => {
-  const conn = db.promise();
+  let conn;
   try {
     const companyId = req.user.company_id;
     const { id } = req.params;
 
-    const [existing] = await conn.query(
+    const [existing] = await db.promise().query(
       `SELECT * FROM internal_eway_bills WHERE id = ? AND company_id = ?`,
       [id, companyId]
     );
@@ -666,6 +675,7 @@ exports.updateEWayBill = async (req, res) => {
       });
     }
 
+    conn = await db.promise().getConnection();
     await conn.beginTransaction();
 
     await conn.query(
@@ -745,14 +755,22 @@ exports.updateEWayBill = async (req, res) => {
 
     await conn.commit();
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Internal E-Way Bill updated successfully",
     });
   } catch (error) {
-    await conn.rollback();
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        console.error("Rollback failed:", rollbackError);
+      }
+    }
     console.error("Update EWayBill Error:", error);
-    res.status(500).json({ success: false, message: error.message || "Failed to update Internal E-Way Bill" });
+    return res.status(500).json({ success: false, message: error.message || "Failed to update Internal E-Way Bill" });
+  } finally {
+    if (conn) conn.release();
   }
 };
 
@@ -828,12 +846,12 @@ exports.updateStatus = async (req, res) => {
  * Only allowed if status is DRAFT
  */
 exports.deleteEWayBill = async (req, res) => {
-  const conn = db.promise();
+  let conn;
   try {
     const companyId = req.user.company_id;
     const { id } = req.params;
 
-    const [bills] = await conn.query(
+    const [bills] = await db.promise().query(
       `SELECT id, ewb_number, status FROM internal_eway_bills WHERE id = ? AND company_id = ?`,
       [id, companyId]
     );
@@ -849,18 +867,27 @@ exports.deleteEWayBill = async (req, res) => {
       });
     }
 
+    conn = await db.promise().getConnection();
     await conn.beginTransaction();
     await conn.query(`DELETE FROM internal_eway_bill_items WHERE eway_bill_id = ? AND company_id = ?`, [id, companyId]);
     await conn.query(`DELETE FROM internal_eway_bills WHERE id = ? AND company_id = ?`, [id, companyId]);
     await conn.commit();
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: `Draft E-Way Bill ${bills[0].ewb_number} deleted successfully`,
     });
   } catch (error) {
-    await conn.rollback();
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        console.error("Rollback failed:", rollbackError);
+      }
+    }
     console.error("Delete EWayBill Error:", error);
-    res.status(500).json({ success: false, message: "Failed to delete Internal E-Way Bill" });
+    return res.status(500).json({ success: false, message: "Failed to delete Internal E-Way Bill" });
+  } finally {
+    if (conn) conn.release();
   }
 };

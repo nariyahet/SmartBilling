@@ -162,7 +162,7 @@ exports.getEmployeeById = async (req, res) => {
 };
 
 exports.createEmployee = async (req, res) => {
-  const pdb = db.promise();
+  let conn;
   try {
     const companyId = req.user.company_id;
     const {
@@ -211,9 +211,10 @@ exports.createEmployee = async (req, res) => {
     const bankAccount = bank_account_no || req.body.account_number || null;
     const bankIfsc = bank_ifsc || req.body.ifsc_code || null;
 
-    await pdb.beginTransaction();
+    conn = await db.promise().getConnection();
+    await conn.beginTransaction();
 
-    const [empRes] = await pdb.query(
+    const [empRes] = await conn.query(
       `INSERT INTO plastic_employees (
         company_id, employee_code, first_name, last_name, full_name,
         mobile, email, department, designation, joining_date,
@@ -250,7 +251,7 @@ exports.createEmployee = async (req, res) => {
 
     // Create salary structure if provided
     if (salary) {
-      await pdb.query(
+      await conn.query(
         `INSERT INTO plastic_employee_salaries (
           company_id, employee_id, salary_type, base_salary, hra,
           conveyance_allowance, medical_allowance, special_allowance,
@@ -278,13 +279,13 @@ exports.createEmployee = async (req, res) => {
 
     // Initialize annual leave balances for current year
     const currentYear = new Date().getFullYear();
-    const [leaveTypes] = await pdb.query(
+    const [leaveTypes] = await conn.query(
       "SELECT id, annual_quota FROM plastic_leave_types WHERE company_id = ? AND status = 'ACTIVE'",
       [companyId]
     );
 
     for (const lt of leaveTypes) {
-      await pdb.query(
+      await conn.query(
         `INSERT IGNORE INTO plastic_leave_balances (
           company_id, employee_id, leave_type_id, year, total_allocated, used, balance
         ) VALUES (?, ?, ?, ?, ?, 0.00, ?)`,
@@ -294,13 +295,13 @@ exports.createEmployee = async (req, res) => {
 
     // Link to Phase 2 operator if specified
     if (operator_id) {
-      await pdb.query(
+      await conn.query(
         "UPDATE plastic_operators SET employee_id = ? WHERE id = ? AND company_id = ?",
         [employeeId, operator_id, companyId]
       );
     }
 
-    await pdb.commit();
+    await conn.commit();
 
     res.status(201).json({
       success: true,
@@ -316,9 +317,17 @@ exports.createEmployee = async (req, res) => {
     });
 
   } catch (error) {
-    await pdb.rollback();
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        console.error("Rollback failed:", rollbackError);
+      }
+    }
     console.error("Create Employee Error:", error);
     res.status(500).json({ success: false, message: error.message || "Failed to create employee" });
+  } finally {
+    if (conn) conn.release();
   }
 };
 
@@ -429,7 +438,7 @@ exports.updateEmployee = async (req, res) => {
 };
 
 exports.updateSalaryStructure = async (req, res) => {
-  const pdb = db.promise();
+  let conn;
   try {
     const companyId = req.user.company_id;
     const { id } = req.params;
@@ -458,7 +467,7 @@ exports.updateSalaryStructure = async (req, res) => {
     const finalEsic = esic_deduction || (esic_applicable ? Number(base_salary) * 0.0075 : 0);
     const finalPt = professional_tax || (pt_applicable ? Number(pt_amount || 200) : 0);
 
-    const [emp] = await pdb.query(
+    const [emp] = await db.promise().query(
       "SELECT id FROM plastic_employees WHERE id = ? AND company_id = ? LIMIT 1",
       [id, companyId]
     );
@@ -467,16 +476,17 @@ exports.updateSalaryStructure = async (req, res) => {
       return res.status(404).json({ success: false, message: "Employee not found" });
     }
 
-    await pdb.beginTransaction();
+    conn = await db.promise().getConnection();
+    await conn.beginTransaction();
 
     // Mark previous active salaries as INACTIVE
-    await pdb.query(
+    await conn.query(
       "UPDATE plastic_employee_salaries SET status = 'INACTIVE' WHERE employee_id = ? AND company_id = ?",
       [id, companyId]
     );
 
     // Insert new active salary structure
-    await pdb.query(
+    await conn.query(
       `INSERT INTO plastic_employee_salaries (
         company_id, employee_id, salary_type, base_salary, hra,
         conveyance_allowance, medical_allowance, special_allowance,
@@ -501,13 +511,21 @@ exports.updateSalaryStructure = async (req, res) => {
       ]
     );
 
-    await pdb.commit();
+    await conn.commit();
 
     res.status(200).json({ success: true, message: "Salary structure updated successfully" });
   } catch (error) {
-    await pdb.rollback();
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        console.error("Rollback failed:", rollbackError);
+      }
+    }
     console.error("Update Salary Structure Error:", error);
     res.status(500).json({ success: false, message: "Failed to update salary structure" });
+  } finally {
+    if (conn) conn.release();
   }
 };
 

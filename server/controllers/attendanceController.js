@@ -122,7 +122,7 @@ exports.markAttendance = async (req, res) => {
 };
 
 exports.markBulkAttendance = async (req, res) => {
-  const pdb = db.promise();
+  let conn;
   try {
     const companyId = req.user.company_id;
     const adminId = req.user.id;
@@ -136,10 +136,11 @@ exports.markBulkAttendance = async (req, res) => {
       });
     }
 
-    await pdb.beginTransaction();
+    conn = await db.promise().getConnection();
+    await conn.beginTransaction();
 
     for (const rec of records) {
-      await pdb.query(
+      await conn.query(
         `INSERT INTO plastic_attendance (
           company_id, employee_id, attendance_date, shift_id, status,
           check_in, check_out, working_hours, overtime_hours, notes, marked_by
@@ -169,16 +170,24 @@ exports.markBulkAttendance = async (req, res) => {
       );
     }
 
-    await pdb.commit();
+    await conn.commit();
 
     res.status(200).json({
       success: true,
       message: `Bulk attendance recorded for ${records.length} employees`,
     });
   } catch (error) {
-    await pdb.rollback();
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        console.error("Rollback failed:", rollbackError);
+      }
+    }
     console.error("Mark Bulk Attendance Error:", error);
     res.status(500).json({ success: false, message: "Failed to record bulk attendance" });
+  } finally {
+    if (conn) conn.release();
   }
 };
 

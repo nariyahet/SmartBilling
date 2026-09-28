@@ -165,7 +165,7 @@ exports.getSalesOrderById = async (req, res) => {
 };
 
 exports.createSalesOrder = async (req, res) => {
-  const conn = db.promise();
+  let conn;
   try {
     const companyId = req.user.company_id;
     const adminId = req.user.id;
@@ -186,7 +186,7 @@ exports.createSalesOrder = async (req, res) => {
     }
 
     // Verify customer belongs to company
-    const [customers] = await conn.query(
+    const [customers] = await db.promise().query(
       `SELECT id, name FROM customers WHERE id = ? AND company_id = ?`,
       [customer_id, companyId]
     );
@@ -215,7 +215,7 @@ exports.createSalesOrder = async (req, res) => {
         });
       }
 
-      const [fgs] = await conn.query(
+      const [fgs] = await db.promise().query(
         `SELECT id, fg_name, fg_code, unit, current_stock FROM plastic_finished_goods WHERE id = ? AND company_id = ?`,
         [fgId, companyId]
       );
@@ -249,75 +249,80 @@ exports.createSalesOrder = async (req, res) => {
     const grandTotal = Math.max(0, subtotal - totalDiscount + totalTax);
     const soNo = await generateNextSalesOrderNo(companyId);
 
+    conn = await db.promise().getConnection();
     await conn.beginTransaction();
 
-    try {
-      const [orderResult] = await conn.query(
-        `INSERT INTO plastic_sales_orders
-          (company_id, sales_order_no, customer_id, order_date, expected_delivery_date, status, subtotal, discount, tax, grand_total, notes, created_by)
-         VALUES (?, ?, ?, ?, ?, 'DRAFT', ?, ?, ?, ?, ?, ?)`,
+    const [orderResult] = await conn.query(
+      `INSERT INTO plastic_sales_orders
+        (company_id, sales_order_no, customer_id, order_date, expected_delivery_date, status, subtotal, discount, tax, grand_total, notes, created_by)
+       VALUES (?, ?, ?, ?, ?, 'DRAFT', ?, ?, ?, ?, ?, ?)`,
+      [
+        companyId,
+        soNo,
+        customer_id,
+        order_date,
+        expected_delivery_date || null,
+        subtotal,
+        totalDiscount,
+        totalTax,
+        grandTotal,
+        notes || null,
+        adminId,
+      ]
+    );
+
+    const soId = orderResult.insertId;
+
+    for (const pItem of preparedItems) {
+      await conn.query(
+        `INSERT INTO plastic_sales_order_items
+          (company_id, sales_order_id, finished_good_id, lot_id, quantity, reserved_quantity, dispatched_quantity, unit, rate, discount, tax, line_total)
+         VALUES (?, ?, ?, ?, ?, 0.00, 0.00, ?, ?, ?, ?, ?)`,
         [
           companyId,
-          soNo,
-          customer_id,
-          order_date,
-          expected_delivery_date || null,
-          subtotal,
-          totalDiscount,
-          totalTax,
-          grandTotal,
-          notes || null,
-          adminId,
+          soId,
+          pItem.finished_good_id,
+          pItem.lot_id,
+          pItem.quantity,
+          pItem.unit,
+          pItem.rate,
+          pItem.discount,
+          pItem.tax,
+          pItem.line_total,
         ]
       );
-
-      const soId = orderResult.insertId;
-
-      for (const pItem of preparedItems) {
-        await conn.query(
-          `INSERT INTO plastic_sales_order_items
-            (company_id, sales_order_id, finished_good_id, lot_id, quantity, reserved_quantity, dispatched_quantity, unit, rate, discount, tax, line_total)
-           VALUES (?, ?, ?, ?, ?, 0.00, 0.00, ?, ?, ?, ?, ?)`,
-          [
-            companyId,
-            soId,
-            pItem.finished_good_id,
-            pItem.lot_id,
-            pItem.quantity,
-            pItem.unit,
-            pItem.rate,
-            pItem.discount,
-            pItem.tax,
-            pItem.line_total,
-          ]
-        );
-      }
-
-      await conn.commit();
-
-      res.status(201).json({
-        success: true,
-        message: "Sales order created successfully",
-        orderId: soId,
-        salesOrderNo: soNo,
-      });
-    } catch (txnErr) {
-      await conn.rollback();
-      throw txnErr;
     }
+
+    await conn.commit();
+
+    return res.status(201).json({
+      success: true,
+      message: "Sales order created successfully",
+      orderId: soId,
+      salesOrderNo: soNo,
+    });
   } catch (error) {
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        console.error("Rollback failed:", rollbackError);
+      }
+    }
     console.error("Create Sales Order Error:", error);
-    res.status(500).json({ success: false, message: "Failed to create sales order" });
+    return res.status(500).json({ success: false, message: "Failed to create sales order" });
+  } finally {
+    if (conn) conn.release();
   }
 };
 
 exports.confirmSalesOrder = async (req, res) => {
-  const conn = db.promise();
+  let conn;
   try {
     const companyId = req.user.company_id;
     const { id } = req.params;
 
-    const [orders] = await conn.query(
+    const [orders] = await db.promise().query(
       `SELECT * FROM plastic_sales_orders WHERE id = ? AND company_id = ?`,
       [id, companyId]
     );
@@ -334,7 +339,7 @@ exports.confirmSalesOrder = async (req, res) => {
       });
     }
 
-    const [items] = await conn.query(
+    const [items] = await db.promise().query(
       `SELECT soi.*, fg.fg_name, fg.current_stock
        FROM plastic_sales_order_items soi
        JOIN plastic_finished_goods fg ON soi.finished_good_id = fg.id AND soi.company_id = fg.company_id
@@ -346,87 +351,92 @@ exports.confirmSalesOrder = async (req, res) => {
       return res.status(400).json({ success: false, message: "Sales order has no items to confirm" });
     }
 
+    conn = await db.promise().getConnection();
     await conn.beginTransaction();
 
-    try {
-      for (const item of items) {
-        const fgId = item.finished_good_id;
-        const requestedQty = Number(item.quantity);
+    for (const item of items) {
+      const fgId = item.finished_good_id;
+      const requestedQty = Number(item.quantity);
 
-        // Lock FG stock and calculate available quantity
-        const [fgRows] = await conn.query(
-          `SELECT id, fg_name, current_stock FROM plastic_finished_goods WHERE id = ? AND company_id = ? FOR UPDATE`,
-          [fgId, companyId]
-        );
-        const currentStock = Number(fgRows[0]?.current_stock) || 0;
+      // Lock FG stock and calculate available quantity
+      const [fgRows] = await conn.query(
+        `SELECT id, fg_name, current_stock FROM plastic_finished_goods WHERE id = ? AND company_id = ? FOR UPDATE`,
+        [fgId, companyId]
+      );
+      const currentStock = Number(fgRows[0]?.current_stock) || 0;
 
-        const [resRows] = await conn.query(
-          `SELECT COALESCE(SUM(reserved_quantity), 0) AS total_reserved
-           FROM plastic_fg_reservations
-           WHERE company_id = ? AND finished_good_id = ? AND status = 'ACTIVE'
-           FOR UPDATE`,
-          [companyId, fgId]
-        );
-        const alreadyReserved = Number(resRows[0]?.total_reserved) || 0;
-        const availableToReserve = currentStock - alreadyReserved;
+      const [resRows] = await conn.query(
+        `SELECT COALESCE(SUM(reserved_quantity), 0) AS total_reserved
+         FROM plastic_fg_reservations
+         WHERE company_id = ? AND finished_good_id = ? AND status = 'ACTIVE'
+         FOR UPDATE`,
+        [companyId, fgId]
+      );
+      const alreadyReserved = Number(resRows[0]?.total_reserved) || 0;
+      const availableToReserve = currentStock - alreadyReserved;
 
-        if (requestedQty > availableToReserve) {
-          await conn.rollback();
-          return res.status(400).json({
-            success: false,
-            message: `Insufficient available stock to reserve for '${item.fg_name}'. Current stock: ${currentStock} ${item.unit}, Reserved: ${alreadyReserved} ${item.unit}, Available: ${availableToReserve} ${item.unit}, Requested: ${requestedQty} ${item.unit}.`,
-          });
-        }
-
-        // Create reservation record
-        await conn.query(
-          `INSERT INTO plastic_fg_reservations
-            (company_id, sales_order_id, sales_order_item_id, finished_good_id, lot_id, reserved_quantity, status)
-           VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE')`,
-          [companyId, id, item.id, fgId, item.lot_id, requestedQty]
-        );
-
-        // Update sales order item reserved_quantity
-        await conn.query(
-          `UPDATE plastic_sales_order_items
-           SET reserved_quantity = ?
-           WHERE id = ? AND company_id = ?`,
-          [requestedQty, item.id, companyId]
-        );
+      if (requestedQty > availableToReserve) {
+        await conn.rollback();
+        return res.status(400).json({
+          success: false,
+          message: `Insufficient available stock to reserve for '${item.fg_name}'. Current stock: ${currentStock} ${item.unit}, Reserved: ${alreadyReserved} ${item.unit}, Available: ${availableToReserve} ${item.unit}, Requested: ${requestedQty} ${item.unit}.`,
+        });
       }
 
+      // Create reservation record
       await conn.query(
-        `UPDATE plastic_sales_orders
-         SET status = 'RESERVED', updated_at = CURRENT_TIMESTAMP
-         WHERE id = ? AND company_id = ?`,
-        [id, companyId]
+        `INSERT INTO plastic_fg_reservations
+          (company_id, sales_order_id, sales_order_item_id, finished_good_id, lot_id, reserved_quantity, status)
+         VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE')`,
+        [companyId, id, item.id, fgId, item.lot_id, requestedQty]
       );
 
-      await conn.commit();
-
-      res.status(200).json({
-        success: true,
-        message: "Sales order confirmed and finished goods stock reserved successfully",
-        orderId: id,
-        status: "RESERVED",
-      });
-    } catch (txnErr) {
-      await conn.rollback();
-      throw txnErr;
+      // Update sales order item reserved_quantity
+      await conn.query(
+        `UPDATE plastic_sales_order_items
+         SET reserved_quantity = ?
+         WHERE id = ? AND company_id = ?`,
+        [requestedQty, item.id, companyId]
+      );
     }
+
+    await conn.query(
+      `UPDATE plastic_sales_orders
+       SET status = 'RESERVED', updated_at = CURRENT_TIMESTAMP
+       WHERE id = ? AND company_id = ?`,
+      [id, companyId]
+    );
+
+    await conn.commit();
+
+    return res.status(200).json({
+      success: true,
+      message: "Sales order confirmed and finished goods stock reserved successfully",
+      orderId: id,
+      status: "RESERVED",
+    });
   } catch (error) {
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        console.error("Rollback failed:", rollbackError);
+      }
+    }
     console.error("Confirm Sales Order Error:", error);
-    res.status(500).json({ success: false, message: "Failed to confirm sales order" });
+    return res.status(500).json({ success: false, message: "Failed to confirm sales order" });
+  } finally {
+    if (conn) conn.release();
   }
 };
 
 exports.cancelSalesOrder = async (req, res) => {
-  const conn = db.promise();
+  let conn;
   try {
     const companyId = req.user.company_id;
     const { id } = req.params;
 
-    const [orders] = await conn.query(
+    const [orders] = await db.promise().query(
       `SELECT * FROM plastic_sales_orders WHERE id = ? AND company_id = ?`,
       [id, companyId]
     );
@@ -443,48 +453,53 @@ exports.cancelSalesOrder = async (req, res) => {
       });
     }
 
+    conn = await db.promise().getConnection();
     await conn.beginTransaction();
 
-    try {
-      // 1. Release all active reservations
-      await conn.query(
-        `UPDATE plastic_fg_reservations
-         SET status = 'RELEASED', released_at = CURRENT_TIMESTAMP
-         WHERE sales_order_id = ? AND company_id = ? AND status = 'ACTIVE'`,
-        [id, companyId]
-      );
+    // 1. Release all active reservations
+    await conn.query(
+      `UPDATE plastic_fg_reservations
+       SET status = 'RELEASED', released_at = CURRENT_TIMESTAMP
+       WHERE sales_order_id = ? AND company_id = ? AND status = 'ACTIVE'`,
+      [id, companyId]
+    );
 
-      // 2. Reset reserved_quantity on items
-      await conn.query(
-        `UPDATE plastic_sales_order_items
-         SET reserved_quantity = 0.00
-         WHERE sales_order_id = ? AND company_id = ?`,
-        [id, companyId]
-      );
+    // 2. Reset reserved_quantity on items
+    await conn.query(
+      `UPDATE plastic_sales_order_items
+       SET reserved_quantity = 0.00
+       WHERE sales_order_id = ? AND company_id = ?`,
+      [id, companyId]
+    );
 
-      // 3. Mark sales order as CANCELLED
-      await conn.query(
-        `UPDATE plastic_sales_orders
-         SET status = 'CANCELLED', updated_at = CURRENT_TIMESTAMP
-         WHERE id = ? AND company_id = ?`,
-        [id, companyId]
-      );
+    // 3. Mark sales order as CANCELLED
+    await conn.query(
+      `UPDATE plastic_sales_orders
+       SET status = 'CANCELLED', updated_at = CURRENT_TIMESTAMP
+       WHERE id = ? AND company_id = ?`,
+      [id, companyId]
+    );
 
-      await conn.commit();
+    await conn.commit();
 
-      res.status(200).json({
-        success: true,
-        message: "Sales order cancelled and reserved stock released successfully",
-        orderId: id,
-        status: "CANCELLED",
-      });
-    } catch (txnErr) {
-      await conn.rollback();
-      throw txnErr;
-    }
+    return res.status(200).json({
+      success: true,
+      message: "Sales order cancelled and reserved stock released successfully",
+      orderId: id,
+      status: "CANCELLED",
+    });
   } catch (error) {
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        console.error("Rollback failed:", rollbackError);
+      }
+    }
     console.error("Cancel Sales Order Error:", error);
-    res.status(500).json({ success: false, message: "Failed to cancel sales order" });
+    return res.status(500).json({ success: false, message: "Failed to cancel sales order" });
+  } finally {
+    if (conn) conn.release();
   }
 };
 

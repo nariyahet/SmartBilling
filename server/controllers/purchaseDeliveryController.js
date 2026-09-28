@@ -146,7 +146,7 @@ exports.getPendingItems = async (req, res) => {
 };
 
 exports.recordDelivery = async (req, res) => {
-  const conn = await db.promise().getConnection();
+  let conn;
   try {
     const companyId = req.user.company_id;
     const adminId = req.user.id;
@@ -178,6 +178,7 @@ exports.recordDelivery = async (req, res) => {
       return res.status(400).json({ success: false, message: "Accepted quantity must be greater than zero" });
     }
 
+    conn = await db.promise().getConnection();
     await conn.beginTransaction();
 
     // 1. Idempotency Check: Prevent duplicate processing if delivery ID or delivery number already exists
@@ -193,7 +194,7 @@ exports.recordDelivery = async (req, res) => {
           [companyId, checkDeliveryId]
         );
         if (existingMvmt.length > 0) {
-          await conn.query("ROLLBACK");
+          await conn.rollback();
           return res.status(409).json({
             success: false,
             message: `Delivery #${existingDel[0].delivery_no} has already been processed and stocked. Duplicate confirmation rejected.`,
@@ -212,7 +213,7 @@ exports.recordDelivery = async (req, res) => {
         [delivery_no, companyId]
       );
       if (existingDelNo.length > 0) {
-        await conn.query("ROLLBACK");
+        await conn.rollback();
         return res.status(409).json({
           success: false,
           message: `Delivery number ${delivery_no} already exists. Duplicate delivery rejected.`,
@@ -231,7 +232,7 @@ exports.recordDelivery = async (req, res) => {
     );
 
     if (pos.length === 0) {
-      await conn.query("ROLLBACK");
+      await conn.rollback();
       return res.status(404).json({ success: false, message: "Purchase order not found" });
     }
     const po = pos[0];
@@ -247,7 +248,7 @@ exports.recordDelivery = async (req, res) => {
 
     const [poItems] = await conn.query(itemQuery, itemParams);
     if (poItems.length === 0) {
-      await conn.query("ROLLBACK");
+      await conn.rollback();
       return res.status(404).json({ success: false, message: "No active PO item found for delivery" });
     }
 
@@ -456,14 +457,16 @@ exports.recordDelivery = async (req, res) => {
       },
     });
   } catch (error) {
-    try {
-      await conn.rollback();
-    } catch (rbErr) {
-      console.error("Rollback Error:", rbErr);
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rbErr) {
+        console.error("Rollback Error:", rbErr);
+      }
     }
     console.error("Record Delivery Error:", error);
     res.status(500).json({ success: false, message: error.message || "Failed to record delivery" });
   } finally {
-    conn.release();
+    if (conn) conn.release();
   }
 };

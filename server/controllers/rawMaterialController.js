@@ -140,7 +140,7 @@ exports.getRawMaterialById = async (req, res) => {
 };
 
 exports.createRawMaterial = async (req, res) => {
-  const conn = db.promise();
+  let conn;
   try {
     const companyId = req.user.company_id;
     const adminId = req.user.id || null;
@@ -203,7 +203,7 @@ exports.createRawMaterial = async (req, res) => {
     if (!materialCode) {
       materialCode = await generateNextMaterialCode(companyId);
     } else {
-      const [existing] = await conn.query(
+      const [existing] = await db.promise().query(
         `SELECT id FROM raw_materials WHERE company_id = ? AND material_code = ? LIMIT 1`,
         [companyId, materialCode]
       );
@@ -217,141 +217,146 @@ exports.createRawMaterial = async (req, res) => {
 
     const validatedStatus = status && status.toUpperCase() === "INACTIVE" ? "INACTIVE" : "ACTIVE";
 
+    conn = await db.promise().getConnection();
     await conn.beginTransaction();
 
-    try {
-      const [result] = await conn.query(
-        `INSERT INTO raw_materials
+    const [result] = await conn.query(
+      `INSERT INTO raw_materials
+        (
+          company_id,
+          material_code,
+          material_name,
+          category,
+          plastic_type,
+          grade,
+          color,
+          unit,
+          opening_stock,
+          opening_stock_rate,
+          opening_stock_date,
+          minimum_stock,
+          maximum_stock,
+          default_purchase_rate,
+          default_selling_rate,
+          description,
+          status
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        companyId,
+        materialCode,
+        material_name.trim(),
+        category ? category.trim() : null,
+        normalizedType,
+        grade ? grade.trim() : null,
+        color ? color.trim() : null,
+        normalizedUnit,
+        openingStockQty,
+        openingStockRate,
+        openingStockQty > 0 || opening_stock_date ? openingStockDateVal : null,
+        Number(minimum_stock) || 0,
+        Number(maximum_stock) || 0,
+        Number(default_purchase_rate) || 0,
+        Number(default_selling_rate) || 0,
+        description ? description.trim() : null,
+        validatedStatus,
+      ]
+    );
+
+    const materialId = result.insertId;
+    const initialStockValue = openingStockQty * openingStockRate;
+
+    // Initialize raw_material_stock record
+    await conn.query(
+      `INSERT INTO raw_material_stock (company_id, raw_material_id, quantity, average_rate, stock_value)
+       VALUES (?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         quantity = VALUES(quantity),
+         average_rate = VALUES(average_rate),
+         stock_value = VALUES(stock_value),
+         updated_at = CURRENT_TIMESTAMP`,
+      [companyId, materialId, openingStockQty, openingStockRate, initialStockValue]
+    );
+
+    // If opening stock > 0, post opening movement record
+    if (openingStockQty > 0) {
+      await conn.query(
+        `INSERT INTO raw_material_stock_movements
           (
             company_id,
-            material_code,
-            material_name,
-            category,
-            plastic_type,
-            grade,
-            color,
-            unit,
-            opening_stock,
-            opening_stock_rate,
-            opening_stock_date,
-            minimum_stock,
-            maximum_stock,
-            default_purchase_rate,
-            default_selling_rate,
-            description,
-            status
+            raw_material_id,
+            movement_type,
+            reference_type,
+            reference_id,
+            quantity,
+            rate,
+            total_value,
+            balance_quantity,
+            movement_date,
+            remarks,
+            created_by
           )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          VALUES (?, ?, 'OPENING_STOCK', 'OPENING_STOCK', ?, ?, ?, ?, ?, ?, 'Initial opening stock balance', ?)`,
         [
           companyId,
-          materialCode,
-          material_name.trim(),
-          category ? category.trim() : null,
-          normalizedType,
-          grade ? grade.trim() : null,
-          color ? color.trim() : null,
-          normalizedUnit,
+          materialId,
+          materialId,
           openingStockQty,
           openingStockRate,
-          openingStockQty > 0 || opening_stock_date ? openingStockDateVal : null,
-          Number(minimum_stock) || 0,
-          Number(maximum_stock) || 0,
-          Number(default_purchase_rate) || 0,
-          Number(default_selling_rate) || 0,
-          description ? description.trim() : null,
-          validatedStatus,
+          initialStockValue,
+          openingStockQty,
+          openingStockDateVal,
+          adminId,
         ]
       );
-
-      const materialId = result.insertId;
-      const initialStockValue = openingStockQty * openingStockRate;
-
-      // Initialize raw_material_stock record
-      await conn.query(
-        `INSERT INTO raw_material_stock (company_id, raw_material_id, quantity, average_rate, stock_value)
-         VALUES (?, ?, ?, ?, ?)
-         ON DUPLICATE KEY UPDATE
-           quantity = VALUES(quantity),
-           average_rate = VALUES(average_rate),
-           stock_value = VALUES(stock_value),
-           updated_at = CURRENT_TIMESTAMP`,
-        [companyId, materialId, openingStockQty, openingStockRate, initialStockValue]
-      );
-
-      // If opening stock > 0, post opening movement record
-      if (openingStockQty > 0) {
-        await conn.query(
-          `INSERT INTO raw_material_stock_movements
-            (
-              company_id,
-              raw_material_id,
-              movement_type,
-              reference_type,
-              reference_id,
-              quantity,
-              rate,
-              total_value,
-              balance_quantity,
-              movement_date,
-              remarks,
-              created_by
-            )
-            VALUES (?, ?, 'OPENING_STOCK', 'OPENING_STOCK', ?, ?, ?, ?, ?, ?, 'Initial opening stock balance', ?)`,
-          [
-            companyId,
-            materialId,
-            materialId,
-            openingStockQty,
-            openingStockRate,
-            initialStockValue,
-            openingStockQty,
-            openingStockDateVal,
-            adminId,
-          ]
-        );
-      }
-
-      await conn.commit();
-
-      res.status(201).json({
-        success: true,
-        message: "Raw material created successfully",
-        raw_material: {
-          id: materialId,
-          company_id: companyId,
-          material_code: materialCode,
-          material_name: material_name.trim(),
-          plastic_type: normalizedType,
-          unit: normalizedUnit,
-          opening_stock: openingStockQty,
-          opening_stock_rate: openingStockRate,
-          opening_stock_date: openingStockDateVal,
-          current_stock: openingStockQty,
-          stock_value: initialStockValue,
-          status: validatedStatus,
-        },
-      });
-    } catch (txErr) {
-      await conn.rollback();
-      throw txErr;
     }
+
+    await conn.commit();
+
+    return res.status(201).json({
+      success: true,
+      message: "Raw material created successfully",
+      raw_material: {
+        id: materialId,
+        company_id: companyId,
+        material_code: materialCode,
+        material_name: material_name.trim(),
+        plastic_type: normalizedType,
+        unit: normalizedUnit,
+        opening_stock: openingStockQty,
+        opening_stock_rate: openingStockRate,
+        opening_stock_date: openingStockDateVal,
+        current_stock: openingStockQty,
+        stock_value: initialStockValue,
+        status: validatedStatus,
+      },
+    });
   } catch (error) {
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        console.error("Rollback failed:", rollbackError);
+      }
+    }
     console.error("Create Raw Material Error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to create raw material",
     });
+  } finally {
+    if (conn) conn.release();
   }
 };
 
 exports.updateRawMaterial = async (req, res) => {
-  const conn = db.promise();
+  let conn;
   try {
     const { id } = req.params;
     const companyId = req.user.company_id;
     const adminId = req.user.id || null;
 
-    const [existing] = await conn.query(
+    const [existing] = await db.promise().query(
       `SELECT * FROM raw_materials WHERE id = ? AND company_id = ?`,
       [id, companyId]
     );
@@ -408,162 +413,167 @@ exports.updateRawMaterial = async (req, res) => {
       ? (opening_stock_date ? String(opening_stock_date).slice(0, 10) : null)
       : (current.opening_stock_date ? new Date(current.opening_stock_date).toISOString().slice(0, 10) : null);
 
+    conn = await db.promise().getConnection();
     await conn.beginTransaction();
 
-    try {
-      // Check if opening stock quantity actually changed
-      const openingStockChanged = Math.abs(newOpening - oldOpening) > 0.0001;
+    // Check if opening stock quantity actually changed
+    const openingStockChanged = Math.abs(newOpening - oldOpening) > 0.0001;
 
-      if (openingStockChanged) {
-        const delta = newOpening - oldOpening;
+    if (openingStockChanged) {
+      const delta = newOpening - oldOpening;
 
-        // Fetch current stock row FOR UPDATE to lock
-        const [stockRows] = await conn.query(
-          `SELECT id, quantity, average_rate, stock_value 
-           FROM raw_material_stock 
-           WHERE company_id = ? AND raw_material_id = ? 
-           FOR UPDATE`,
-          [companyId, id]
-        );
-
-        let currentStockQty = 0;
-        let currentStockVal = 0;
-        if (stockRows.length > 0) {
-          currentStockQty = Number(stockRows[0].quantity) || 0;
-          currentStockVal = Number(stockRows[0].stock_value) || 0;
-        }
-
-        const newStockQty = currentStockQty + delta;
-        if (newStockQty < 0) {
-          await conn.rollback();
-          return res.status(400).json({
-            success: false,
-            message: `Adjusting opening stock by ${delta > 0 ? "+" : ""}${delta} would cause current stock to drop below zero (Current: ${currentStockQty}).`,
-          });
-        }
-
-        let newStockVal = currentStockVal + (delta * newOpeningRate);
-        if (newStockVal < 0) newStockVal = 0;
-        const newAvgRate = newStockQty > 0 ? newStockVal / newStockQty : (newOpeningRate || 0);
-
-        // Update raw_material_stock
-        await conn.query(
-          `INSERT INTO raw_material_stock
-            (company_id, raw_material_id, quantity, average_rate, stock_value)
-           VALUES (?, ?, ?, ?, ?)
-           ON DUPLICATE KEY UPDATE
-             quantity = VALUES(quantity),
-             average_rate = VALUES(average_rate),
-             stock_value = VALUES(stock_value),
-             updated_at = CURRENT_TIMESTAMP`,
-          [companyId, id, newStockQty, newAvgRate, newStockVal]
-        );
-
-        // Check if there was any prior opening stock movement
-        const [priorMovements] = await conn.query(
-          `SELECT id FROM raw_material_stock_movements 
-           WHERE company_id = ? AND raw_material_id = ? AND movement_type = 'OPENING_STOCK' LIMIT 1`,
-          [companyId, id]
-        );
-
-        const movementType = (priorMovements.length === 0 && oldOpening === 0) ? "OPENING_STOCK" : "ADJUSTMENT";
-        const referenceType = (priorMovements.length === 0 && oldOpening === 0) ? "OPENING_STOCK" : "OPENING_STOCK_ADJUSTMENT";
-        const movementRemarks = (priorMovements.length === 0 && oldOpening === 0)
-          ? "Initial opening stock balance"
-          : `Opening stock adjusted from ${oldOpening} to ${newOpening}`;
-
-        // Record stock movement (audit trail)
-        await conn.query(
-          `INSERT INTO raw_material_stock_movements
-            (
-              company_id,
-              raw_material_id,
-              movement_type,
-              reference_type,
-              reference_id,
-              quantity,
-              rate,
-              total_value,
-              balance_quantity,
-              movement_date,
-              remarks,
-              created_by
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [
-            companyId,
-            id,
-            movementType,
-            referenceType,
-            id,
-            delta,
-            newOpeningRate,
-            delta * newOpeningRate,
-            newStockQty,
-            newOpeningDate || new Date().toISOString().slice(0, 10),
-            movementRemarks,
-            adminId,
-          ]
-        );
-      }
-
-      // Update raw_materials master fields
-      await conn.query(
-        `UPDATE raw_materials
-         SET
-           material_name = ?,
-           category = ?,
-           plastic_type = ?,
-           grade = ?,
-           color = ?,
-           unit = ?,
-           opening_stock = ?,
-           opening_stock_rate = ?,
-           opening_stock_date = ?,
-           minimum_stock = ?,
-           maximum_stock = ?,
-           default_purchase_rate = ?,
-           default_selling_rate = ?,
-           description = ?,
-           status = ?
-         WHERE id = ? AND company_id = ?`,
-        [
-          material_name !== undefined ? material_name.trim() : current.material_name,
-          category !== undefined ? (category ? category.trim() : null) : current.category,
-          updatedType,
-          grade !== undefined ? (grade ? grade.trim() : null) : current.grade,
-          color !== undefined ? (color ? color.trim() : null) : current.color,
-          updatedUnit,
-          newOpening,
-          newOpeningRate,
-          newOpeningDate,
-          minimum_stock !== undefined ? Number(minimum_stock) || 0 : current.minimum_stock,
-          maximum_stock !== undefined ? Number(maximum_stock) || 0 : current.maximum_stock,
-          default_purchase_rate !== undefined ? Number(default_purchase_rate) || 0 : current.default_purchase_rate,
-          default_selling_rate !== undefined ? Number(default_selling_rate) || 0 : current.default_selling_rate,
-          description !== undefined ? (description ? description.trim() : null) : current.description,
-          updatedStatus,
-          id,
-          companyId,
-        ]
+      // Fetch current stock row FOR UPDATE to lock
+      const [stockRows] = await conn.query(
+        `SELECT id, quantity, average_rate, stock_value
+         FROM raw_material_stock
+         WHERE company_id = ? AND raw_material_id = ?
+         FOR UPDATE`,
+        [companyId, id]
       );
 
-      await conn.commit();
+      let currentStockQty = 0;
+      let currentStockVal = 0;
+      if (stockRows.length > 0) {
+        currentStockQty = Number(stockRows[0].quantity) || 0;
+        currentStockVal = Number(stockRows[0].stock_value) || 0;
+      }
 
-      res.status(200).json({
-        success: true,
-        message: "Raw material updated successfully",
-      });
-    } catch (txErr) {
-      await conn.rollback();
-      throw txErr;
+      const newStockQty = currentStockQty + delta;
+      if (newStockQty < 0) {
+        await conn.rollback();
+        return res.status(400).json({
+          success: false,
+          message: `Adjusting opening stock by ${delta > 0 ? "+" : ""}${delta} would cause current stock to drop below zero (Current: ${currentStockQty}).`,
+        });
+      }
+
+      let newStockVal = currentStockVal + (delta * newOpeningRate);
+      if (newStockVal < 0) newStockVal = 0;
+      const newAvgRate = newStockQty > 0 ? newStockVal / newStockQty : (newOpeningRate || 0);
+
+      // Update raw_material_stock
+      await conn.query(
+        `INSERT INTO raw_material_stock
+          (company_id, raw_material_id, quantity, average_rate, stock_value)
+         VALUES (?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE
+           quantity = VALUES(quantity),
+           average_rate = VALUES(average_rate),
+           stock_value = VALUES(stock_value),
+           updated_at = CURRENT_TIMESTAMP`,
+        [companyId, id, newStockQty, newAvgRate, newStockVal]
+      );
+
+      // Check if there was any prior opening stock movement
+      const [priorMovements] = await conn.query(
+        `SELECT id FROM raw_material_stock_movements
+         WHERE company_id = ? AND raw_material_id = ? AND movement_type = 'OPENING_STOCK' LIMIT 1`,
+        [companyId, id]
+      );
+
+      const movementType = (priorMovements.length === 0 && oldOpening === 0) ? "OPENING_STOCK" : "ADJUSTMENT";
+      const referenceType = (priorMovements.length === 0 && oldOpening === 0) ? "OPENING_STOCK" : "OPENING_STOCK_ADJUSTMENT";
+      const movementRemarks = (priorMovements.length === 0 && oldOpening === 0)
+        ? "Initial opening stock balance"
+        : `Opening stock adjusted from ${oldOpening} to ${newOpening}`;
+
+      // Record stock movement (audit trail)
+      await conn.query(
+        `INSERT INTO raw_material_stock_movements
+          (
+            company_id,
+            raw_material_id,
+            movement_type,
+            reference_type,
+            reference_id,
+            quantity,
+            rate,
+            total_value,
+            balance_quantity,
+            movement_date,
+            remarks,
+            created_by
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          companyId,
+          id,
+          movementType,
+          referenceType,
+          id,
+          delta,
+          newOpeningRate,
+          delta * newOpeningRate,
+          newStockQty,
+          newOpeningDate || new Date().toISOString().slice(0, 10),
+          movementRemarks,
+          adminId,
+        ]
+      );
     }
+
+    // Update raw_materials master fields
+    await conn.query(
+      `UPDATE raw_materials
+       SET
+         material_name = ?,
+         category = ?,
+         plastic_type = ?,
+         grade = ?,
+         color = ?,
+         unit = ?,
+         opening_stock = ?,
+         opening_stock_rate = ?,
+         opening_stock_date = ?,
+         minimum_stock = ?,
+         maximum_stock = ?,
+         default_purchase_rate = ?,
+         default_selling_rate = ?,
+         description = ?,
+         status = ?
+       WHERE id = ? AND company_id = ?`,
+      [
+        material_name !== undefined ? material_name.trim() : current.material_name,
+        category !== undefined ? (category ? category.trim() : null) : current.category,
+        updatedType,
+        grade !== undefined ? (grade ? grade.trim() : null) : current.grade,
+        color !== undefined ? (color ? color.trim() : null) : current.color,
+        updatedUnit,
+        newOpening,
+        newOpeningRate,
+        newOpeningDate,
+        minimum_stock !== undefined ? Number(minimum_stock) || 0 : current.minimum_stock,
+        maximum_stock !== undefined ? Number(maximum_stock) || 0 : current.maximum_stock,
+        default_purchase_rate !== undefined ? Number(default_purchase_rate) || 0 : current.default_purchase_rate,
+        default_selling_rate !== undefined ? Number(default_selling_rate) || 0 : current.default_selling_rate,
+        description !== undefined ? (description ? description.trim() : null) : current.description,
+        updatedStatus,
+        id,
+        companyId,
+      ]
+    );
+
+    await conn.commit();
+
+    return res.status(200).json({
+      success: true,
+      message: "Raw material updated successfully",
+    });
   } catch (error) {
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        console.error("Rollback failed:", rollbackError);
+      }
+    }
     console.error("Update Raw Material Error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to update raw material",
     });
+  } finally {
+    if (conn) conn.release();
   }
 };
 

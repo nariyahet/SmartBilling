@@ -137,7 +137,7 @@ exports.getRequisitionById = async (req, res) => {
 };
 
 exports.createRequisition = async (req, res) => {
-  const conn = db.promise();
+  let conn;
   try {
     const companyId = req.user.company_id;
     const adminId = req.user.id;
@@ -159,7 +159,8 @@ exports.createRequisition = async (req, res) => {
       });
     }
 
-    await conn.query("START TRANSACTION");
+    conn = await db.promise().getConnection();
+    await conn.beginTransaction();
 
     const prNo = await generateNextPRNo(conn, companyId);
     const initialStatus = status === "PENDING_APPROVAL" ? "PENDING_APPROVAL" : "DRAFT";
@@ -211,22 +212,30 @@ exports.createRequisition = async (req, res) => {
       );
     }
 
-    await conn.query("COMMIT");
+    await conn.commit();
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "Purchase requisition created successfully",
       data: { id: requisitionId, pr_no: prNo, status: initialStatus },
     });
   } catch (error) {
-    await conn.query("ROLLBACK");
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        console.error("Rollback failed:", rollbackError);
+      }
+    }
     console.error("Create Requisition Error:", error);
-    res.status(500).json({ success: false, message: error.message || "Failed to create requisition" });
+    return res.status(500).json({ success: false, message: error.message || "Failed to create requisition" });
+  } finally {
+    if (conn) conn.release();
   }
 };
 
 exports.updateRequisition = async (req, res) => {
-  const conn = db.promise();
+  let conn;
   try {
     const companyId = req.user.company_id;
     const { id } = req.params;
@@ -241,7 +250,7 @@ exports.updateRequisition = async (req, res) => {
       items,
     } = req.body;
 
-    const [existing] = await conn.query(
+    const [existing] = await db.promise().query(
       "SELECT status FROM plastic_purchase_requisitions WHERE id = ? AND company_id = ?",
       [id, companyId]
     );
@@ -257,7 +266,8 @@ exports.updateRequisition = async (req, res) => {
       });
     }
 
-    await conn.query("START TRANSACTION");
+    conn = await db.promise().getConnection();
+    await conn.beginTransaction();
 
     await conn.query(
       `UPDATE plastic_purchase_requisitions SET
@@ -310,12 +320,20 @@ exports.updateRequisition = async (req, res) => {
       }
     }
 
-    await conn.query("COMMIT");
-    res.status(200).json({ success: true, message: "Purchase requisition updated successfully" });
+    await conn.commit();
+    return res.status(200).json({ success: true, message: "Purchase requisition updated successfully" });
   } catch (error) {
-    await conn.query("ROLLBACK");
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        console.error("Rollback failed:", rollbackError);
+      }
+    }
     console.error("Update Requisition Error:", error);
-    res.status(500).json({ success: false, message: error.message || "Failed to update requisition" });
+    return res.status(500).json({ success: false, message: error.message || "Failed to update requisition" });
+  } finally {
+    if (conn) conn.release();
   }
 };
 
@@ -366,7 +384,7 @@ exports.updateRequisitionStatus = async (req, res) => {
 };
 
 exports.convertToPO = async (req, res) => {
-  const conn = db.promise();
+  let conn;
   try {
     const companyId = req.user.company_id;
     const adminId = req.user.id;
@@ -377,7 +395,8 @@ exports.convertToPO = async (req, res) => {
       return res.status(400).json({ success: false, message: "Supplier is required to convert PR to PO" });
     }
 
-    await conn.query("START TRANSACTION");
+    conn = await db.promise().getConnection();
+    await conn.beginTransaction();
 
     const [prs] = await conn.query(
       "SELECT * FROM plastic_purchase_requisitions WHERE id = ? AND company_id = ? FOR UPDATE",
@@ -385,13 +404,13 @@ exports.convertToPO = async (req, res) => {
     );
 
     if (prs.length === 0) {
-      await conn.query("ROLLBACK");
+      await conn.rollback();
       return res.status(404).json({ success: false, message: "Purchase requisition not found" });
     }
 
     const pr = prs[0];
     if (pr.status !== "APPROVED") {
-      await conn.query("ROLLBACK");
+      await conn.rollback();
       return res.status(400).json({
         success: false,
         message: `Only APPROVED requisitions can be converted to PO (current: ${pr.status})`,
@@ -407,7 +426,7 @@ exports.convertToPO = async (req, res) => {
     );
 
     if (items.length === 0) {
-      await conn.query("ROLLBACK");
+      await conn.rollback();
       return res.status(400).json({ success: false, message: "Requisition has no items to convert" });
     }
 
@@ -487,16 +506,24 @@ exports.convertToPO = async (req, res) => {
       [id, companyId]
     );
 
-    await conn.query("COMMIT");
+    await conn.commit();
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: `Requisition ${pr.pr_no} converted to Purchase Order ${poNo}`,
       data: { purchaseOrderId: poId, po_no: poNo },
     });
   } catch (error) {
-    await conn.query("ROLLBACK");
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        console.error("Rollback failed:", rollbackError);
+      }
+    }
     console.error("Convert PR to PO Error:", error);
-    res.status(500).json({ success: false, message: error.message || "Failed to convert PR to PO" });
+    return res.status(500).json({ success: false, message: error.message || "Failed to convert PR to PO" });
+  } finally {
+    if (conn) conn.release();
   }
 };

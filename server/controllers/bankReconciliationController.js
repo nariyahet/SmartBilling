@@ -93,7 +93,7 @@ exports.createStatementLine = async (req, res) => {
 };
 
 exports.matchTransaction = async (req, res) => {
-  const conn = db.promise();
+  let conn = null;
   try {
     const companyId = req.user.company_id;
     const { id } = req.params;
@@ -103,104 +103,117 @@ exports.matchTransaction = async (req, res) => {
       return res.status(400).json({ success: false, message: "Transaction ID is required to match" });
     }
 
+    conn = await db.promise().getConnection();
     await conn.beginTransaction();
 
-    try {
-      const [reconRows] = await conn.query(
-        `SELECT * FROM plastic_bank_reconciliations WHERE id = ? AND company_id = ? LIMIT 1`,
-        [id, companyId]
-      );
-      if (reconRows.length === 0) {
-        return res.status(404).json({ success: false, message: "Reconciliation statement entry not found" });
-      }
-      const recon = reconRows[0];
-
-      const [txRows] = await conn.query(
-        `SELECT * FROM plastic_bank_transactions WHERE id = ? AND company_id = ? LIMIT 1`,
-        [transaction_id, companyId]
-      );
-      if (txRows.length === 0) {
-        return res.status(404).json({ success: false, message: "Bank transaction not found" });
-      }
-      const tx = txRows[0];
-
-      const stmtAmount = Number(recon.deposit_amount) > 0 ? Number(recon.deposit_amount) : Number(recon.withdrawal_amount);
-      const txAmount = Number(tx.amount);
-      const diff = Math.abs(stmtAmount - txAmount);
-
-      await conn.query(
-        `UPDATE plastic_bank_reconciliations
-         SET matched_transaction_id = ?, status = 'RECONCILED', difference_amount = ?, reconciled_at = NOW()
-         WHERE id = ? AND company_id = ?`,
-        [tx.id, diff, id, companyId]
-      );
-
-      await conn.query(
-        `UPDATE plastic_bank_transactions
-         SET is_reconciled = 1, reconciled_at = NOW()
-         WHERE id = ? AND company_id = ?`,
-        [tx.id, companyId]
-      );
-
-      await conn.commit();
-
-      res.status(200).json({
-        success: true,
-        message: "Transaction reconciled successfully",
-        differenceAmount: diff,
-      });
-    } catch (txnErr) {
+    const [reconRows] = await conn.query(
+      `SELECT * FROM plastic_bank_reconciliations WHERE id = ? AND company_id = ? LIMIT 1`,
+      [id, companyId]
+    );
+    if (reconRows.length === 0) {
       await conn.rollback();
-      throw txnErr;
+      return res.status(404).json({ success: false, message: "Reconciliation statement entry not found" });
     }
+    const recon = reconRows[0];
+
+    const [txRows] = await conn.query(
+      `SELECT * FROM plastic_bank_transactions WHERE id = ? AND company_id = ? LIMIT 1`,
+      [transaction_id, companyId]
+    );
+    if (txRows.length === 0) {
+      await conn.rollback();
+      return res.status(404).json({ success: false, message: "Bank transaction not found" });
+    }
+    const tx = txRows[0];
+
+    const stmtAmount = Number(recon.deposit_amount) > 0 ? Number(recon.deposit_amount) : Number(recon.withdrawal_amount);
+    const txAmount = Number(tx.amount);
+    const diff = Math.abs(stmtAmount - txAmount);
+
+    await conn.query(
+      `UPDATE plastic_bank_reconciliations
+       SET matched_transaction_id = ?, status = 'RECONCILED', difference_amount = ?, reconciled_at = NOW()
+       WHERE id = ? AND company_id = ?`,
+      [tx.id, diff, id, companyId]
+    );
+
+    await conn.query(
+      `UPDATE plastic_bank_transactions
+       SET is_reconciled = 1, reconciled_at = NOW()
+       WHERE id = ? AND company_id = ?`,
+      [tx.id, companyId]
+    );
+
+    await conn.commit();
+
+    return res.status(200).json({
+      success: true,
+      message: "Transaction reconciled successfully",
+      differenceAmount: diff,
+    });
   } catch (error) {
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        console.error("Rollback failed:", rollbackError);
+      }
+    }
     console.error("Match Transaction Error:", error);
-    res.status(500).json({ success: false, message: error.message || "Failed to match transaction" });
+    return res.status(500).json({ success: false, message: error.message || "Failed to match transaction" });
+  } finally {
+    if (conn) conn.release();
   }
 };
 
 exports.unmatchTransaction = async (req, res) => {
-  const conn = db.promise();
+  let conn = null;
   try {
     const companyId = req.user.company_id;
     const { id } = req.params;
 
+    conn = await db.promise().getConnection();
     await conn.beginTransaction();
 
-    try {
-      const [reconRows] = await conn.query(
-        `SELECT * FROM plastic_bank_reconciliations WHERE id = ? AND company_id = ? LIMIT 1`,
-        [id, companyId]
-      );
-      if (reconRows.length === 0) {
-        return res.status(404).json({ success: false, message: "Entry not found" });
-      }
-      const recon = reconRows[0];
-
-      if (recon.matched_transaction_id) {
-        await conn.query(
-          `UPDATE plastic_bank_transactions SET is_reconciled = 0, reconciled_at = NULL WHERE id = ? AND company_id = ?`,
-          [recon.matched_transaction_id, companyId]
-        );
-      }
-
-      await conn.query(
-        `UPDATE plastic_bank_reconciliations
-         SET matched_transaction_id = NULL, status = 'UNRECONCILED', difference_amount = 0.00, reconciled_at = NULL
-         WHERE id = ? AND company_id = ?`,
-        [id, companyId]
-      );
-
-      await conn.commit();
-
-      res.status(200).json({ success: true, message: "Entry marked unreconciled" });
-    } catch (txnErr) {
+    const [reconRows] = await conn.query(
+      `SELECT * FROM plastic_bank_reconciliations WHERE id = ? AND company_id = ? LIMIT 1`,
+      [id, companyId]
+    );
+    if (reconRows.length === 0) {
       await conn.rollback();
-      throw txnErr;
+      return res.status(404).json({ success: false, message: "Entry not found" });
     }
+    const recon = reconRows[0];
+
+    if (recon.matched_transaction_id) {
+      await conn.query(
+        `UPDATE plastic_bank_transactions SET is_reconciled = 0, reconciled_at = NULL WHERE id = ? AND company_id = ?`,
+        [recon.matched_transaction_id, companyId]
+      );
+    }
+
+    await conn.query(
+      `UPDATE plastic_bank_reconciliations
+       SET matched_transaction_id = NULL, status = 'UNRECONCILED', difference_amount = 0.00, reconciled_at = NULL
+       WHERE id = ? AND company_id = ?`,
+      [id, companyId]
+    );
+
+    await conn.commit();
+
+    return res.status(200).json({ success: true, message: "Entry marked unreconciled" });
   } catch (error) {
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        console.error("Rollback failed:", rollbackError);
+      }
+    }
     console.error("Unmatch Transaction Error:", error);
-    res.status(500).json({ success: false, message: "Failed to unmatch transaction" });
+    return res.status(500).json({ success: false, message: "Failed to unmatch transaction" });
+  } finally {
+    if (conn) conn.release();
   }
 };
 

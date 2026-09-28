@@ -164,7 +164,7 @@ exports.getPurchaseOrderById = async (req, res) => {
 };
 
 exports.createPurchaseOrder = async (req, res) => {
-  const conn = db.promise();
+  let conn;
   try {
     const companyId = req.user.company_id;
     const adminId = req.user.id;
@@ -189,10 +189,6 @@ exports.createPurchaseOrder = async (req, res) => {
       });
     }
 
-    await conn.query("START TRANSACTION");
-
-    const poNo = await generateNextPONo(conn, companyId);
-
     let subtotal = 0;
     let totalDiscount = 0;
     let totalTax = 0;
@@ -204,7 +200,10 @@ exports.createPurchaseOrder = async (req, res) => {
       const qty = Number(itm.ordered_qty);
       const rate = Number(itm.rate);
       if (isNaN(qty) || qty <= 0 || isNaN(rate) || rate < 0) {
-        throw new Error("Invalid ordered quantity or rate in PO items");
+        return res.status(400).json({
+          success: false,
+          message: "Invalid ordered quantity or rate in PO items",
+        });
       }
 
       const lineBase = qty * rate;
@@ -231,6 +230,11 @@ exports.createPurchaseOrder = async (req, res) => {
     }
 
     const grandTotal = (subtotal - totalDiscount) + totalTax + freight;
+
+    conn = await db.promise().getConnection();
+    await conn.beginTransaction();
+
+    const poNo = await generateNextPONo(conn, companyId);
 
     const [poResult] = await conn.query(
       `INSERT INTO plastic_purchase_orders (
@@ -285,17 +289,25 @@ exports.createPurchaseOrder = async (req, res) => {
       );
     }
 
-    await conn.query("COMMIT");
+    await conn.commit();
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "Purchase order created successfully",
       data: { id: poId, po_no: poNo, grand_total: grandTotal },
     });
   } catch (error) {
-    await conn.query("ROLLBACK");
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        console.error("Rollback failed:", rollbackError);
+      }
+    }
     console.error("Create Purchase Order Error:", error);
-    res.status(500).json({ success: false, message: error.message || "Failed to create purchase order" });
+    return res.status(500).json({ success: false, message: error.message || "Failed to create purchase order" });
+  } finally {
+    if (conn) conn.release();
   }
 };
 
@@ -339,13 +351,13 @@ exports.updatePurchaseOrderStatus = async (req, res) => {
 };
 
 exports.deletePurchaseOrder = async (req, res) => {
-  const conn = db.promise();
+  let conn;
   try {
     const companyId = req.user.company_id;
     const { id } = req.params;
 
     // 1. Verify PO exists and belongs to company
-    const [pos] = await conn.query(
+    const [pos] = await db.promise().query(
       "SELECT * FROM plastic_purchase_orders WHERE id = ? AND company_id = ?",
       [id, companyId]
     );
@@ -357,7 +369,7 @@ exports.deletePurchaseOrder = async (req, res) => {
     const po = pos[0];
 
     // 2. Business rule: Check if PO has downstream Purchase Delivery records
-    const [deliveries] = await conn.query(
+    const [deliveries] = await db.promise().query(
       "SELECT id, delivery_no FROM plastic_purchase_deliveries WHERE purchase_order_id = ? AND company_id = ? LIMIT 1",
       [id, companyId]
     );
@@ -371,7 +383,7 @@ exports.deletePurchaseOrder = async (req, res) => {
 
     // 3. Check for any downstream Purchase Bills linked to this PO
     try {
-      const [bills] = await conn.query(
+      const [bills] = await db.promise().query(
         "SELECT id, purchase_bill_no FROM purchase_bills WHERE purchase_order_id = ? AND company_id = ? LIMIT 1",
         [id, companyId]
       );
@@ -387,7 +399,7 @@ exports.deletePurchaseOrder = async (req, res) => {
 
     // 4. Check for any downstream Truck Inwards linked to this PO
     try {
-      const [trucks] = await conn.query(
+      const [trucks] = await db.promise().query(
         "SELECT id, inward_no FROM truck_inwards WHERE purchase_order_id = ? AND company_id = ? LIMIT 1",
         [id, companyId]
       );
@@ -402,7 +414,7 @@ exports.deletePurchaseOrder = async (req, res) => {
     }
 
     // 5. Check if any line items have already recorded received quantities
-    const [receivedItems] = await conn.query(
+    const [receivedItems] = await db.promise().query(
       "SELECT id FROM plastic_purchase_order_items WHERE purchase_order_id = ? AND company_id = ? AND received_qty > 0 LIMIT 1",
       [id, companyId]
     );
@@ -414,7 +426,8 @@ exports.deletePurchaseOrder = async (req, res) => {
       });
     }
 
-    await conn.query("START TRANSACTION");
+    conn = await db.promise().getConnection();
+    await conn.beginTransaction();
 
     // 6. Delete PO items
     await conn.query(
@@ -443,19 +456,27 @@ exports.deletePurchaseOrder = async (req, res) => {
       }
     }
 
-    await conn.query("COMMIT");
+    await conn.commit();
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: `Purchase Order ${po.po_no} deleted successfully`,
     });
   } catch (error) {
-    await conn.query("ROLLBACK");
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        console.error("Rollback failed:", rollbackError);
+      }
+    }
     console.error("Delete Purchase Order Error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: error.message || "Failed to delete purchase order",
     });
+  } finally {
+    if (conn) conn.release();
   }
 };
 

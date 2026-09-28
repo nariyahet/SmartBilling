@@ -296,7 +296,7 @@ exports.getChallanById = async (req, res) => {
 };
 
 exports.createChallan = async (req, res) => {
-  const conn = db.promise();
+  let conn;
   try {
     const companyId = req.user.company_id;
     const adminId = req.user.id;
@@ -310,7 +310,7 @@ exports.createChallan = async (req, res) => {
       return res.status(400).json({ success: false, message: "Dispatch ID is required" });
     }
 
-    const [dispatches] = await conn.query(
+    const [dispatches] = await db.promise().query(
       `SELECT * FROM plastic_dispatches WHERE id = ? AND company_id = ?`,
       [dispatch_id, companyId]
     );
@@ -322,7 +322,7 @@ exports.createChallan = async (req, res) => {
     const dispatch = dispatches[0];
 
     // Check if challan already exists for this dispatch
-    const [existingChallan] = await conn.query(
+    const [existingChallan] = await db.promise().query(
       `SELECT id, challan_no FROM plastic_delivery_challans WHERE dispatch_id = ? AND company_id = ?`,
       [dispatch_id, companyId]
     );
@@ -336,7 +336,7 @@ exports.createChallan = async (req, res) => {
     }
 
     // Fetch dispatch items
-    const [dispatchItems] = await conn.query(
+    const [dispatchItems] = await db.promise().query(
       `SELECT * FROM plastic_dispatch_items WHERE dispatch_id = ? AND company_id = ?`,
       [dispatch_id, companyId]
     );
@@ -347,62 +347,67 @@ exports.createChallan = async (req, res) => {
 
     const challanNo = await generateNextChallanNo(companyId);
 
+    conn = await db.promise().getConnection();
     await conn.beginTransaction();
 
-    try {
-      const [challanResult] = await conn.query(
-        `INSERT INTO plastic_delivery_challans
-          (company_id, challan_no, challan_date, customer_id, dispatch_id, vehicle_id, vehicle_number, transporter, destination, status, remarks, created_by)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'ISSUED', ?, ?)`,
+    const [challanResult] = await conn.query(
+      `INSERT INTO plastic_delivery_challans
+        (company_id, challan_no, challan_date, customer_id, dispatch_id, vehicle_id, vehicle_number, transporter, destination, status, remarks, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'ISSUED', ?, ?)`,
+      [
+        companyId,
+        challanNo,
+        challan_date,
+        dispatch.customer_id,
+        dispatch_id,
+        dispatch.vehicle_id,
+        dispatch.vehicle_number,
+        dispatch.transporter,
+        dispatch.destination,
+        remarks || null,
+        adminId,
+      ]
+    );
+
+    const challanId = challanResult.insertId;
+
+    for (const item of dispatchItems) {
+      await conn.query(
+        `INSERT INTO plastic_delivery_challan_items
+          (company_id, challan_id, finished_good_id, lot_id, quantity, unit, description)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [
           companyId,
-          challanNo,
-          challan_date,
-          dispatch.customer_id,
-          dispatch_id,
-          dispatch.vehicle_id,
-          dispatch.vehicle_number,
-          dispatch.transporter,
-          dispatch.destination,
-          remarks || null,
-          adminId,
+          challanId,
+          item.finished_good_id,
+          item.lot_id,
+          item.quantity,
+          item.unit,
+          `Delivery for Dispatch ${dispatch.dispatch_no}`,
         ]
       );
-
-      const challanId = challanResult.insertId;
-
-      for (const item of dispatchItems) {
-        await conn.query(
-          `INSERT INTO plastic_delivery_challan_items
-            (company_id, challan_id, finished_good_id, lot_id, quantity, unit, description)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          [
-            companyId,
-            challanId,
-            item.finished_good_id,
-            item.lot_id,
-            item.quantity,
-            item.unit,
-            `Delivery for Dispatch ${dispatch.dispatch_no}`,
-          ]
-        );
-      }
-
-      await conn.commit();
-
-      res.status(201).json({
-        success: true,
-        message: "Delivery challan generated successfully",
-        challanId,
-        challanNo,
-      });
-    } catch (txnErr) {
-      await conn.rollback();
-      throw txnErr;
     }
+
+    await conn.commit();
+
+    return res.status(201).json({
+      success: true,
+      message: "Delivery challan generated successfully",
+      challanId,
+      challanNo,
+    });
   } catch (error) {
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        console.error("Rollback failed:", rollbackError);
+      }
+    }
     console.error("Create Delivery Challan Error:", error);
-    res.status(500).json({ success: false, message: "Failed to generate delivery challan" });
+    return res.status(500).json({ success: false, message: "Failed to generate delivery challan" });
+  } finally {
+    if (conn) conn.release();
   }
 };
 

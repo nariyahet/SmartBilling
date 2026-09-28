@@ -114,7 +114,7 @@ exports.getJournalEntryById = async (req, res) => {
 };
 
 exports.createJournalEntry = async (req, res) => {
-  const conn = db.promise();
+  let conn = null;
   try {
     const companyId = req.user.company_id;
     const adminId = req.user.id;
@@ -134,41 +134,43 @@ exports.createJournalEntry = async (req, res) => {
       });
     }
 
+    conn = await db.promise().getConnection();
     await conn.beginTransaction();
 
-    try {
-      const result = await postJournalEntry(conn, {
-        companyId,
-        journalNo: journal_no,
-        entryDate: entry_date || new Date(),
-        referenceType: reference_type || "MANUAL",
-        referenceNo: reference_no,
-        narration: narration || "Manual Journal Voucher",
-        items,
-        createdBy: adminId,
-      });
+    const result = await postJournalEntry(conn, {
+      companyId,
+      journalNo: journal_no,
+      entryDate: entry_date || new Date(),
+      referenceType: reference_type || "MANUAL",
+      referenceNo: reference_no,
+      narration: narration || "Manual Journal Voucher",
+      items,
+      createdBy: adminId,
+    });
 
-      await conn.commit();
+    await conn.commit();
 
-      res.status(201).json({
-        success: true,
-        message: `Journal voucher ${result.journalNo} posted successfully`,
-        journalEntryId: result.journalEntryId,
-        journalNo: result.journalNo,
-        totalAmount: result.totalAmount,
-      });
-    } catch (txnErr) {
-      await conn.rollback();
-      return res.status(400).json({
-        success: false,
-        message: txnErr.message || "Failed to post journal entry",
-      });
-    }
+    return res.status(201).json({
+      success: true,
+      message: `Journal voucher ${result.journalNo} posted successfully`,
+      journalEntryId: result.journalEntryId,
+      journalNo: result.journalNo,
+      totalAmount: result.totalAmount,
+    });
   } catch (error) {
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        console.error("Rollback failed:", rollbackError);
+      }
+    }
     console.error("Create Journal Entry Error:", error);
-    res.status(500).json({
+    return res.status(400).json({
       success: false,
       message: error.message || "Failed to create journal entry",
     });
+  } finally {
+    if (conn) conn.release();
   }
 };

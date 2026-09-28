@@ -49,7 +49,7 @@ exports.getMaterialConsumptions = async (req, res) => {
 };
 
 exports.recordMaterialConsumption = async (req, res) => {
-  const conn = db.promise();
+  let conn;
   try {
     const companyId = req.user.company_id;
     const adminId = req.user.id;
@@ -73,7 +73,7 @@ exports.recordMaterialConsumption = async (req, res) => {
     const qtyToDeduct = Number(actual_quantity);
 
     // Verify batch ownership
-    const [batches] = await conn.query(
+    const [batches] = await db.promise().query(
       `SELECT id, batch_no, product_name FROM plastic_production_batches WHERE id = ? AND company_id = ?`,
       [batch_id, companyId]
     );
@@ -86,7 +86,7 @@ exports.recordMaterialConsumption = async (req, res) => {
     const batch = batches[0];
 
     // Verify raw material ownership
-    const [materials] = await conn.query(
+    const [materials] = await db.promise().query(
       `SELECT id, material_name, material_code, default_purchase_rate FROM raw_materials WHERE id = ? AND company_id = ?`,
       [raw_material_id, companyId]
     );
@@ -98,6 +98,7 @@ exports.recordMaterialConsumption = async (req, res) => {
     }
     const material = materials[0];
 
+    conn = await db.promise().getConnection();
     await conn.beginTransaction();
 
     // 1. Fetch current stock with FOR UPDATE lock
@@ -205,19 +206,27 @@ exports.recordMaterialConsumption = async (req, res) => {
 
     await conn.commit();
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: `Successfully consumed ${qtyToDeduct} ${unit} of ${material.material_name}`,
       consumptionId: consumptionResult.insertId,
       remainingStock: newStockQty,
     });
   } catch (error) {
-    await conn.rollback();
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        console.error("Rollback failed:", rollbackError);
+      }
+    }
     console.error("Record Material Consumption Error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to record material consumption",
     });
+  } finally {
+    if (conn) conn.release();
   }
 };
 

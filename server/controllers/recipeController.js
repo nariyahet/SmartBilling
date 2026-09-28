@@ -90,7 +90,7 @@ exports.getRecipeById = async (req, res) => {
 };
 
 exports.createRecipe = async (req, res) => {
-  const conn = db.promise();
+  let conn;
   try {
     const companyId = req.user.company_id;
     const {
@@ -114,13 +114,14 @@ exports.createRecipe = async (req, res) => {
 
     let code = recipe_code;
     if (!code) {
-      const [countRows] = await conn.query(
+      const [countRows] = await db.promise().query(
         `SELECT COUNT(id) AS count FROM plastic_recipes WHERE company_id = ?`,
         [companyId]
       );
       code = `RCP-${1000 + (countRows[0]?.count || 0) + 1}`;
     }
 
+    conn = await db.promise().getConnection();
     await conn.beginTransaction();
 
     const [recipeResult] = await conn.query(
@@ -167,14 +168,20 @@ exports.createRecipe = async (req, res) => {
 
     await conn.commit();
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "Recipe created successfully",
       recipeId,
       recipeCode: code,
     });
   } catch (error) {
-    await conn.rollback();
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        console.error("Rollback failed:", rollbackError);
+      }
+    }
     console.error("Create Recipe Error:", error);
     if (error.code === "ER_DUP_ENTRY") {
       return res.status(409).json({
@@ -182,15 +189,17 @@ exports.createRecipe = async (req, res) => {
         message: "A recipe with this code and version already exists",
       });
     }
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to create recipe",
     });
+  } finally {
+    if (conn) conn.release();
   }
 };
 
 exports.updateRecipe = async (req, res) => {
-  const conn = db.promise();
+  let conn;
   try {
     const companyId = req.user.company_id;
     const { id } = req.params;
@@ -205,7 +214,7 @@ exports.updateRecipe = async (req, res) => {
       items,
     } = req.body;
 
-    const [existing] = await conn.query(
+    const [existing] = await db.promise().query(
       `SELECT id FROM plastic_recipes WHERE id = ? AND company_id = ?`,
       [id, companyId]
     );
@@ -217,6 +226,7 @@ exports.updateRecipe = async (req, res) => {
       });
     }
 
+    conn = await db.promise().getConnection();
     await conn.beginTransaction();
 
     await conn.query(
@@ -273,16 +283,24 @@ exports.updateRecipe = async (req, res) => {
 
     await conn.commit();
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Recipe updated successfully",
     });
   } catch (error) {
-    await conn.rollback();
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        console.error("Rollback failed:", rollbackError);
+      }
+    }
     console.error("Update Recipe Error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to update recipe",
     });
+  } finally {
+    if (conn) conn.release();
   }
 };

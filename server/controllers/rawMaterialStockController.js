@@ -171,10 +171,11 @@ exports.recordStockAdjustment = async (req, res) => {
     const material = materials[0];
     const adjustmentRate = rate !== undefined ? Number(rate) : Number(material.default_purchase_rate) || 0;
 
-    const conn = db.promise();
-    await conn.beginTransaction();
-
+    let conn;
     try {
+      conn = await db.promise().getConnection();
+      await conn.beginTransaction();
+
       const [stockRows] = await conn.query(
         `SELECT id, quantity, average_rate, stock_value
          FROM raw_material_stock
@@ -246,19 +247,27 @@ exports.recordStockAdjustment = async (req, res) => {
 
       await conn.commit();
 
-      res.status(200).json({
+      return res.status(200).json({
         success: true,
         message: "Stock adjustment recorded successfully",
         current_stock: newQty,
         stock_value: newStockValue,
       });
     } catch (txnError) {
-      await conn.rollback();
+      if (conn) {
+        try {
+          await conn.rollback();
+        } catch (rollbackError) {
+          console.error("Rollback failed:", rollbackError);
+        }
+      }
       throw txnError;
+    } finally {
+      if (conn) conn.release();
     }
   } catch (error) {
     console.error("Stock Adjustment Error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to record stock adjustment",
     });

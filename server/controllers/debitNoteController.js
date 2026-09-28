@@ -121,7 +121,7 @@ exports.getDebitNoteById = async (req, res) => {
 };
 
 exports.createDebitNote = async (req, res) => {
-  const conn = db.promise();
+  let conn = null;
   try {
     const companyId = req.user.company_id;
     const adminId = req.user.id;
@@ -143,7 +143,7 @@ exports.createDebitNote = async (req, res) => {
     }
 
     // Verify customer
-    const [customers] = await conn.query(
+    const [customers] = await db.promise().query(
       `SELECT id, name FROM customers WHERE id = ? AND company_id = ?`,
       [customer_id, companyId]
     );
@@ -175,75 +175,80 @@ exports.createDebitNote = async (req, res) => {
 
     const debitNoteNo = await generateNextDebitNoteNo(companyId);
 
+    conn = await db.promise().getConnection();
     await conn.beginTransaction();
 
-    try {
-      const [dnResult] = await conn.query(
-        `INSERT INTO plastic_debit_notes
-          (company_id, debit_note_no, date, customer_id, invoice_id, reason, amount, tax_percent, tax_amount, total, status, created_by)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ISSUED', ?)`,
+    const [dnResult] = await conn.query(
+      `INSERT INTO plastic_debit_notes
+        (company_id, debit_note_no, date, customer_id, invoice_id, reason, amount, tax_percent, tax_amount, total, status, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ISSUED', ?)`,
+      [
+        companyId,
+        debitNoteNo,
+        date,
+        customer_id,
+        invoice_id || null,
+        reason,
+        subtotal,
+        taxP,
+        taxAmount,
+        grandTotal,
+        adminId,
+      ]
+    );
+
+    const dnId = dnResult.insertId;
+
+    for (const pItm of preparedItems) {
+      await conn.query(
+        `INSERT INTO plastic_debit_note_items
+          (company_id, debit_note_id, description, quantity, rate, amount)
+         VALUES (?, ?, ?, ?, ?, ?)`,
         [
           companyId,
-          debitNoteNo,
-          date,
-          customer_id,
-          invoice_id || null,
-          reason,
-          subtotal,
-          taxP,
-          taxAmount,
-          grandTotal,
-          adminId,
+          dnId,
+          pItm.description,
+          pItm.quantity,
+          pItm.rate,
+          pItm.amount,
         ]
       );
-
-      const dnId = dnResult.insertId;
-
-      for (const pItm of preparedItems) {
-        await conn.query(
-          `INSERT INTO plastic_debit_note_items
-            (company_id, debit_note_id, description, quantity, rate, amount)
-           VALUES (?, ?, ?, ?, ?, ?)`,
-          [
-            companyId,
-            dnId,
-            pItm.description,
-            pItm.quantity,
-            pItm.rate,
-            pItm.amount,
-          ]
-        );
-      }
-
-      // Post debit to customer ledger (debit increases receivable)
-      await recordLedgerEntry(conn, {
-        companyId,
-        customerId: customer_id,
-        transactionDate: date,
-        referenceType: "DEBIT_NOTE",
-        referenceId: dnId,
-        referenceNo: debitNoteNo,
-        debit: grandTotal,
-        credit: 0.00,
-        notes: `Debit Note ${debitNoteNo} - ${reason}`,
-        createdBy: adminId,
-      });
-
-      await conn.commit();
-
-      res.status(201).json({
-        success: true,
-        message: "Debit note issued and customer ledger updated successfully",
-        debitNoteId: dnId,
-        debitNoteNo,
-        total: grandTotal,
-      });
-    } catch (txnErr) {
-      await conn.rollback();
-      throw txnErr;
     }
+
+    // Post debit to customer ledger (debit increases receivable)
+    await recordLedgerEntry(conn, {
+      companyId,
+      customerId: customer_id,
+      transactionDate: date,
+      referenceType: "DEBIT_NOTE",
+      referenceId: dnId,
+      referenceNo: debitNoteNo,
+      debit: grandTotal,
+      credit: 0.00,
+      notes: `Debit Note ${debitNoteNo} - ${reason}`,
+      createdBy: adminId,
+    });
+
+    await conn.commit();
+
+    return res.status(201).json({
+      success: true,
+      message: "Debit note issued and customer ledger updated successfully",
+      debitNoteId: dnId,
+      debitNoteNo,
+      total: grandTotal,
+    });
   } catch (error) {
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        console.error("Rollback failed:", rollbackError);
+      }
+    }
     console.error("Create Debit Note Error:", error);
-    res.status(500).json({ success: false, message: error.message || "Failed to create debit note" });
+    return res.status(500).json({ success: false, message: error.message || "Failed to create debit note" });
+  } finally {
+    if (conn) conn.release();
   }
 };

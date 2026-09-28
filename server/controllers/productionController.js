@@ -516,7 +516,7 @@ exports.getProductionBatchById = async (req, res) => {
 };
 
 exports.createProductionBatch = async (req, res) => {
-  const conn = db.promise();
+  let conn;
   try {
     const companyId = req.user.company_id;
     const adminId = req.user.id;
@@ -544,13 +544,14 @@ exports.createProductionBatch = async (req, res) => {
 
     let bNo = batch_no;
     if (!bNo) {
-      const [countRows] = await conn.query(
+      const [countRows] = await db.promise().query(
         `SELECT COUNT(id) AS count FROM plastic_production_batches WHERE company_id = ?`,
         [companyId]
       );
       bNo = `BATCH-${1000 + (countRows[0]?.count || 0) + 1}`;
     }
 
+    conn = await db.promise().getConnection();
     await conn.beginTransaction();
 
     const [result] = await conn.query(
@@ -607,14 +608,20 @@ exports.createProductionBatch = async (req, res) => {
 
     await conn.commit();
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "Production batch created successfully",
       batchId,
       batchNo: bNo,
     });
   } catch (error) {
-    await conn.rollback();
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        console.error("Rollback failed:", rollbackError);
+      }
+    }
     console.error("Create Production Batch Error:", error);
     if (error.code === "ER_DUP_ENTRY") {
       return res.status(409).json({
@@ -622,10 +629,12 @@ exports.createProductionBatch = async (req, res) => {
         message: "A batch with this number already exists",
       });
     }
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to create production batch",
     });
+  } finally {
+    if (conn) conn.release();
   }
 };
 
@@ -634,12 +643,12 @@ exports.createProductionBatch = async (req, res) => {
 // ==========================================
 
 exports.startBatch = async (req, res) => {
-  const conn = db.promise();
+  let conn;
   try {
     const companyId = req.user.company_id;
     const { id } = req.params;
 
-    const [batches] = await conn.query(
+    const [batches] = await db.promise().query(
       `SELECT * FROM plastic_production_batches WHERE id = ? AND company_id = ?`,
       [id, companyId]
     );
@@ -652,6 +661,7 @@ exports.startBatch = async (req, res) => {
     }
 
     const batch = batches[0];
+    conn = await db.promise().getConnection();
     await conn.beginTransaction();
 
     await conn.query(
@@ -692,17 +702,25 @@ exports.startBatch = async (req, res) => {
 
     await conn.commit();
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: `Batch ${batch.batch_no} is now RUNNING`,
     });
   } catch (error) {
-    await conn.rollback();
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        console.error("Rollback failed:", rollbackError);
+      }
+    }
     console.error("Start Batch Error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to start batch",
     });
+  } finally {
+    if (conn) conn.release();
   }
 };
 
@@ -786,7 +804,7 @@ exports.resumeBatch = async (req, res) => {
 };
 
 exports.completeBatch = async (req, res) => {
-  const conn = db.promise();
+  let conn;
   try {
     const companyId = req.user.company_id;
     const { id } = req.params;
@@ -797,7 +815,7 @@ exports.completeBatch = async (req, res) => {
       regrind_quantity = 0,
     } = req.body;
 
-    const [batches] = await conn.query(
+    const [batches] = await db.promise().query(
       `SELECT * FROM plastic_production_batches WHERE id = ? AND company_id = ?`,
       [id, companyId]
     );
@@ -820,6 +838,7 @@ exports.completeBatch = async (req, res) => {
     const recoveryPercent = totalOutput > 0 ? ((actualQty / totalOutput) * 100).toFixed(2) : 100.00;
     const efficiencyPercent = plannedQty > 0 ? ((actualQty / plannedQty) * 100).toFixed(2) : 100.00;
 
+    conn = await db.promise().getConnection();
     await conn.beginTransaction();
 
     // 1. Update batch record
@@ -933,7 +952,7 @@ exports.completeBatch = async (req, res) => {
 
     await conn.commit();
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: `Batch ${batch.batch_no} completed successfully`,
       summary: {
@@ -946,11 +965,19 @@ exports.completeBatch = async (req, res) => {
       },
     });
   } catch (error) {
-    await conn.rollback();
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        console.error("Rollback failed:", rollbackError);
+      }
+    }
     console.error("Complete Batch Error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to complete batch",
     });
+  } finally {
+    if (conn) conn.release();
   }
 };

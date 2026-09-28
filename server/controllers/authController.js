@@ -81,11 +81,10 @@ exports.register = async (req, res) => {
     );
   }
 
-  const conn = await db.promise().getConnection();
-
+  let conn;
   try {
     // Check if email already exists
-    const [existingAdmins] = await conn.query(
+    const [existingAdmins] = await db.promise().query(
       "SELECT id FROM admins WHERE email = ? LIMIT 1",
       [email]
     );
@@ -99,6 +98,7 @@ exports.register = async (req, res) => {
     }
 
     // Begin atomic transaction
+    conn = await db.promise().getConnection();
     await conn.beginTransaction();
 
     // 1. Generate unique slug
@@ -192,11 +192,17 @@ exports.register = async (req, res) => {
       },
     });
   } catch (err) {
-    await conn.rollback();
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rollbackErr) {
+        console.error("Rollback failed:", rollbackErr);
+      }
+    }
     console.error("Registration Transaction Error:", err);
     return error(res, "Registration failed due to a server error", 500);
   } finally {
-    conn.release();
+    if (conn) conn.release();
   }
 };
 

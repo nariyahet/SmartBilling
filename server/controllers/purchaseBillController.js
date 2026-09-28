@@ -636,18 +636,17 @@ exports.updatePaymentStatus = async (req, res) => {
  * Atomically reverses any stock movements credited directly by this bill and unlinks deliveries.
  */
 exports.deletePurchaseBill = async (req, res) => {
-  const conn = await db.promise().getConnection();
+  let conn;
   try {
     const { id } = req.params;
     const companyId = req.user.company_id;
 
-    const [bills] = await conn.query(
-      "SELECT * FROM purchase_bills WHERE id = ? AND company_id = ? FOR UPDATE",
+    const [bills] = await db.promise().query(
+      "SELECT * FROM purchase_bills WHERE id = ? AND company_id = ?",
       [id, companyId]
     );
 
     if (bills.length === 0) {
-      conn.release();
       return res.status(404).json({
         success: false,
         message: "Purchase bill not found or belongs to another company",
@@ -658,12 +657,11 @@ exports.deletePurchaseBill = async (req, res) => {
 
     // Prevent deletion if recorded payments exist in plastic_payments
     try {
-      const [payments] = await conn.query(
+      const [payments] = await db.promise().query(
         "SELECT id FROM plastic_payments WHERE company_id = ? AND reference_type = 'PURCHASE_BILL' AND reference_id = ?",
         [companyId, id]
       );
       if (payments.length > 0) {
-        conn.release();
         return res.status(400).json({
           success: false,
           message: "Cannot delete purchase bill with recorded payments. Reverse payments first.",
@@ -673,6 +671,7 @@ exports.deletePurchaseBill = async (req, res) => {
       // plastic_payments might not track reference_type in all environments; continue safely
     }
 
+    conn = await db.promise().getConnection();
     await conn.beginTransaction();
 
     // 1. Find stock movements credited directly by this purchase bill
@@ -721,14 +720,16 @@ exports.deletePurchaseBill = async (req, res) => {
       message: `Purchase bill "${bill.purchase_bill_no}" deleted and credited stock reversed successfully`,
     });
   } catch (error) {
-    try {
-      await conn.rollback();
-    } catch (rbErr) {
-      console.error("Rollback Error:", rbErr);
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rbErr) {
+        console.error("Rollback Error:", rbErr);
+      }
     }
     console.error("Delete Purchase Bill Error:", error);
     res.status(500).json({ success: false, message: error.message || "Failed to delete purchase bill" });
   } finally {
-    conn.release();
+    if (conn) conn.release();
   }
 };

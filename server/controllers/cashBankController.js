@@ -39,7 +39,7 @@ exports.getAccounts = async (req, res) => {
 };
 
 exports.createAccount = async (req, res) => {
-  const conn = db.promise();
+  let conn = null;
   try {
     const companyId = req.user.company_id;
     const {
@@ -62,70 +62,75 @@ exports.createAccount = async (req, res) => {
     const type = String(account_type).toUpperCase() === "CASH" ? "CASH" : "BANK";
     const openBal = Number(opening_balance) || 0.00;
 
+    conn = await db.promise().getConnection();
     await conn.beginTransaction();
 
-    try {
-      // 1. Create matching Ledger Account in Chart of Accounts
-      const groupCode = "ASSET_CA";
-      const [groupRows] = await conn.query(
-        `SELECT id FROM plastic_account_groups WHERE company_id = ? AND code = ? LIMIT 1`,
-        [companyId, groupCode]
+    // 1. Create matching Ledger Account in Chart of Accounts
+    const groupCode = "ASSET_CA";
+    const [groupRows] = await conn.query(
+      `SELECT id FROM plastic_account_groups WHERE company_id = ? AND code = ? LIMIT 1`,
+      [companyId, groupCode]
+    );
+    const groupId = groupRows[0]?.id;
+
+    let ledgerAccId = null;
+    if (groupId) {
+      const [lastAcc] = await conn.query(
+        `SELECT account_code FROM plastic_accounts WHERE company_id = ? AND account_code LIKE '10%' ORDER BY id DESC LIMIT 1`,
+        [companyId]
       );
-      const groupId = groupRows[0]?.id;
-
-      let ledgerAccId = null;
-      if (groupId) {
-        const [lastAcc] = await conn.query(
-          `SELECT account_code FROM plastic_accounts WHERE company_id = ? AND account_code LIKE '10%' ORDER BY id DESC LIMIT 1`,
-          [companyId]
-        );
-        let nextCode = "1020";
-        if (lastAcc.length > 0 && !isNaN(Number(lastAcc[0].account_code))) {
-          nextCode = String(Number(lastAcc[0].account_code) + 1);
-        }
-
-        const [accRes] = await conn.query(
-          `INSERT INTO plastic_accounts
-            (company_id, group_id, account_code, account_name, account_type, debit_credit_nature, opening_balance, current_balance, status, reference_type, is_system)
-           VALUES (?, ?, ?, ?, 'ASSET', 'DEBIT', ?, ?, 'ACTIVE', ?, 0)`,
-          [companyId, groupId, nextCode, account_name.trim(), openBal, openBal, type]
-        );
-        ledgerAccId = accRes.insertId;
+      let nextCode = "1020";
+      if (lastAcc.length > 0 && !isNaN(Number(lastAcc[0].account_code))) {
+        nextCode = String(Number(lastAcc[0].account_code) + 1);
       }
 
-      // 2. Create Bank Account Master
-      const [bankRes] = await conn.query(
-        `INSERT INTO plastic_bank_accounts
-          (company_id, account_id, account_type, bank_name, account_name, account_number, ifsc_code, branch, opening_balance, current_balance, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE')`,
-        [
-          companyId,
-          ledgerAccId,
-          type,
-          bank_name.trim(),
-          account_name.trim(),
-          account_number.trim(),
-          ifsc_code ? ifsc_code.trim().toUpperCase() : null,
-          branch ? branch.trim() : null,
-          openBal,
-          openBal,
-        ]
+      const [accRes] = await conn.query(
+        `INSERT INTO plastic_accounts
+          (company_id, group_id, account_code, account_name, account_type, debit_credit_nature, opening_balance, current_balance, status, reference_type, is_system)
+         VALUES (?, ?, ?, ?, 'ASSET', 'DEBIT', ?, ?, 'ACTIVE', ?, 0)`,
+        [companyId, groupId, nextCode, account_name.trim(), openBal, openBal, type]
       );
-
-      await conn.commit();
-
-      res.status(201).json({
-        success: true,
-        message: `${type === "CASH" ? "Cash" : "Bank"} account created successfully`,
-        bankAccountId: bankRes.insertId,
-      });
-    } catch (txnErr) {
-      await conn.rollback();
-      throw txnErr;
+      ledgerAccId = accRes.insertId;
     }
+
+    // 2. Create Bank Account Master
+    const [bankRes] = await conn.query(
+      `INSERT INTO plastic_bank_accounts
+        (company_id, account_id, account_type, bank_name, account_name, account_number, ifsc_code, branch, opening_balance, current_balance, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE')`,
+      [
+        companyId,
+        ledgerAccId,
+        type,
+        bank_name.trim(),
+        account_name.trim(),
+        account_number.trim(),
+        ifsc_code ? ifsc_code.trim().toUpperCase() : null,
+        branch ? branch.trim() : null,
+        openBal,
+        openBal,
+      ]
+    );
+
+    await conn.commit();
+
+    return res.status(201).json({
+      success: true,
+      message: `${type === "CASH" ? "Cash" : "Bank"} account created successfully`,
+      bankAccountId: bankRes.insertId,
+    });
   } catch (error) {
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        console.error("Rollback failed:", rollbackError);
+      }
+    }
     console.error("Create Bank Account Error:", error);
-    res.status(500).json({ success: false, message: error.message || "Failed to create account" });
+    return res.status(500).json({ success: false, message: error.message || "Failed to create account" });
+  } finally {
+    if (conn) conn.release();
   }
 };
 
@@ -181,7 +186,7 @@ exports.getTransactions = async (req, res) => {
 };
 
 exports.recordTransaction = async (req, res) => {
-  const conn = db.promise();
+  let conn = null;
   try {
     const companyId = req.user.company_id;
     const adminId = req.user.id;
@@ -206,100 +211,108 @@ exports.recordTransaction = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid transaction type" });
     }
 
+    conn = await db.promise().getConnection();
     await conn.beginTransaction();
 
-    try {
-      const [accRows] = await conn.query(
-        `SELECT * FROM plastic_bank_accounts WHERE id = ? AND company_id = ? FOR UPDATE`,
-        [bank_account_id, companyId]
-      );
-      if (accRows.length === 0) {
-        return res.status(404).json({ success: false, message: "Account not found" });
-      }
-
-      const sourceAcc = accRows[0];
-
-      if (type === "TRANSFER") {
-        if (!to_bank_account_id || to_bank_account_id === bank_account_id) {
-          return res.status(400).json({ success: false, message: "Destination account must be different from source account" });
-        }
-
-        const [destRows] = await conn.query(
-          `SELECT * FROM plastic_bank_accounts WHERE id = ? AND company_id = ? FOR UPDATE`,
-          [to_bank_account_id, companyId]
-        );
-        if (destRows.length === 0) {
-          return res.status(404).json({ success: false, message: "Destination account not found" });
-        }
-        const destAcc = destRows[0];
-
-        const srcNewBal = Number(sourceAcc.current_balance) - txAmount;
-        const destNewBal = Number(destAcc.current_balance) + txAmount;
-
-        // Outward tx on source
-        await conn.query(
-          `INSERT INTO plastic_bank_transactions
-            (company_id, bank_account_id, transaction_date, transaction_type, reference_type, reference_no, amount, balance_after, payment_mode, description, created_by)
-           VALUES (?, ?, ?, 'TRANSFER', 'BANK_TRANSFER', ?, ?, ?, ?, ?, ?)`,
-          [companyId, sourceAcc.id, transaction_date, reference_no || null, txAmount, srcNewBal, payment_mode, `Transfer to ${destAcc.account_name} - ${description || ""}`, adminId]
-        );
-
-        // Inward tx on destination
-        await conn.query(
-          `INSERT INTO plastic_bank_transactions
-            (company_id, bank_account_id, transaction_date, transaction_type, reference_type, reference_no, amount, balance_after, payment_mode, description, created_by)
-           VALUES (?, ?, ?, 'TRANSFER', 'BANK_TRANSFER', ?, ?, ?, ?, ?, ?)`,
-          [companyId, destAcc.id, transaction_date, reference_no || null, txAmount, destNewBal, payment_mode, `Transfer from ${sourceAcc.account_name} - ${description || ""}`, adminId]
-        );
-
-        await conn.query(`UPDATE plastic_bank_accounts SET current_balance = ? WHERE id = ?`, [srcNewBal, sourceAcc.id]);
-        await conn.query(`UPDATE plastic_bank_accounts SET current_balance = ? WHERE id = ?`, [destNewBal, destAcc.id]);
-
-        // Auto double-entry journal if linked to ledger accounts
-        if (sourceAcc.account_id && destAcc.account_id) {
-          await postJournalEntry(conn, {
-            companyId,
-            entryDate: transaction_date,
-            referenceType: "BANK_TRANSFER",
-            referenceNo,
-            narration: `Funds Transfer from ${sourceAcc.account_name} to ${destAcc.account_name}`,
-            items: [
-              { accountId: destAcc.account_id, entryType: "DEBIT", amount: txAmount, narration: `Transfer from ${sourceAcc.account_name}` },
-              { accountId: sourceAcc.account_id, entryType: "CREDIT", amount: txAmount, narration: `Transfer to ${destAcc.account_name}` },
-            ],
-            createdBy: adminId,
-          });
-        }
-      } else {
-        // Direct Deposit or Withdrawal
-        const isDeposit = type === "DEPOSIT";
-        const newBal = isDeposit
-          ? Number(sourceAcc.current_balance) + txAmount
-          : Number(sourceAcc.current_balance) - txAmount;
-
-        await conn.query(
-          `INSERT INTO plastic_bank_transactions
-            (company_id, bank_account_id, transaction_date, transaction_type, reference_type, reference_no, amount, balance_after, payment_mode, description, created_by)
-           VALUES (?, ?, ?, ?, 'MANUAL', ?, ?, ?, ?, ?, ?)`,
-          [companyId, sourceAcc.id, transaction_date, type, reference_no || null, txAmount, newBal, payment_mode, description || `${type} recorded`, adminId]
-        );
-
-        await conn.query(`UPDATE plastic_bank_accounts SET current_balance = ? WHERE id = ?`, [newBal, sourceAcc.id]);
-      }
-
-      await conn.commit();
-
-      res.status(201).json({
-        success: true,
-        message: `${type} transaction recorded successfully`,
-      });
-    } catch (txnErr) {
+    const [accRows] = await conn.query(
+      `SELECT * FROM plastic_bank_accounts WHERE id = ? AND company_id = ? FOR UPDATE`,
+      [bank_account_id, companyId]
+    );
+    if (accRows.length === 0) {
       await conn.rollback();
-      throw txnErr;
+      return res.status(404).json({ success: false, message: "Account not found" });
     }
+
+    const sourceAcc = accRows[0];
+
+    if (type === "TRANSFER") {
+      if (!to_bank_account_id || to_bank_account_id === bank_account_id) {
+        await conn.rollback();
+        return res.status(400).json({ success: false, message: "Destination account must be different from source account" });
+      }
+
+      const [destRows] = await conn.query(
+        `SELECT * FROM plastic_bank_accounts WHERE id = ? AND company_id = ? FOR UPDATE`,
+        [to_bank_account_id, companyId]
+      );
+      if (destRows.length === 0) {
+        await conn.rollback();
+        return res.status(404).json({ success: false, message: "Destination account not found" });
+      }
+      const destAcc = destRows[0];
+
+      const srcNewBal = Number(sourceAcc.current_balance) - txAmount;
+      const destNewBal = Number(destAcc.current_balance) + txAmount;
+
+      // Outward tx on source
+      await conn.query(
+        `INSERT INTO plastic_bank_transactions
+          (company_id, bank_account_id, transaction_date, transaction_type, reference_type, reference_no, amount, balance_after, payment_mode, description, created_by)
+         VALUES (?, ?, ?, 'TRANSFER', 'BANK_TRANSFER', ?, ?, ?, ?, ?, ?)`,
+        [companyId, sourceAcc.id, transaction_date, reference_no || null, txAmount, srcNewBal, payment_mode, `Transfer to ${destAcc.account_name} - ${description || ""}`, adminId]
+      );
+
+      // Inward tx on destination
+      await conn.query(
+        `INSERT INTO plastic_bank_transactions
+          (company_id, bank_account_id, transaction_date, transaction_type, reference_type, reference_no, amount, balance_after, payment_mode, description, created_by)
+         VALUES (?, ?, ?, 'TRANSFER', 'BANK_TRANSFER', ?, ?, ?, ?, ?, ?)`,
+        [companyId, destAcc.id, transaction_date, reference_no || null, txAmount, destNewBal, payment_mode, `Transfer from ${sourceAcc.account_name} - ${description || ""}`, adminId]
+      );
+
+      await conn.query(`UPDATE plastic_bank_accounts SET current_balance = ? WHERE id = ?`, [srcNewBal, sourceAcc.id]);
+      await conn.query(`UPDATE plastic_bank_accounts SET current_balance = ? WHERE id = ?`, [destNewBal, destAcc.id]);
+
+      // Auto double-entry journal if linked to ledger accounts
+      if (sourceAcc.account_id && destAcc.account_id) {
+        await postJournalEntry(conn, {
+          companyId,
+          entryDate: transaction_date,
+          referenceType: "BANK_TRANSFER",
+          referenceNo,
+          narration: `Funds Transfer from ${sourceAcc.account_name} to ${destAcc.account_name}`,
+          items: [
+            { accountId: destAcc.account_id, entryType: "DEBIT", amount: txAmount, narration: `Transfer from ${sourceAcc.account_name}` },
+            { accountId: sourceAcc.account_id, entryType: "CREDIT", amount: txAmount, narration: `Transfer to ${destAcc.account_name}` },
+          ],
+          createdBy: adminId,
+        });
+      }
+    } else {
+      // Direct Deposit or Withdrawal
+      const isDeposit = type === "DEPOSIT";
+      const newBal = isDeposit
+        ? Number(sourceAcc.current_balance) + txAmount
+        : Number(sourceAcc.current_balance) - txAmount;
+
+      await conn.query(
+        `INSERT INTO plastic_bank_transactions
+          (company_id, bank_account_id, transaction_date, transaction_type, reference_type, reference_no, amount, balance_after, payment_mode, description, created_by)
+         VALUES (?, ?, ?, ?, 'MANUAL', ?, ?, ?, ?, ?, ?)`,
+        [companyId, sourceAcc.id, transaction_date, type, reference_no || null, txAmount, newBal, payment_mode, description || `${type} recorded`, adminId]
+      );
+
+      await conn.query(`UPDATE plastic_bank_accounts SET current_balance = ? WHERE id = ?`, [newBal, sourceAcc.id]);
+    }
+
+    await conn.commit();
+
+    return res.status(201).json({
+      success: true,
+      message: `${type} transaction recorded successfully`,
+    });
   } catch (error) {
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        console.error("Rollback failed:", rollbackError);
+      }
+    }
     console.error("Record Bank Transaction Error:", error);
-    res.status(500).json({ success: false, message: error.message || "Failed to record transaction" });
+    return res.status(500).json({ success: false, message: error.message || "Failed to record transaction" });
+  } finally {
+    if (conn) conn.release();
   }
 };
 
