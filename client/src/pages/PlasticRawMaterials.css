@@ -136,8 +136,8 @@
 
 .btn-dashboard-nav:hover {
   background: #f1f5f9;
-  border-color: #059669;
-  color: #059669;
+  border-color: var(--sb-primary, #0879D1);
+  color: var(--sb-primary, #0879D1);
   transform: translateY(-1px);
 }
 
@@ -281,5 +281,110 @@
   color: #64748b;
   margin-top: 2px;
   font-weight: 500;
+}
+
+/* ==========================================================================
+   Primary Action & Search Buttons (Aligned with SmartBilling 2.0 Ocean Blue)
+   ========================================================================== */
+.plastic-materials-page .btn-add-entity {
+  background: var(--sb-primary, #0879D1);
+  color: #ffffff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(8, 121, 209, 0.25);
+  transition: all 0.2s ease;
+}
+
+.plastic-materials-page .btn-add-entity:hover {
+  background: var(--sb-primary-hover, #0769B7);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(8, 121, 209, 0.35);
+}
+
+.plastic-materials-page .btn-add-entity:active {
+  background: var(--sb-primary-active, #06599C);
+  transform: translateY(0);
+}
+
+.plastic-materials-page .btn-add-entity:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(8, 121, 209, 0.35);
+}
+
+.plastic-materials-page .btn-add-entity:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.plastic-materials-page .btn-search {
+  background: var(--sb-primary, #0879D1);
+  color: #ffffff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.plastic-materials-page .btn-search:hover {
+  background: var(--sb-primary-hover, #0769B7);
+}
+
+.plastic-materials-page .btn-search:active {
+  background: var(--sb-primary-active, #06599C);
+}
+
+.plastic-materials-page .btn-search:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(8, 121, 209, 0.35);
+}
+
+.plastic-materials-page .btn-search:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.plastic-materials-page .search-form input:focus {
+  border-color: var(--sb-primary, #0879D1);
+  box-shadow: 0 0 0 3px rgba(8, 121, 209, 0.15);
+}
+
+.plastic-materials-page .btn-submit {
+  background: var(--sb-primary, #0879D1);
+  color: #ffffff;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(8, 121, 209, 0.2);
+  transition: all 0.2s ease;
+}
+
+.plastic-materials-page .btn-submit:hover {
+  background: var(--sb-primary-hover, #0769B7);
+}
+
+.plastic-materials-page .btn-submit:active {
+  background: var(--sb-primary-active, #06599C);
+}
+
+.plastic-materials-page .btn-submit:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(8, 121, 209, 0.35);
+}
+
+.plastic-materials-page .btn-submit:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 
