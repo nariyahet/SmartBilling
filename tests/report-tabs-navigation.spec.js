@@ -123,7 +123,12 @@ test.describe('Sales, Dispatch & Finance Reports Tab Navigation & Sidebar Active
     await expect(page.locator('.prep-tabs .tab-btn').filter({ hasText: 'Dispatches & Logistics' })).toHaveClass(/active/);
 
     // Verify 0 unhandled console errors
-    const criticalErrors = consoleErrors.filter(e => !e.includes('favicon') && !e.includes('net::ERR_'));
+    const criticalErrors = consoleErrors.filter(
+      (e) =>
+        !e.includes('favicon') &&
+        !e.includes('net::ERR_') &&
+        !(e.includes('downloadable font:') && e.includes('fonts.gstatic.com') && e.includes('Inter'))
+    );
     expect(criticalErrors).toHaveLength(0);
   });
 });

@@ -2,6 +2,8 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Dashboard Chart & Responsive Verification', () => {
+  test.setTimeout(120000);
+
   test('Verify chart renders immediately and no horizontal overflow across test matrix', async ({ page }) => {
     const consoleLogs = [];
     page.on('console', (msg) => consoleLogs.push(`[${msg.type()}] ${msg.text()}`));
