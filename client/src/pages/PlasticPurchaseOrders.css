@@ -398,6 +398,7 @@
   box-sizing: border-box;
 }
 
+.sb-table.po-items-form-table td,
 .po-items-form-table td {
   padding: 8px 6px;
   vertical-align: middle;
@@ -428,9 +429,10 @@
   text-align: right;
 }
 
-.po-items-form-table .po-col-disc {
+.po-items-form-table .po-col-disc,
+.po-items-form-table .po-col-discount {
   width: 11%;
-  min-width: 64px;
+  min-width: 72px;
   text-align: right;
 }
 
@@ -450,6 +452,15 @@
   width: 11%;
   min-width: 72px;
   text-align: center;
+}
+
+/* Specific selector for discount input */
+.po-items-form-table td.po-col-disc input,
+.po-items-form-table td.po-col-discount input,
+.po-items-form-table .po-col-disc input,
+.po-items-form-table .po-col-discount input {
+  min-width: 72px;
+  box-sizing: border-box;
 }
 
 /* Controls inside the items table */
@@ -484,11 +495,13 @@
 .po-items-form-table .po-input-number::-webkit-inner-spin-button,
 .po-items-form-table .po-input-number::-webkit-outer-spin-button {
   -webkit-appearance: none;
+  appearance: none;
   margin: 0;
 }
 
 .po-items-form-table .po-input-number {
   -moz-appearance: textfield;
+  appearance: textfield;
   text-align: right;
   font-variant-numeric: tabular-nums;
   padding-right: 6px;

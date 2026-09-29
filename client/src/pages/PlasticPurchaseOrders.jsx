@@ -571,7 +571,7 @@ function PlasticPurchaseOrders() {
                   <th className="po-col-material">Raw Material *</th>
                   <th className="po-col-qty">Qty *</th>
                   <th className="po-col-rate">Rate (₹)</th>
-                  <th className="po-col-disc">Disc (₹)</th>
+                  <th className="po-col-disc po-col-discount">Disc (₹)</th>
                   <th className="po-col-tax">GST %</th>
                   <th className="po-col-total">Line Total</th>
                   <th className="po-col-action">Action</th>
@@ -627,7 +627,7 @@ function PlasticPurchaseOrders() {
                           placeholder="Rate"
                         />
                       </td>
-                      <td className="po-col-disc">
+                      <td className="po-col-disc po-col-discount">
                         <input
                           type="number"
                           step="1"

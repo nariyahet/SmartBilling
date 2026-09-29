@@ -1,5 +1,15 @@
 import axios from "axios";
 
+let isPageUnloading = false;
+if (typeof window !== "undefined") {
+  window.addEventListener("beforeunload", () => {
+    isPageUnloading = true;
+  });
+  window.addEventListener("pagehide", () => {
+    isPageUnloading = true;
+  });
+}
+
 const getBaseURL = () => {
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
@@ -7,7 +17,9 @@ const getBaseURL = () => {
   if (
     typeof window !== "undefined" &&
     (window.location.hostname === "localhost" ||
-      window.location.hostname === "127.0.0.1")
+      window.location.hostname === "127.0.0.1" ||
+      window.location.hostname === "[::1]" ||
+      window.location.hostname === "::1")
   ) {
     return "http://localhost:5000/api";
   }
@@ -32,6 +44,18 @@ API.interceptors.request.use((config) => {
 API.interceptors.response.use(
   (response) => response,
   (error) => {
+    // When navigating away from a page, in-flight requests may be cancelled by the browser
+    // (especially in WebKit/Safari where aborted XHR fires onerror before context teardown).
+    // Suppress network error rejection during unload to prevent spurious console error reports.
+    if (
+      isPageUnloading &&
+      (error?.message === "Network Error" ||
+        error?.code === "ERR_NETWORK" ||
+        !error?.response)
+    ) {
+      return new Promise(() => {});
+    }
+
     if (
       error.response &&
       error.response.status === 403 &&
