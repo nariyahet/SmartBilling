@@ -166,30 +166,39 @@ function PlasticProduction() {
   // Shop Floor Action Handlers
   const handleStartBatch = async (batchId) => {
     try {
+      setError("");
+      setSuccessMsg("");
       await API.post(`/plastic-erp/production/batches/${batchId}/start`);
       setSuccessMsg("Batch started on shop floor!");
       fetchData();
     } catch (err) {
+      setSuccessMsg("");
       setError(err.response?.data?.message || "Failed to start batch.");
     }
   };
 
   const handlePauseBatch = async (batchId) => {
     try {
+      setError("");
+      setSuccessMsg("");
       await API.post(`/plastic-erp/production/batches/${batchId}/pause`, { reason: "Operator pause" });
       setSuccessMsg("Batch paused.");
       fetchData();
     } catch (err) {
+      setSuccessMsg("");
       setError(err.response?.data?.message || "Failed to pause batch.");
     }
   };
 
   const handleResumeBatch = async (batchId) => {
     try {
+      setError("");
+      setSuccessMsg("");
       await API.post(`/plastic-erp/production/batches/${batchId}/resume`);
-      setSuccessMsg("Batch resumed.");
+      setSuccessMsg("Batch resumed and is now RUNNING.");
       fetchData();
     } catch (err) {
+      setSuccessMsg("");
       setError(err.response?.data?.message || "Failed to resume batch.");
     }
   };

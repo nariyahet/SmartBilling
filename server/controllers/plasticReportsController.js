@@ -11,10 +11,29 @@ exports.getOperationalReports = async (req, res) => {
     const paramsConsump = [companyId];
 
     if (from_date && to_date) {
-      dateCondBatch = " AND DATE(b.batch_date) >= ? AND DATE(b.batch_date) <= ?";
-      dateCondConsump = " AND DATE(c.consumed_at) >= ? AND DATE(c.consumed_at) <= ?";
+      dateCondBatch += " AND DATE(b.batch_date) >= ? AND DATE(b.batch_date) <= ?";
+      dateCondConsump += " AND DATE(c.consumed_at) >= ? AND DATE(c.consumed_at) <= ?";
       paramsBatch.push(from_date, to_date);
       paramsConsump.push(from_date, to_date);
+    } else if (from_date) {
+      dateCondBatch += " AND DATE(b.batch_date) >= ?";
+      dateCondConsump += " AND DATE(c.consumed_at) >= ?";
+      paramsBatch.push(from_date);
+      paramsConsump.push(from_date);
+    } else if (to_date) {
+      dateCondBatch += " AND DATE(b.batch_date) <= ?";
+      dateCondConsump += " AND DATE(c.consumed_at) <= ?";
+      paramsBatch.push(to_date);
+      paramsConsump.push(to_date);
+    }
+
+    if (machine_id) {
+      dateCondBatch += " AND b.machine_id = ?";
+      paramsBatch.push(machine_id);
+    }
+    if (shift_id) {
+      dateCondBatch += " AND b.shift_id = ?";
+      paramsBatch.push(shift_id);
     }
 
     // 1. Production Summary

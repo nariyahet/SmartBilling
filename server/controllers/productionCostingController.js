@@ -22,18 +22,38 @@ exports.getAllBatchCosts = async (req, res) => {
     let totalProductionExpense = 0;
     let totalOutputKg = 0;
 
-    for (const item of costs) {
-      totalProductionExpense += Number(item.total_cost) || 0;
-      totalOutputKg += Number(item.output_quantity) || 0;
-    }
+    const enrichedCosts = costs.map((item) => {
+      const totalCost = Number(item.total_cost) || 0;
+      const outputQty = Number(item.output_quantity) || 0;
+      const standardCost = Number(item.standard_cost) || 0;
+      const varianceCost = Number(item.variance_cost) || 0;
+
+      totalProductionExpense += totalCost;
+      totalOutputKg += outputQty;
+
+      const standardCostPerKg = outputQty > 0
+        ? Number((standardCost / outputQty).toFixed(2))
+        : (standardCost > 0 ? standardCost : 0);
+
+      const variancePercent = standardCost > 0
+        ? Number(((varianceCost / standardCost) * 100).toFixed(1))
+        : 0;
+
+      return {
+        ...item,
+        standard_cost_per_kg: standardCostPerKg,
+        variance_amount: varianceCost,
+        variance_percent: variancePercent,
+      };
+    });
 
     const avgCostPerKg = totalOutputKg > 0 ? (totalProductionExpense / totalOutputKg).toFixed(2) : 0;
 
     res.status(200).json({
       success: true,
-      costs,
+      costs: enrichedCosts,
       summary: {
-        totalBatchesCosted: costs.length,
+        totalBatchesCosted: enrichedCosts.length,
         totalProductionExpense,
         totalOutputKg,
         avgCostPerKg: Number(avgCostPerKg),

@@ -191,7 +191,39 @@ function PlasticCosting() {
             </tr>
           ) : (
             costs.map((c) => {
-              const isFavorable = Number(c.variance_amount) <= 0;
+              const outputQty = Number(c.output_quantity) || 0;
+              const totalCost = Number(c.total_cost) || 0;
+
+              // Defensive Standard Cost / KG
+              let stdCostPerKg = null;
+              if (c.standard_cost_per_kg !== undefined && c.standard_cost_per_kg !== null && !isNaN(Number(c.standard_cost_per_kg))) {
+                stdCostPerKg = Number(c.standard_cost_per_kg);
+              } else if (c.standard_cost !== undefined && c.standard_cost !== null && !isNaN(Number(c.standard_cost))) {
+                const stdTotal = Number(c.standard_cost);
+                stdCostPerKg = outputQty > 0 ? stdTotal / outputQty : stdTotal;
+              }
+
+              // Defensive Variance Amount
+              let varianceAmt = null;
+              if (c.variance_amount !== undefined && c.variance_amount !== null && !isNaN(Number(c.variance_amount))) {
+                varianceAmt = Number(c.variance_amount);
+              } else if (c.variance_cost !== undefined && c.variance_cost !== null && !isNaN(Number(c.variance_cost))) {
+                varianceAmt = Number(c.variance_cost);
+              } else if (stdCostPerKg !== null) {
+                const expectedTotal = stdCostPerKg * outputQty;
+                varianceAmt = totalCost - expectedTotal;
+              }
+
+              // Defensive Variance Percent
+              let variancePct = 0;
+              if (c.variance_percent !== undefined && c.variance_percent !== null && !isNaN(Number(c.variance_percent))) {
+                variancePct = Number(c.variance_percent);
+              } else if (varianceAmt !== null && stdCostPerKg !== null && stdCostPerKg > 0 && outputQty > 0) {
+                variancePct = Number(((varianceAmt / (stdCostPerKg * outputQty)) * 100).toFixed(1));
+              }
+
+              const isFavorable = varianceAmt !== null ? varianceAmt <= 0 : true;
+
               return (
                 <tr key={c.id}>
                   <td>
@@ -203,36 +235,42 @@ function PlasticCosting() {
                     </Link>
                   </td>
                   <td><strong>{c.product_name}</strong></td>
-                  <td>{c.output_quantity} KG</td>
-                  <td>₹{Number(c.raw_material_cost).toFixed(2)}</td>
+                  <td>{outputQty.toLocaleString()} KG</td>
+                  <td>₹{Number(c.raw_material_cost || 0).toFixed(2)}</td>
                   <td>
-                    {Number(c.regrind_cost) > 0 ? (
+                    {Number(c.regrind_cost || 0) > 0 ? (
                       <span style={{ color: "var(--sb-success)", fontWeight: 600 }}>-₹{Number(c.regrind_cost).toFixed(2)}</span>
                     ) : (
                       "—"
                     )}
                   </td>
-                  <td>₹{Number(c.labour_cost).toFixed(2)}</td>
-                  <td>₹{Number(c.machine_cost).toFixed(2)}</td>
-                  <td>₹{Number(c.overhead_cost).toFixed(2)}</td>
-                  <td><strong>₹{Number(c.total_cost).toFixed(2)}</strong></td>
+                  <td>₹{Number(c.labour_cost || 0).toFixed(2)}</td>
+                  <td>₹{Number(c.machine_cost || 0).toFixed(2)}</td>
+                  <td>₹{Number(c.overhead_cost || 0).toFixed(2)}</td>
+                  <td><strong>₹{totalCost.toFixed(2)}</strong></td>
                   <td>
                     <span className="cost-per-kg-badge">
-                      ₹{Number(c.cost_per_kg).toFixed(2)}
+                      ₹{Number(c.cost_per_kg || (outputQty > 0 ? totalCost / outputQty : 0)).toFixed(2)}
                     </span>
                   </td>
-                  <td style={{ color: "var(--sb-muted)" }}>₹{Number(c.standard_cost_per_kg).toFixed(2)}</td>
+                  <td style={{ color: "var(--sb-muted)" }}>
+                    {stdCostPerKg !== null && !isNaN(stdCostPerKg) ? `₹${stdCostPerKg.toFixed(2)}` : "—"}
+                  </td>
                   <td>
-                    <span
-                      className={`variance-pill ${
-                        isFavorable ? "variance-favorable" : "variance-adverse"
-                      }`}
-                    >
-                      {isFavorable ? "▼" : "▲"} ₹{Math.abs(Number(c.variance_amount)).toFixed(2)} ({c.variance_percent}%)
-                    </span>
+                    {varianceAmt !== null && !isNaN(varianceAmt) ? (
+                      <span
+                        className={`variance-pill ${
+                          isFavorable ? "variance-favorable" : "variance-adverse"
+                        }`}
+                      >
+                        {isFavorable ? "▼" : "▲"} ₹{Math.abs(varianceAmt).toFixed(2)} ({Math.abs(variancePct)}%)
+                      </span>
+                    ) : (
+                      <span className="variance-pill variance-favorable">—</span>
+                    )}
                   </td>
                   <td style={{ color: "var(--sb-muted)", fontSize: "12px" }}>
-                    {new Date(c.calculated_at).toLocaleDateString()}
+                    {c.calculated_at ? new Date(c.calculated_at).toLocaleDateString() : "-"}
                   </td>
                 </tr>
               );

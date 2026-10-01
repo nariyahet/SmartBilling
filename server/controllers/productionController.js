@@ -649,8 +649,11 @@ exports.startBatch = async (req, res) => {
     const { id } = req.params;
 
     const [batches] = await db.promise().query(
-      `SELECT * FROM plastic_production_batches WHERE id = ? AND company_id = ?`,
-      [id, companyId]
+      `SELECT b.*, m.machine_name
+       FROM plastic_production_batches b
+       LEFT JOIN plastic_machines m ON b.machine_id = m.id AND b.company_id = m.company_id
+       WHERE (b.id = ? OR b.batch_no = ?) AND b.company_id = ?`,
+      [id, id, companyId]
     );
 
     if (batches.length === 0) {
@@ -661,6 +664,53 @@ exports.startBatch = async (req, res) => {
     }
 
     const batch = batches[0];
+
+    // Status transition validation
+    if (batch.status === "RUNNING") {
+      return res.status(400).json({
+        success: false,
+        message: `Batch ${batch.batch_no} is already RUNNING`,
+      });
+    }
+    if (batch.status === "PAUSED") {
+      return res.status(400).json({
+        success: false,
+        message: `Batch ${batch.batch_no} is currently PAUSED. Use Resume to continue this batch.`,
+      });
+    }
+    if (batch.status === "COMPLETED") {
+      return res.status(400).json({
+        success: false,
+        message: `Batch ${batch.batch_no} is already COMPLETED and cannot be started.`,
+      });
+    }
+    if (batch.status !== "PLANNED") {
+      return res.status(400).json({
+        success: false,
+        message: `Batch ${batch.batch_no} cannot be started from status '${batch.status}'`,
+      });
+    }
+
+    // Machine scheduling conflict validation
+    if (batch.machine_id) {
+      const [conflicts] = await db.promise().query(
+        `SELECT b.id, b.batch_no, m.machine_name
+         FROM plastic_production_batches b
+         LEFT JOIN plastic_machines m ON b.machine_id = m.id AND b.company_id = m.company_id
+         WHERE b.company_id = ? AND b.machine_id = ? AND b.status = 'RUNNING' AND b.id != ?`,
+        [companyId, batch.machine_id, batch.id]
+      );
+
+      if (conflicts.length > 0) {
+        const conflictingBatch = conflicts[0];
+        const machineLabel = conflictingBatch.machine_name || `Machine #${batch.machine_id}`;
+        return res.status(409).json({
+          success: false,
+          message: `Machine scheduling conflict: ${machineLabel} is currently running batch ${conflictingBatch.batch_no}. Please pause or complete the active batch before starting another batch on this machine.`,
+        });
+      }
+    }
+
     conn = await db.promise().getConnection();
     await conn.beginTransaction();
 
@@ -670,21 +720,21 @@ exports.startBatch = async (req, res) => {
            start_time = COALESCE(start_time, CURRENT_TIMESTAMP),
            updated_at = CURRENT_TIMESTAMP
        WHERE id = ? AND company_id = ?`,
-      [id, companyId]
+      [batch.id, companyId]
     );
 
     // If machine attached, mark ACTIVE
     if (batch.machine_id) {
       await conn.query(
-        `UPDATE plastic_machines SET status = 'ACTIVE' WHERE id = ? AND company_id = ?`,
+        `UPDATE plastic_machines SET status = 'ACTIVE', updated_at = CURRENT_TIMESTAMP WHERE id = ? AND company_id = ?`,
         [batch.machine_id, companyId]
       );
     }
 
     // Update WIP status
     await conn.query(
-      `UPDATE plastic_wip_stock SET status = 'PROCESSING' WHERE batch_id = ? AND company_id = ?`,
-      [id, companyId]
+      `UPDATE plastic_wip_stock SET status = 'PROCESSING', updated_at = CURRENT_TIMESTAMP WHERE batch_id = ? AND company_id = ?`,
+      [batch.id, companyId]
     );
 
     // Traceability event
@@ -694,9 +744,9 @@ exports.startBatch = async (req, res) => {
        VALUES (?, ?, 'BATCH_STARTED', ?, 'plastic_production_batches', ?)`,
       [
         companyId,
-        id,
-        `Batch ${batch.batch_no} started on shop floor machine ${batch.machine_id || "default"}`,
-        id,
+        batch.id,
+        `Batch ${batch.batch_no} started on shop floor machine ${batch.machine_name || batch.machine_id || "default"}`,
+        batch.id,
       ]
     );
 
@@ -725,81 +775,205 @@ exports.startBatch = async (req, res) => {
 };
 
 exports.pauseBatch = async (req, res) => {
+  let conn;
   try {
     const companyId = req.user.company_id;
     const { id } = req.params;
     const { reason = "Temporary halt" } = req.body;
 
-    const [result] = await db.promise().query(
-      `UPDATE plastic_production_batches
-       SET status = 'PAUSED', updated_at = CURRENT_TIMESTAMP
-       WHERE id = ? AND company_id = ?`,
-      [id, companyId]
+    const [batches] = await db.promise().query(
+      `SELECT b.*, m.machine_name
+       FROM plastic_production_batches b
+       LEFT JOIN plastic_machines m ON b.machine_id = m.id AND b.company_id = m.company_id
+       WHERE (b.id = ? OR b.batch_no = ?) AND b.company_id = ?`,
+      [id, id, companyId]
     );
 
-    if (result.affectedRows === 0) {
+    if (batches.length === 0) {
       return res.status(404).json({
         success: false,
         message: "Batch not found",
       });
     }
 
-    await db.promise().query(
-      `INSERT INTO plastic_batch_traceability
-        (company_id, batch_id, event_type, event_description)
-       VALUES (?, ?, 'BATCH_PAUSED', ?)`,
-      [companyId, id, `Batch paused. Reason: ${reason}`]
+    const batch = batches[0];
+
+    if (batch.status === "PAUSED") {
+      return res.status(400).json({
+        success: false,
+        message: `Batch ${batch.batch_no} is already PAUSED`,
+      });
+    }
+
+    if (batch.status !== "RUNNING") {
+      return res.status(400).json({
+        success: false,
+        message: `Only RUNNING batches can be paused. Current status is '${batch.status}'.`,
+      });
+    }
+
+    conn = await db.promise().getConnection();
+    await conn.beginTransaction();
+
+    await conn.query(
+      `UPDATE plastic_production_batches
+       SET status = 'PAUSED', updated_at = CURRENT_TIMESTAMP
+       WHERE id = ? AND company_id = ?`,
+      [batch.id, companyId]
     );
 
-    res.status(200).json({
+    await conn.query(
+      `UPDATE plastic_wip_stock
+       SET status = 'PAUSED', updated_at = CURRENT_TIMESTAMP
+       WHERE batch_id = ? AND company_id = ?`,
+      [batch.id, companyId]
+    );
+
+    await conn.query(
+      `INSERT INTO plastic_batch_traceability
+        (company_id, batch_id, event_type, event_description, entity_type, entity_id)
+       VALUES (?, ?, 'BATCH_PAUSED', ?, 'plastic_production_batches', ?)`,
+      [companyId, batch.id, `Batch ${batch.batch_no} paused. Reason: ${reason}`, batch.id]
+    );
+
+    await conn.commit();
+
+    return res.status(200).json({
       success: true,
-      message: "Batch paused",
+      message: `Batch ${batch.batch_no} paused`,
     });
   } catch (error) {
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        console.error("Rollback failed:", rollbackError);
+      }
+    }
     console.error("Pause Batch Error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to pause batch",
     });
+  } finally {
+    if (conn) conn.release();
   }
 };
 
 exports.resumeBatch = async (req, res) => {
+  let conn;
   try {
     const companyId = req.user.company_id;
     const { id } = req.params;
 
-    const [result] = await db.promise().query(
-      `UPDATE plastic_production_batches
-       SET status = 'RUNNING', updated_at = CURRENT_TIMESTAMP
-       WHERE id = ? AND company_id = ?`,
-      [id, companyId]
+    const [batches] = await db.promise().query(
+      `SELECT b.*, m.machine_name
+       FROM plastic_production_batches b
+       LEFT JOIN plastic_machines m ON b.machine_id = m.id AND b.company_id = m.company_id
+       WHERE (b.id = ? OR b.batch_no = ?) AND b.company_id = ?`,
+      [id, id, companyId]
     );
 
-    if (result.affectedRows === 0) {
+    if (batches.length === 0) {
       return res.status(404).json({
         success: false,
         message: "Batch not found",
       });
     }
 
-    await db.promise().query(
-      `INSERT INTO plastic_batch_traceability
-        (company_id, batch_id, event_type, event_description)
-       VALUES (?, ?, 'BATCH_RESUMED', 'Batch resumed on shop floor')`,
-      [companyId, id]
+    const batch = batches[0];
+
+    // Status transition validation: Only PAUSED batches can be resumed
+    if (batch.status === "RUNNING") {
+      return res.status(400).json({
+        success: false,
+        message: `Batch ${batch.batch_no} is already RUNNING`,
+      });
+    }
+    if (batch.status !== "PAUSED") {
+      return res.status(400).json({
+        success: false,
+        message: `Only PAUSED batches can be resumed. Batch ${batch.batch_no} is currently '${batch.status}'.`,
+      });
+    }
+
+    // Machine scheduling conflict validation on resume
+    if (batch.machine_id) {
+      const [conflicts] = await db.promise().query(
+        `SELECT b.id, b.batch_no, m.machine_name
+         FROM plastic_production_batches b
+         LEFT JOIN plastic_machines m ON b.machine_id = m.id AND b.company_id = m.company_id
+         WHERE b.company_id = ? AND b.machine_id = ? AND b.status = 'RUNNING' AND b.id != ?`,
+        [companyId, batch.machine_id, batch.id]
+      );
+
+      if (conflicts.length > 0) {
+        const conflictingBatch = conflicts[0];
+        const machineLabel = conflictingBatch.machine_name || `Machine #${batch.machine_id}`;
+        return res.status(409).json({
+          success: false,
+          message: `Machine scheduling conflict: ${machineLabel} is currently running batch ${conflictingBatch.batch_no}. Please pause or complete the active batch before resuming this batch.`,
+        });
+      }
+    }
+
+    conn = await db.promise().getConnection();
+    await conn.beginTransaction();
+
+    await conn.query(
+      `UPDATE plastic_production_batches
+       SET status = 'RUNNING', updated_at = CURRENT_TIMESTAMP
+       WHERE id = ? AND company_id = ?`,
+      [batch.id, companyId]
     );
 
-    res.status(200).json({
+    if (batch.machine_id) {
+      await conn.query(
+        `UPDATE plastic_machines SET status = 'ACTIVE', updated_at = CURRENT_TIMESTAMP WHERE id = ? AND company_id = ?`,
+        [batch.machine_id, companyId]
+      );
+    }
+
+    // Update WIP status back to PROCESSING
+    await conn.query(
+      `UPDATE plastic_wip_stock SET status = 'PROCESSING', updated_at = CURRENT_TIMESTAMP WHERE batch_id = ? AND company_id = ?`,
+      [batch.id, companyId]
+    );
+
+    // Create BATCH_RESUMED audit event
+    await conn.query(
+      `INSERT INTO plastic_batch_traceability
+        (company_id, batch_id, event_type, event_description, entity_type, entity_id)
+       VALUES (?, ?, 'BATCH_RESUMED', ?, 'plastic_production_batches', ?)`,
+      [
+        companyId,
+        batch.id,
+        `Batch ${batch.batch_no} resumed on shop floor machine ${batch.machine_name || batch.machine_id || "default"}`,
+        batch.id,
+      ]
+    );
+
+    await conn.commit();
+
+    return res.status(200).json({
       success: true,
-      message: "Batch resumed and is now RUNNING",
+      message: `Batch ${batch.batch_no} resumed and is now RUNNING`,
     });
   } catch (error) {
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        console.error("Rollback failed:", rollbackError);
+      }
+    }
     console.error("Resume Batch Error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to resume batch",
     });
+  } finally {
+    if (conn) conn.release();
   }
 };
 

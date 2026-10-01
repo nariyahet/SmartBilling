@@ -16,7 +16,8 @@ import "./PlasticReports.css";
 
 function PlasticReports() {
   const [activeTab, setActiveTab] = useState("reports");
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const [dateRange, setDateRange] = useState({
@@ -33,15 +34,18 @@ function PlasticReports() {
 
   const [alerts, setAlerts] = useState([]);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (customRange) => {
     try {
       setLoading(true);
       setError("");
 
+      const activeRange = customRange || dateRange;
       const params = {};
-      if (dateRange.from_date && dateRange.to_date) {
-        params.from_date = dateRange.from_date;
-        params.to_date = dateRange.to_date;
+      if (activeRange.from_date) {
+        params.from_date = activeRange.from_date;
+      }
+      if (activeRange.to_date) {
+        params.to_date = activeRange.to_date;
       }
 
       const [repRes, altRes] = await Promise.allSettled([
@@ -60,27 +64,31 @@ function PlasticReports() {
       setError("Failed to load reports and operational alerts.");
     } finally {
       setLoading(false);
+      setInitialLoading(false);
     }
   }, [dateRange]);
 
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleFilterSubmit = (e) => {
     e.preventDefault();
-    fetchData();
+    fetchData(dateRange);
   };
 
   const handleResetFilter = () => {
-    setDateRange({ from_date: "", to_date: "" });
+    const emptyRange = { from_date: "", to_date: "" };
+    setDateRange(emptyRange);
+    fetchData(emptyRange);
   };
 
   const handlePrintReport = () => {
     window.print();
   };
 
-  if (loading && !reports.production?.total_batches) {
+  if (initialLoading) {
     return <LoadingScreen message="Aggregating operational reports & plant alerts..." />;
   }
 
@@ -164,8 +172,8 @@ function PlasticReports() {
                 />
               </div>
               <div style={{ display: "flex", gap: "8px" }}>
-                <Button type="submit" variant="primary">
-                  Filter Period
+                <Button type="submit" variant="primary" disabled={loading}>
+                  {loading ? "Filtering..." : "Filter Period"}
                 </Button>
                 {(dateRange.from_date || dateRange.to_date) && (
                   <Button type="button" variant="secondary" onClick={handleResetFilter}>

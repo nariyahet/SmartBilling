@@ -258,6 +258,8 @@ exports.getWipStock = async (req, res) => {
     if (status) {
       sql += ` AND w.status = ?`;
       params.push(status);
+    } else {
+      sql += ` AND w.status != 'COMPLETED' AND b.status != 'COMPLETED'`;
     }
 
     sql += ` ORDER BY w.id DESC`;
