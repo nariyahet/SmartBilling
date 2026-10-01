@@ -98,15 +98,22 @@ function PlasticSalesReports({ defaultTab = "SALES" }) {
     fetchReports(fromDate, toDate);
   }, [fromDate, toDate]);
 
+  const formatLocalDate = (d) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
   const handleQuickDate = (period) => {
     const today = new Date();
     if (period === "TODAY") {
-      const d = today.toISOString().split("T")[0];
+      const d = formatLocalDate(today);
       setFromDate(d);
       setToDate(d);
     } else if (period === "THIS_MONTH") {
-      const first = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split("T")[0];
-      const last = today.toISOString().split("T")[0];
+      const first = formatLocalDate(new Date(today.getFullYear(), today.getMonth(), 1));
+      const last = formatLocalDate(new Date(today.getFullYear(), today.getMonth() + 1, 0));
       setFromDate(first);
       setToDate(last);
     } else if (period === "ALL") {

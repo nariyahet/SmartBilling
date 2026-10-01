@@ -43,11 +43,32 @@ function PlasticFinancialReports({ defaultReport = "trial-balance" }) {
   const [period, setPeriod] = useState("month");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  const [accountsList, setAccountsList] = useState([]);
+  const [selectedAccountId, setSelectedAccountId] = useState("");
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  useEffect(() => {
+    if (activeReport === "general-ledger" && accountsList.length === 0) {
+      API.get("/plastic-erp/accounting/accounts/accounts")
+        .then((res) => {
+          if (res.data?.success && res.data.accounts) {
+            setAccountsList(res.data.accounts);
+          }
+        })
+        .catch((err) => {
+          console.error("Failed to load accounts for General Ledger selector:", err);
+        });
+    }
+  }, [activeReport, accountsList.length]);
+
   const fetchReport = useCallback(async () => {
+    if (activeReport === "general-ledger" && !selectedAccountId) {
+      setReportData(null);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -55,6 +76,9 @@ function PlasticFinancialReports({ defaultReport = "trial-balance" }) {
       if (period === "custom" && fromDate && toDate) {
         params.from_date = fromDate;
         params.to_date = toDate;
+      }
+      if (activeReport === "general-ledger") {
+        params.account_id = selectedAccountId;
       }
       const res = await API.get(`/plastic-erp/accounting/financial-reports/${activeReport}`, { params });
       if (res.data?.success) {
@@ -66,10 +90,15 @@ function PlasticFinancialReports({ defaultReport = "trial-balance" }) {
     } finally {
       setLoading(false);
     }
-  }, [activeReport, period, fromDate, toDate]);
+  }, [activeReport, period, fromDate, toDate, selectedAccountId]);
 
   useEffect(() => {
     let isCurrent = true;
+    if (activeReport === "general-ledger" && !selectedAccountId) {
+      setReportData(null);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
 
@@ -79,6 +108,9 @@ function PlasticFinancialReports({ defaultReport = "trial-balance" }) {
         if (period === "custom" && fromDate && toDate) {
           params.from_date = fromDate;
           params.to_date = toDate;
+        }
+        if (activeReport === "general-ledger") {
+          params.account_id = selectedAccountId;
         }
         const res = await API.get(`/plastic-erp/accounting/financial-reports/${activeReport}`, { params });
         if (isCurrent && res.data?.success) {
@@ -101,7 +133,7 @@ function PlasticFinancialReports({ defaultReport = "trial-balance" }) {
     return () => {
       isCurrent = false;
     };
-  }, [activeReport, period, fromDate, toDate]);
+  }, [activeReport, period, fromDate, toDate, selectedAccountId]);
 
   const handlePrint = () => {
     window.print();
@@ -193,6 +225,25 @@ function PlasticFinancialReports({ defaultReport = "trial-balance" }) {
                 </>
               )}
 
+              {activeReport === "general-ledger" && (
+                <div className="filter-item">
+                  <label htmlFor="gl-account-selector">Ledger Account</label>
+                  <select
+                    id="gl-account-selector"
+                    value={selectedAccountId}
+                    onChange={(e) => setSelectedAccountId(e.target.value)}
+                    className="sb-select"
+                  >
+                    <option value="">-- Select Ledger Account --</option>
+                    {accountsList.map((acc) => (
+                      <option key={acc.id} value={acc.id}>
+                        {acc.account_code ? `[${acc.account_code}] ` : ""}{acc.account_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <Button
                 variant="secondary"
                 icon="🔄"
@@ -217,6 +268,10 @@ function PlasticFinancialReports({ defaultReport = "trial-balance" }) {
             <div className="sb-error-state">
               <p>⚠️ {error}</p>
               <Button variant="secondary" onClick={fetchReport}>Retry</Button>
+            </div>
+          ) : activeReport === "general-ledger" && !selectedAccountId ? (
+            <div className="fin-empty-state">
+              📖 Please select a Ledger Account from the dropdown above to view its General Ledger audit trail.
             </div>
           ) : !reportData ? (
             <div className="fin-empty-state">No report generated. Click Refresh to load.</div>

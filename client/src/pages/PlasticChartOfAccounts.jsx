@@ -181,8 +181,27 @@ function PlasticChartOfAccounts() {
     }
   };
 
+  const filteredAccounts = accounts.filter((acc) => {
+    if (typeFilter !== "ALL" && acc.account_type?.toUpperCase() !== typeFilter.toUpperCase()) {
+      return false;
+    }
+    if (statusFilter !== "ALL" && acc.status?.toUpperCase() !== statusFilter.toUpperCase()) {
+      return false;
+    }
+    if (search && search.trim()) {
+      const term = search.toLowerCase().trim();
+      const matchName = acc.account_name?.toLowerCase().includes(term);
+      const matchCode = acc.account_code?.toLowerCase().includes(term);
+      const matchGroup = acc.group_name?.toLowerCase().includes(term);
+      if (!matchName && !matchCode && !matchGroup) {
+        return false;
+      }
+    }
+    return true;
+  });
+
   const tabItems = [
-    { key: "ALL", label: `All Ledger Accounts (${accounts.length})`, icon: "📋" },
+    { key: "ALL", label: `All Ledger Accounts (${filteredAccounts.length})`, icon: "📋" },
     { key: "GROUPS", label: `Account Groups (${groups.length})`, icon: "🌳" },
     { key: "MASTERS", label: "Integrated Masters (Customers & Suppliers)", icon: "🔗" },
   ];
@@ -319,14 +338,14 @@ function PlasticChartOfAccounts() {
                   </tr>
                 </thead>
                 <tbody>
-                  {accounts.length === 0 ? (
+                  {filteredAccounts.length === 0 ? (
                     <tr>
                       <td colSpan="9" className="coa-table-empty">
                         No ledger accounts found matching the filter criteria.
                       </td>
                     </tr>
                   ) : (
-                    accounts.map((acc) => (
+                    filteredAccounts.map((acc) => (
                       <tr key={acc.id}>
                         <td>
                           <span className="coa-code-badge">{acc.account_code}</span>

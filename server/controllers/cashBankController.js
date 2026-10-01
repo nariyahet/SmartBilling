@@ -167,6 +167,12 @@ exports.getTransactions = async (req, res) => {
     if (from_date && to_date) {
       sql += ` AND bt.transaction_date >= ? AND bt.transaction_date <= ?`;
       params.push(from_date, to_date);
+    } else if (from_date) {
+      sql += ` AND bt.transaction_date >= ?`;
+      params.push(from_date);
+    } else if (to_date) {
+      sql += ` AND bt.transaction_date <= ?`;
+      params.push(to_date);
     }
 
     if (search && search.trim()) {

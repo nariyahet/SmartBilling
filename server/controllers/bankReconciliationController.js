@@ -33,6 +33,12 @@ exports.getReconciliations = async (req, res) => {
     if (from_date && to_date) {
       sql += ` AND br.statement_date >= ? AND br.statement_date <= ?`;
       params.push(from_date, to_date);
+    } else if (from_date) {
+      sql += ` AND br.statement_date >= ?`;
+      params.push(from_date);
+    } else if (to_date) {
+      sql += ` AND br.statement_date <= ?`;
+      params.push(to_date);
     }
 
     sql += ` ORDER BY br.statement_date DESC, br.id DESC`;

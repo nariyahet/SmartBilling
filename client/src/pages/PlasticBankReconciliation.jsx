@@ -46,7 +46,7 @@ function PlasticBankReconciliation() {
       }
     };
     fetchAccounts();
-  }, [selectedAccountId]);
+  }, []);
 
   // Fetch Reconciliations & Summary
   const fetchReconData = useCallback(async () => {
@@ -267,20 +267,31 @@ function PlasticBankReconciliation() {
                 </tr>
               </thead>
               <tbody>
-                {reconciliations.length === 0 ? (
-                  <tr>
-                    <td colSpan="9" className="recon-table-empty">
-                      <div className="empty-state">
-                        <span className="empty-icon">⚖️</span>
-                        <p>No bank statement entries recorded for this account.</p>
-                        <Button variant="primary" size="sm" onClick={() => setStatementModalOpen(true)}>
-                          Add First Statement Entry
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  reconciliations.map((row) => (
+                {(() => {
+                  const displayedReconciliations = reconciliations.filter((row) => {
+                    if (statusFilter === "UNRECONCILED" && row.status?.toUpperCase() !== "UNRECONCILED") return false;
+                    if (statusFilter === "RECONCILED" && row.status?.toUpperCase() !== "RECONCILED") return false;
+                    if (selectedAccountId && selectedAccountId !== "ALL" && String(row.bank_account_id) !== String(selectedAccountId)) return false;
+                    return true;
+                  });
+
+                  if (displayedReconciliations.length === 0) {
+                    return (
+                      <tr>
+                        <td colSpan="9" className="recon-table-empty">
+                          <div className="empty-state">
+                            <span className="empty-icon">⚖️</span>
+                            <p>No bank statement entries recorded matching this filter.</p>
+                            <Button variant="primary" size="sm" onClick={() => setStatementModalOpen(true)}>
+                              Add Statement Entry
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  }
+
+                  return displayedReconciliations.map((row) => (
                     <tr key={row.id}>
                       <td>
                         <span className="recon-date">
@@ -354,8 +365,8 @@ function PlasticBankReconciliation() {
                         )}
                       </td>
                     </tr>
-                  ))
-                )}
+                  ));
+                })()}
               </tbody>
             </table>
           </div>

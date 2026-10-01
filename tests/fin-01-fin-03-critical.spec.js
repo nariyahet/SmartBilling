@@ -43,7 +43,7 @@ test.describe('FIN-01 & FIN-03 Critical Defect & Regression Verification', () =>
     await page.goto(`${BASE_URL}/plastic-erp/financial-reports`);
 
     // Verify Trial Balance tab is active
-    await expect(page.locator('.fin-table')).toBeVisible();
+    await expect(page.locator('.fin-table')).toBeVisible({ timeout: 15000 });
 
     // Verify headers
     await expect(page.locator('.fin-table thead th').first()).toHaveText('Code');

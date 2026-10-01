@@ -9,25 +9,31 @@ exports.getSalesSummary = async (req, res) => {
     const params = [companyId];
 
     if (from_date && to_date) {
-      dateCond += " AND DATE(created_at) >= ? AND DATE(created_at) <= ?";
+      dateCond += " AND DATE(i.created_at) >= ? AND DATE(i.created_at) <= ?";
       params.push(from_date, to_date);
+    } else if (from_date) {
+      dateCond += " AND DATE(i.created_at) >= ?";
+      params.push(from_date);
+    } else if (to_date) {
+      dateCond += " AND DATE(i.created_at) <= ?";
+      params.push(to_date);
     }
     if (customer_id) {
-      dateCond += " AND customer_id = ?";
+      dateCond += " AND i.customer_id = ?";
       params.push(customer_id);
     }
 
     // 1. Total Metrics
     const [totals] = await db.promise().query(
       `SELECT
-        COUNT(id) AS total_invoices,
-        COALESCE(SUM(subtotal), 0) AS total_subtotal,
-        COALESCE(SUM(tax_amount), 0) AS total_tax,
-        COALESCE(SUM(discount_amount), 0) AS total_discount,
-        COALESCE(SUM(grand_total), 0) AS total_sales,
-        COALESCE(SUM(paid_amount), 0) AS total_paid
-       FROM invoices
-       WHERE company_id = ? ${dateCond}`,
+        COUNT(i.id) AS total_invoices,
+        COALESCE(SUM(i.subtotal), 0) AS total_subtotal,
+        COALESCE(SUM(i.tax_amount), 0) AS total_tax,
+        COALESCE(SUM(i.discount_amount), 0) AS total_discount,
+        COALESCE(SUM(i.grand_total), 0) AS total_sales,
+        COALESCE(SUM(i.paid_amount), 0) AS total_paid
+       FROM invoices i
+       WHERE i.company_id = ? ${dateCond}`,
       params
     );
 
@@ -40,7 +46,7 @@ exports.getSalesSummary = async (req, res) => {
         COALESCE(SUM(i.grand_total), 0) AS total_revenue
        FROM invoices i
        JOIN customers c ON i.customer_id = c.id AND i.company_id = c.company_id
-       WHERE i.company_id = ? ${dateCond.replace(/customer_id/g, "i.customer_id")}
+       WHERE i.company_id = ? ${dateCond}
        GROUP BY c.id
        ORDER BY total_revenue DESC
        LIMIT 10`,
@@ -50,11 +56,11 @@ exports.getSalesSummary = async (req, res) => {
     // 3. Sales by Month
     const [byMonth] = await db.promise().query(
       `SELECT
-        DATE_FORMAT(created_at, '%Y-%m') AS month,
-        COUNT(id) AS invoice_count,
-        COALESCE(SUM(grand_total), 0) AS total_sales
-       FROM invoices
-       WHERE company_id = ? ${dateCond}
+        DATE_FORMAT(i.created_at, '%Y-%m') AS month,
+        COUNT(i.id) AS invoice_count,
+        COALESCE(SUM(i.grand_total), 0) AS total_sales
+       FROM invoices i
+       WHERE i.company_id = ? ${dateCond}
        GROUP BY month
        ORDER BY month ASC`,
       params
@@ -137,20 +143,26 @@ exports.getDispatchSummary = async (req, res) => {
     const params = [companyId];
 
     if (from_date && to_date) {
-      dateCond += " AND dispatch_date >= ? AND dispatch_date <= ?";
+      dateCond += " AND d.dispatch_date >= ? AND d.dispatch_date <= ?";
       params.push(from_date, to_date);
+    } else if (from_date) {
+      dateCond += " AND d.dispatch_date >= ?";
+      params.push(from_date);
+    } else if (to_date) {
+      dateCond += " AND d.dispatch_date <= ?";
+      params.push(to_date);
     }
 
     // 1. Overall counts
     const [counts] = await db.promise().query(
       `SELECT
-        COUNT(id) AS total_dispatches,
-        COUNT(CASE WHEN status = 'READY' THEN 1 END) AS ready_dispatches,
-        COUNT(CASE WHEN status = 'DISPATCHED' THEN 1 END) AS in_transit_dispatches,
-        COUNT(CASE WHEN status = 'DELIVERED' THEN 1 END) AS delivered_dispatches,
-        COUNT(CASE WHEN status = 'CANCELLED' THEN 1 END) AS cancelled_dispatches
-       FROM plastic_dispatches
-       WHERE company_id = ? ${dateCond}`,
+        COUNT(d.id) AS total_dispatches,
+        COUNT(CASE WHEN d.status = 'READY' THEN 1 END) AS ready_dispatches,
+        COUNT(CASE WHEN d.status = 'DISPATCHED' THEN 1 END) AS in_transit_dispatches,
+        COUNT(CASE WHEN d.status = 'DELIVERED' THEN 1 END) AS delivered_dispatches,
+        COUNT(CASE WHEN d.status = 'CANCELLED' THEN 1 END) AS cancelled_dispatches
+       FROM plastic_dispatches d
+       WHERE d.company_id = ? ${dateCond}`,
       params
     );
 
@@ -162,7 +174,7 @@ exports.getDispatchSummary = async (req, res) => {
         COALESCE(SUM(di.quantity), 0) AS total_qty
        FROM plastic_dispatches d
        LEFT JOIN plastic_dispatch_items di ON d.id = di.dispatch_id AND d.company_id = di.company_id
-       WHERE d.company_id = ? ${dateCond.replace(/dispatch_date/g, "d.dispatch_date")}
+       WHERE d.company_id = ? ${dateCond}
        GROUP BY transporter
        ORDER BY total_qty DESC`,
       params
@@ -176,7 +188,7 @@ exports.getDispatchSummary = async (req, res) => {
         COALESCE(SUM(di.quantity), 0) AS total_qty
        FROM plastic_dispatches d
        LEFT JOIN plastic_dispatch_items di ON d.id = di.dispatch_id AND d.company_id = di.company_id
-       WHERE d.company_id = ? ${dateCond.replace(/dispatch_date/g, "d.dispatch_date")}
+       WHERE d.company_id = ? ${dateCond}
        GROUP BY destination
        ORDER BY total_qty DESC
        LIMIT 10`,
@@ -186,13 +198,13 @@ exports.getDispatchSummary = async (req, res) => {
     // 4. Vehicle-wise volume
     const [byVehicle] = await db.promise().query(
       `SELECT
-        COALESCE(vehicle_number, 'Unassigned') AS vehicle_number,
+        COALESCE(d.vehicle_number, 'Unassigned') AS vehicle_number,
         COUNT(d.id) AS trip_count,
         COALESCE(SUM(di.quantity), 0) AS total_volume_kg
        FROM plastic_dispatches d
        LEFT JOIN plastic_dispatch_items di ON d.id = di.dispatch_id AND d.company_id = di.company_id
-       WHERE d.company_id = ? ${dateCond.replace(/dispatch_date/g, "d.dispatch_date")}
-       GROUP BY vehicle_number
+       WHERE d.company_id = ? ${dateCond}
+       GROUP BY d.vehicle_number
        ORDER BY total_volume_kg DESC`,
       params
     );
@@ -234,19 +246,25 @@ exports.getPaymentSummary = async (req, res) => {
     const params = [companyId];
 
     if (from_date && to_date) {
-      dateCond += " AND payment_date >= ? AND payment_date <= ?";
+      dateCond += " AND p.payment_date >= ? AND p.payment_date <= ?";
       params.push(from_date, to_date);
+    } else if (from_date) {
+      dateCond += " AND p.payment_date >= ?";
+      params.push(from_date);
+    } else if (to_date) {
+      dateCond += " AND p.payment_date <= ?";
+      params.push(to_date);
     }
 
     // 1. Method breakdown
     const [byMethod] = await db.promise().query(
       `SELECT
-        payment_method,
-        COUNT(id) AS transaction_count,
-        COALESCE(SUM(amount), 0) AS total_collected
-       FROM plastic_payments
-       WHERE company_id = ? AND status = 'RECEIVED' ${dateCond}
-       GROUP BY payment_method
+        p.payment_method,
+        COUNT(p.id) AS transaction_count,
+        COALESCE(SUM(p.amount), 0) AS total_collected
+       FROM plastic_payments p
+       WHERE p.company_id = ? AND p.status = 'RECEIVED' ${dateCond}
+       GROUP BY p.payment_method
        ORDER BY total_collected DESC`,
       params
     );
@@ -254,13 +272,13 @@ exports.getPaymentSummary = async (req, res) => {
     // 2. Daily collection trend
     const [byDate] = await db.promise().query(
       `SELECT
-        payment_date,
-        COUNT(id) AS transaction_count,
-        COALESCE(SUM(amount), 0) AS total_collected
-       FROM plastic_payments
-       WHERE company_id = ? AND status = 'RECEIVED' ${dateCond}
-       GROUP BY payment_date
-       ORDER BY payment_date DESC
+        p.payment_date,
+        COUNT(p.id) AS transaction_count,
+        COALESCE(SUM(p.amount), 0) AS total_collected
+       FROM plastic_payments p
+       WHERE p.company_id = ? AND p.status = 'RECEIVED' ${dateCond}
+       GROUP BY p.payment_date
+       ORDER BY p.payment_date DESC
        LIMIT 30`,
       params
     );
@@ -273,7 +291,7 @@ exports.getPaymentSummary = async (req, res) => {
         COALESCE(SUM(p.amount), 0) AS total_paid
        FROM plastic_payments p
        JOIN customers c ON p.customer_id = c.id AND p.company_id = c.company_id
-       WHERE p.company_id = ? AND p.status = 'RECEIVED' ${dateCond.replace(/payment_date/g, "p.payment_date")}
+       WHERE p.company_id = ? AND p.status = 'RECEIVED' ${dateCond}
        GROUP BY c.id
        ORDER BY total_paid DESC
        LIMIT 10`,
@@ -330,6 +348,12 @@ exports.getProfitMarginReport = async (req, res) => {
     if (from_date && to_date) {
       dateCond += " AND d.dispatch_date >= ? AND d.dispatch_date <= ?";
       params.push(from_date, to_date);
+    } else if (from_date) {
+      dateCond += " AND d.dispatch_date >= ?";
+      params.push(from_date);
+    } else if (to_date) {
+      dateCond += " AND d.dispatch_date <= ?";
+      params.push(to_date);
     }
 
     // Fetch dispatch items with finished good details, lot details, and production costing

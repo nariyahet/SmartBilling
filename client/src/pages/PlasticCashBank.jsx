@@ -380,44 +380,64 @@ function PlasticCashBank() {
         </Card>
 
         {/* Live Transactions Ledger */}
-        <Card
-          title="Recent Cash & Bank Transactions"
-          subtitle={`Displaying ${transactions.length} recorded cash and banking events`}
-          actions={
-            <Button variant="ghost" size="sm" icon="🔄" onClick={fetchData}>
-              Refresh
-            </Button>
-          }
-        >
-          <div className="cb-table-wrapper">
-            <table className="cb-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Account</th>
-                  <th>Type</th>
-                  <th>Mode / Ref</th>
-                  <th>Description</th>
-                  <th className="cell-right">Amount (₹)</th>
-                  <th className="cell-right">Balance After</th>
-                  <th className="cell-center">Recon Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {transactions.length === 0 ? (
-                  <tr>
-                    <td colSpan="8" className="cb-table-empty">
-                      <div className="empty-state">
-                        <span className="empty-icon">🏦</span>
-                        <p>No cash/bank transactions recorded matching your criteria.</p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  transactions.map((tx) => {
-                    const isInward = ["DEPOSIT", "RECEIPT"].includes(tx.transaction_type) || (tx.transaction_type === "TRANSFER" && tx.description?.includes("Transfer from"));
-                    return (
-                      <tr key={tx.id}>
+        {(() => {
+          const filteredTransactions = transactions.filter((tx) => {
+            if (selectedAccFilter !== "ALL" && String(tx.bank_account_id) !== String(selectedAccFilter)) {
+              return false;
+            }
+            if (typeFilter !== "ALL" && tx.transaction_type?.toUpperCase() !== typeFilter.toUpperCase()) {
+              return false;
+            }
+            if (fromDate) {
+              const txDateStr = tx.transaction_date ? new Date(tx.transaction_date).toISOString().split("T")[0] : "";
+              if (txDateStr && txDateStr < fromDate) return false;
+            }
+            if (toDate) {
+              const txDateStr = tx.transaction_date ? new Date(tx.transaction_date).toISOString().split("T")[0] : "";
+              if (txDateStr && txDateStr > toDate) return false;
+            }
+            return true;
+          });
+
+          return (
+            <Card
+              title="Recent Cash & Bank Transactions"
+              subtitle={`Displaying ${filteredTransactions.length} recorded cash and banking events`}
+              actions={
+                <Button variant="ghost" size="sm" icon="🔄" onClick={fetchData}>
+                  Refresh
+                </Button>
+              }
+            >
+              <div className="cb-table-wrapper">
+                <table className="cb-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Account</th>
+                      <th>Type</th>
+                      <th>Mode / Ref</th>
+                      <th>Description</th>
+                      <th className="cell-right">Amount (₹)</th>
+                      <th className="cell-right">Balance After</th>
+                      <th className="cell-center">Recon Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredTransactions.length === 0 ? (
+                      <tr>
+                        <td colSpan="8" className="cb-table-empty">
+                          <div className="empty-state">
+                            <span className="empty-icon">🏦</span>
+                            <p>No cash/bank transactions recorded matching your criteria.</p>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredTransactions.map((tx) => {
+                        const isInward = ["DEPOSIT", "RECEIPT"].includes(tx.transaction_type) || (tx.transaction_type === "TRANSFER" && tx.description?.includes("Transfer from"));
+                        return (
+                          <tr key={tx.id}>
                         <td>
                           <span className="tx-date">
                             {new Date(tx.transaction_date).toLocaleDateString("en-IN", {
@@ -462,6 +482,8 @@ function PlasticCashBank() {
             </table>
           </div>
         </Card>
+      );
+    })()}
 
         {/* Modal: Create Account */}
         <Modal
