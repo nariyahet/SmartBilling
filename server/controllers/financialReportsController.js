@@ -13,8 +13,12 @@ const getDateRange = (period, fromDate, toDate) => {
     start = now.toISOString().split("T")[0];
     end = start;
   } else if (period === "year") {
-    start = `${now.getFullYear()}-01-01`;
-    end = `${now.getFullYear()}-12-31`;
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth(); // 0-indexed: 0 = Jan, 3 = Apr, 11 = Dec
+    const fyStartYear = currentMonth >= 3 ? currentYear : currentYear - 1;
+    const fyEndYear = fyStartYear + 1;
+    start = `${fyStartYear}-04-01`;
+    end = `${fyEndYear}-03-31`;
   } else {
     // Default: this month
     const y = now.getFullYear();
@@ -90,14 +94,29 @@ exports.getTrialBalance = async (req, res) => {
       sumDebit += finalDebit;
       sumCredit += finalCredit;
 
+      const closingBalance = finalDebit > 0 ? finalDebit : (finalCredit > 0 ? finalCredit : 0);
+      const balanceNature = finalDebit > 0 ? "Dr" : (finalCredit > 0 ? "Cr" : (acc.debit_credit_nature === "CREDIT" ? "Cr" : "Dr"));
+
       return {
         id: acc.id,
+        account_id: acc.id,
         accountCode: acc.account_code,
+        account_code: acc.account_code,
         accountName: acc.account_name,
+        account_name: acc.account_name,
         accountType: acc.account_type,
+        account_type: acc.account_type,
         groupName: acc.group_name,
+        group_name: acc.group_name,
+        groupCode: acc.group_code,
+        group_code: acc.group_code,
+        opening_balance: openBal,
         debit: finalDebit,
+        total_debit: finalDebit,
         credit: finalCredit,
+        total_credit: finalCredit,
+        closing_balance: closingBalance,
+        balance_nature: balanceNature,
       };
     });
 
@@ -112,6 +131,12 @@ exports.getTrialBalance = async (req, res) => {
       totalDebit: sumDebit,
       totalCredit: sumCredit,
       difference,
+      totals: {
+        totalDebit: sumDebit,
+        totalCredit: sumCredit,
+        isBalanced,
+        difference,
+      },
       rows,
     });
   } catch (error) {

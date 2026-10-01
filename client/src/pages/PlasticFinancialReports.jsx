@@ -252,27 +252,38 @@ function PlasticFinancialReports({ defaultReport = "trial-balance" }) {
                       </tr>
                     </thead>
                     <tbody>
-                      {reportData.rows?.map((row) => (
-                        <tr key={row.account_id}>
-                          <td><code className="fin-code-chip">{row.account_code}</code></td>
-                          <td><strong>{row.account_name}</strong></td>
-                          <td><span className="fin-group-chip">{row.group_name}</span></td>
-                          <td className="cell-right">{Number(row.total_debit) > 0 ? Number(row.total_debit).toLocaleString("en-IN") : "—"}</td>
-                          <td className="cell-right">{Number(row.total_credit) > 0 ? Number(row.total_credit).toLocaleString("en-IN") : "—"}</td>
-                          <td className="cell-right">
-                            <strong>{formatINR(row.closing_balance)}</strong> ({row.balance_nature})
-                          </td>
-                        </tr>
-                      ))}
+                      {reportData.rows?.map((row) => {
+                        const accountId = row.account_id || row.id;
+                        const accountCode = row.account_code || row.accountCode;
+                        const accountName = row.account_name || row.accountName;
+                        const groupName = row.group_name || row.groupName;
+                        const debitVal = Number(row.total_debit ?? row.debit ?? 0);
+                        const creditVal = Number(row.total_credit ?? row.credit ?? 0);
+                        const closingBal = Number(row.closing_balance ?? (debitVal > 0 ? debitVal : creditVal));
+                        const balNature = row.balance_nature || (debitVal >= creditVal ? "Dr" : "Cr");
+
+                        return (
+                          <tr key={accountId}>
+                            <td><code className="fin-code-chip">{accountCode}</code></td>
+                            <td><strong>{accountName}</strong></td>
+                            <td><span className="fin-group-chip">{groupName}</span></td>
+                            <td className="cell-right">{debitVal > 0 ? debitVal.toLocaleString("en-IN") : "—"}</td>
+                            <td className="cell-right">{creditVal > 0 ? creditVal.toLocaleString("en-IN") : "—"}</td>
+                            <td className="cell-right">
+                              <strong>{formatINR(closingBal)}</strong> ({balNature})
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                     <tfoot>
                       <tr className="tfoot-totals">
                         <td colSpan="3"><strong>TOTAL</strong></td>
-                        <td className="cell-right"><strong>{formatINR(reportData.totals?.totalDebit)}</strong></td>
-                        <td className="cell-right"><strong>{formatINR(reportData.totals?.totalCredit)}</strong></td>
+                        <td className="cell-right"><strong>{formatINR(reportData.totals?.totalDebit ?? reportData.totalDebit ?? 0)}</strong></td>
+                        <td className="cell-right"><strong>{formatINR(reportData.totals?.totalCredit ?? reportData.totalCredit ?? 0)}</strong></td>
                         <td className="cell-right">
-                          <span className={`badge-integrity ${reportData.totals?.isBalanced ? "balanced" : "unbalanced"}`}>
-                            {reportData.totals?.isBalanced ? "✓ BALANCED" : "⚠️ OUT OF BALANCE"}
+                          <span className={`badge-integrity ${(reportData.totals?.isBalanced ?? reportData.isBalanced) ? "balanced" : "unbalanced"}`}>
+                            {(reportData.totals?.isBalanced ?? reportData.isBalanced) ? "✓ BALANCED" : "⚠️ OUT OF BALANCE"}
                           </span>
                         </td>
                       </tr>
